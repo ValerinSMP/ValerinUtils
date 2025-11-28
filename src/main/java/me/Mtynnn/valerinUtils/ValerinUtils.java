@@ -2,6 +2,7 @@ package me.Mtynnn.valerinUtils;
 
 import me.Mtynnn.valerinUtils.commands.MenuItemCommand;
 import me.Mtynnn.valerinUtils.core.ModuleManager;
+import me.Mtynnn.valerinUtils.modules.externalplaceholders.ExternalPlaceholdersModule;
 import me.Mtynnn.valerinUtils.modules.menuitem.MenuItemModule;
 import me.Mtynnn.valerinUtils.modules.vote40.Vote40Module;
 import me.Mtynnn.valerinUtils.commands.ValerinUtilsCommand;
@@ -16,6 +17,7 @@ public final class ValerinUtils extends JavaPlugin {
     private static ValerinUtils instance;
     private ModuleManager moduleManager;
     private MenuItemModule menuItemModule;
+    private ExternalPlaceholdersModule externalPlaceholdersModule;
 
     @Override
     public void onEnable() {
@@ -28,6 +30,10 @@ public final class ValerinUtils extends JavaPlugin {
         moduleManager = new ModuleManager(this);
         menuItemModule = new MenuItemModule(this);
         moduleManager.registerModule(menuItemModule);
+
+        // Módulo de placeholders externos (RoyalEconomy, etc.)
+        externalPlaceholdersModule = new ExternalPlaceholdersModule(this);
+        moduleManager.registerModule(externalPlaceholdersModule);
 
         if (Bukkit.getPluginManager().getPlugin("Votifier") != null
                 || Bukkit.getPluginManager().getPlugin("VotifierPlus") != null) {
@@ -78,6 +84,10 @@ public final class ValerinUtils extends JavaPlugin {
 
     public MenuItemModule getMenuItemModule() {
         return menuItemModule;
+    }
+
+    public ExternalPlaceholdersModule getExternalPlaceholdersModule() {
+        return externalPlaceholdersModule;
     }
 
     public String getMessage(String key) {

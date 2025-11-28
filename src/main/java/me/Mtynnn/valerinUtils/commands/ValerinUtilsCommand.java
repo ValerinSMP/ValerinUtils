@@ -1,14 +1,12 @@
 package me.Mtynnn.valerinUtils.commands;
 
 import me.Mtynnn.valerinUtils.ValerinUtils;
-import me.Mtynnn.valerinUtils.core.Module;
-import me.Mtynnn.valerinUtils.modules.menuitem.MenuItemModule;
+import me.Mtynnn.valerinUtils.modules.externalplaceholders.ExternalPlaceholdersModule;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 
-import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -39,6 +37,12 @@ public class ValerinUtilsCommand implements CommandExecutor, TabCompleter {
 
             if (plugin.getMenuItemModule() != null) {
                 plugin.getMenuItemModule().refreshAllPlayers();
+            }
+
+            // Recargar providers externos
+            ExternalPlaceholdersModule extModule = plugin.getExternalPlaceholdersModule();
+            if (extModule != null) {
+                extModule.reloadAll();
             }
 
             sender.sendMessage(plugin.getMessage("valerinutils-reload-ok"));

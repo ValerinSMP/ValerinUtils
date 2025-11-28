@@ -5,6 +5,8 @@ modules:
     enabled: true
     service-name: "40Servidores"
     delay-seconds: 30
+  externalplaceholders:
+    enabled: true
 
 menuitem:
   slot: 8
