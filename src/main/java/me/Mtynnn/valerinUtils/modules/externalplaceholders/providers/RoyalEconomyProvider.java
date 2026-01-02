@@ -173,12 +173,12 @@ public class RoyalEconomyProvider implements PlaceholderProvider, Listener {
     private void loadCache() {
         payDisabledCache.clear();
         
-        cacheFile = new File(plugin.getDataFolder(), "data.yml");
+        cacheFile = new File(plugin.getDataFolder(), "royaleconomy_data.yml");
         if (!cacheFile.exists()) {
             try {
                 cacheFile.createNewFile();
             } catch (IOException e) {
-                plugin.getLogger().severe("[RoyalEconomyProvider] Could not create data.yml: " + e.getMessage());
+                plugin.getLogger().severe("[RoyalEconomyProvider] Could not create royaleconomy_data.yml: " + e.getMessage());
             }
         }
         

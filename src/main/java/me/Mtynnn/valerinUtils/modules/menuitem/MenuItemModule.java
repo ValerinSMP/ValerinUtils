@@ -61,12 +61,12 @@ public class MenuItemModule implements Module, Listener {
         if (!folder.exists()) {
             folder.mkdirs();
         }
-        this.dataFile = new File(folder, "data.yml");
+        this.dataFile = new File(folder, "menuitem_data.yml");
         if (!dataFile.exists()) {
             try {
                 dataFile.createNewFile();
             } catch (IOException e) {
-                plugin.getLogger().severe("No se pudo crear data.yml: " + e.getMessage());
+                plugin.getLogger().severe("No se pudo crear menuitem_data.yml: " + e.getMessage());
             }
         }
         this.dataConfig = YamlConfiguration.loadConfiguration(dataFile);
@@ -103,14 +103,16 @@ public class MenuItemModule implements Module, Listener {
     }
 
     private void saveDisabledPlayers() {
+        // Recargar antes de escribir para no pisar datos externos si el archivo se toca a mano
+        FileConfiguration fresh = YamlConfiguration.loadConfiguration(dataFile);
         var list = disabledPlayers.stream()
                 .map(UUID::toString)
                 .toList();
-        dataConfig.set("menuitem-disabled", list);
+        fresh.set("menuitem-disabled", list);
         try {
-            dataConfig.save(dataFile);
+            fresh.save(dataFile);
         } catch (IOException e) {
-            plugin.getLogger().severe("No se pudo guardar data.yml: " + e.getMessage());
+            plugin.getLogger().severe("No se pudo guardar menuitem_data.yml: " + e.getMessage());
         }
     }
 

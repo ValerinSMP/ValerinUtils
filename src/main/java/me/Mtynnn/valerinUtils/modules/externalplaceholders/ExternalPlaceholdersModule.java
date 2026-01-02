@@ -28,6 +28,11 @@ public class ExternalPlaceholdersModule implements Module {
 
     @Override
     public void enable() {
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") == null) {
+            plugin.getLogger().info("[ExternalPlaceholders] PlaceholderAPI not found, skipping providers");
+            return;
+        }
+
         // Registrar RoyalEconomy si está presente
         if (Bukkit.getPluginManager().getPlugin("RoyaleEconomy") != null) {
             RoyalEconomyProvider royalProvider = new RoyalEconomyProvider(plugin);

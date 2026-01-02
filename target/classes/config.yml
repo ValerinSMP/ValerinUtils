@@ -9,6 +9,12 @@ modules:
     delay-seconds: 30
   externalplaceholders:
     enabled: true
+  joinquit:
+    enabled: true
+  ecoskillsrecount:
+    enabled: true
+    delay-ticks: 20
+    notify-player: false
 
 menuitem:
   slot: 8
@@ -48,6 +54,8 @@ messages:
   menuitem-off: '%prefix%&cItem de menú &fdesactivado&7. El slot queda libre.'
   menuitem-toggled-on: '%prefix%&aItem de menú &factivado&7.'
   menuitem-toggled-off: '%prefix%&cItem de menú &fdesactivado&7.'
+  
+  ecoskillsrecount-done: '%prefix%&aTus habilidades han sido recalculadas correctamente.'
 
 joinquit:
   enabled: true
