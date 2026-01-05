@@ -37,8 +37,12 @@ public class MenuItemCommand implements CommandExecutor, TabCompleter {
 
         switch (sub) {
             case "on" -> {
-                module.setDisabled(player, false);
-                sender.sendMessage(plugin.getMessage("menuitem-on"));
+                boolean success = module.setDisabled(player, false);
+                if (success) {
+                    sender.sendMessage(plugin.getMessage("menuitem-on"));
+                } else {
+                    sender.sendMessage(plugin.getMessage("menuitem-slot-occupied"));
+                }
             }
             case "off" -> {
                 module.setDisabled(player, true);
@@ -46,10 +50,14 @@ public class MenuItemCommand implements CommandExecutor, TabCompleter {
             }
             case "toggle" -> {
                 boolean disabled = module.isDisabled(player);
-                module.setDisabled(player, !disabled);
-                sender.sendMessage(!disabled
-                        ? plugin.getMessage("menuitem-toggled-off")
-                        : plugin.getMessage("menuitem-toggled-on"));
+                boolean success = module.setDisabled(player, !disabled);
+                if (success) {
+                    sender.sendMessage(!disabled
+                            ? plugin.getMessage("menuitem-toggled-off")
+                            : plugin.getMessage("menuitem-toggled-on"));
+                } else {
+                    sender.sendMessage(plugin.getMessage("menuitem-slot-occupied"));
+                }
             }
             default -> sender.sendMessage(plugin.getMessage("menuitem-usage"));
         }

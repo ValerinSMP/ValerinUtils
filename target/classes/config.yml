@@ -54,6 +54,7 @@ messages:
   menuitem-off: '%prefix%&cItem de menú &fdesactivado&7. El slot queda libre.'
   menuitem-toggled-on: '%prefix%&aItem de menú &factivado&7.'
   menuitem-toggled-off: '%prefix%&cItem de menú &fdesactivado&7.'
+  menuitem-slot-occupied: '%prefix%&cNo puedes activar el item. El slot está ocupado, vacíalo primero.'
   
   ecoskillsrecount-done: '%prefix%&aTus habilidades han sido recalculadas correctamente.'
 

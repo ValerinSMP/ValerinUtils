@@ -120,18 +120,27 @@ public class MenuItemModule implements Module, Listener {
         return disabledPlayers.contains(player.getUniqueId());
     }
 
-    public void setDisabled(Player player, boolean disabled) {
+    public boolean setDisabled(Player player, boolean disabled) {
         UUID uuid = player.getUniqueId();
         if (disabled) {
             if (disabledPlayers.add(uuid)) {
                 saveDisabledPlayers();
             }
             clearMenuItem(player);
+            return true;
         } else {
+            // Verificar si el slot configurado está ocupado
+            int slot = getConfiguredSlot();
+            ItemStack itemInSlot = player.getInventory().getItem(slot);
+            if (itemInSlot != null && !itemInSlot.getType().isAir()) {
+                return false; // Slot ocupado, no se puede activar
+            }
+            
             if (disabledPlayers.remove(uuid)) {
                 saveDisabledPlayers();
             }
             giveMenuItem(player);
+            return true;
         }
     }
 
