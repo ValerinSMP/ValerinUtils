@@ -90,6 +90,12 @@ public class JoinQuitModule implements Module, Listener {
         if (isWorldDisabled(player.getWorld().getName()))
             return;
 
+        // Check for vanish
+        if (player.hasMetadata("vanished")) {
+            event.setJoinMessage(null);
+            return;
+        }
+
         event.setJoinMessage(null); // Deshabilitar mensaje por defecto
 
         FileConfiguration config = plugin.getConfig();
@@ -114,6 +120,12 @@ public class JoinQuitModule implements Module, Listener {
         Player player = event.getPlayer();
         if (isWorldDisabled(player.getWorld().getName()))
             return;
+
+        // Check for vanish
+        if (player.hasMetadata("vanished")) {
+            event.setQuitMessage(null);
+            return;
+        }
 
         event.setQuitMessage(null);
 
