@@ -1,4 +1,4 @@
-package me.Mtynnn.valerinUtils.core;
+package me.mtynnn.valerinutils.core;
 
 import org.bukkit.plugin.java.JavaPlugin;
 

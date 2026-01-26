@@ -1,4 +1,4 @@
-package me.Mtynnn.valerinUtils.core;
+package me.mtynnn.valerinutils.core;
 
 public interface Module {
 

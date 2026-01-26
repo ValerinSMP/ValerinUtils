@@ -1,9 +1,9 @@
-package me.Mtynnn.valerinUtils.modules.vote40;
+package me.mtynnn.valerinutils.modules.vote40;
 
 import com.vexsoftware.votifier.model.Vote;
 import com.vexsoftware.votifier.model.VotifierEvent;
-import me.Mtynnn.valerinUtils.ValerinUtils;
-import me.Mtynnn.valerinUtils.core.Module;
+import me.mtynnn.valerinutils.ValerinUtils;
+import me.mtynnn.valerinutils.core.Module;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -30,7 +30,7 @@ public class Vote40Module implements Module, Listener {
 
     @Override
     public void disable() {
-        // Listeners are automatically unregistered by Bukkit on plugin disable
+        org.bukkit.event.HandlerList.unregisterAll(this);
     }
 
     @EventHandler

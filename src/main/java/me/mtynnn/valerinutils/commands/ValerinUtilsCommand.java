@@ -1,7 +1,7 @@
-package me.Mtynnn.valerinUtils.commands;
+package me.mtynnn.valerinutils.commands;
 
-import me.Mtynnn.valerinUtils.ValerinUtils;
-import me.Mtynnn.valerinUtils.modules.externalplaceholders.ExternalPlaceholdersModule;
+import me.mtynnn.valerinutils.ValerinUtils;
+import me.mtynnn.valerinutils.modules.externalplaceholders.ExternalPlaceholdersModule;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;

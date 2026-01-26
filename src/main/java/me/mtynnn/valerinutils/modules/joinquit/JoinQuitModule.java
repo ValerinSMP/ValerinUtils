@@ -1,7 +1,7 @@
-package me.Mtynnn.valerinUtils.modules.joinquit;
+package me.mtynnn.valerinutils.modules.joinquit;
 
-import me.Mtynnn.valerinUtils.ValerinUtils;
-import me.Mtynnn.valerinUtils.core.Module;
+import me.mtynnn.valerinutils.ValerinUtils;
+import me.mtynnn.valerinutils.core.Module;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -52,11 +52,6 @@ public class JoinQuitModule implements Module, Listener {
         } else {
             plugin.getLogger().warning("[JoinQuit] LuckPerms not found, module will not work properly");
         }
-    }
-
-    @Override
-    public void disable() {
-        // Nada que hacer al deshabilitar
     }
 
     private void loadData() {
@@ -339,52 +334,13 @@ public class JoinQuitModule implements Module, Listener {
         return uniquePlayerCount;
     }
 
+    // Logic extracted to LuckPermsHelper
     private boolean hasGroup(Player player, String groupName) {
-        if (Bukkit.getPluginManager().getPlugin("LuckPerms") == null) {
-            return false;
-        }
-        try {
-            // Usar reflection para obtener la API de LuckPerms sin importarlo directamente
-            Class<?> providerClass = Class.forName("net.luckperms.api.LuckPermsProvider");
-            java.lang.reflect.Method getMethod = providerClass.getMethod("get");
-            Object api = getMethod.invoke(null);
-            
-            Class<?> apiClass = api.getClass();
-            java.lang.reflect.Method getUserManagerMethod = apiClass.getMethod("getUserManager");
-            Object userManager = getUserManagerMethod.invoke(api);
-            
-            Class<?> userManagerClass = userManager.getClass();
-            java.lang.reflect.Method getUserMethod = userManagerClass.getMethod("getUser", java.util.UUID.class);
-            Object user = getUserMethod.invoke(userManager, player.getUniqueId());
-            
-            if (user == null)
-                return false;
+        return me.mtynnn.valerinutils.utils.LuckPermsHelper.hasGroup(player, groupName, plugin);
+    }
 
-            java.lang.reflect.Method getInheritedGroupsMethod = user.getClass()
-                    .getMethod("getInheritedGroups", Class.forName("net.luckperms.api.query.QueryOptions"));
-            
-            Class<?> queryOptionsClass = Class.forName("net.luckperms.api.query.QueryOptions");
-            java.lang.reflect.Method defaultContextualMethod = queryOptionsClass.getMethod("defaultContextualOptions");
-            Object queryOptions = defaultContextualMethod.invoke(null);
-            
-            Object groups = getInheritedGroupsMethod.invoke(user, queryOptions);
-            
-            if (groups instanceof java.util.Collection<?>) {
-                for (Object group : (java.util.Collection<?>) groups) {
-                    java.lang.reflect.Method getNameMethod = group.getClass().getMethod("getName");
-                    String name = (String) getNameMethod.invoke(group);
-                    if (name.equalsIgnoreCase(groupName)) {
-                        return true;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            if (plugin.isDebug()) {
-                plugin.getLogger().warning("Error checking LuckPerms group: " + e.getMessage());
-            }
-            return false;
-        }
-        
-        return false;
+    @Override
+    public void disable() {
+        org.bukkit.event.HandlerList.unregisterAll(this);
     }
 }

@@ -1,10 +1,10 @@
-package me.Mtynnn.valerinUtils.placeholders;
+package me.mtynnn.valerinutils.placeholders;
 
-import me.Mtynnn.valerinUtils.ValerinUtils;
-import me.Mtynnn.valerinUtils.modules.externalplaceholders.ExternalPlaceholdersModule;
-import me.Mtynnn.valerinUtils.modules.externalplaceholders.providers.PlaceholderProvider;
-import me.Mtynnn.valerinUtils.modules.menuitem.MenuItemModule;
-import me.Mtynnn.valerinUtils.modules.joinquit.JoinQuitModule;
+import me.mtynnn.valerinutils.ValerinUtils;
+import me.mtynnn.valerinutils.modules.externalplaceholders.ExternalPlaceholdersModule;
+import me.mtynnn.valerinutils.modules.externalplaceholders.providers.PlaceholderProvider;
+import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
+import me.mtynnn.valerinutils.modules.joinquit.JoinQuitModule;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;

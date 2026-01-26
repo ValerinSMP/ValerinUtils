@@ -1,6 +1,6 @@
-package me.Mtynnn.valerinUtils.modules.externalplaceholders.providers;
+package me.mtynnn.valerinutils.modules.externalplaceholders.providers;
 
-import me.Mtynnn.valerinUtils.ValerinUtils;
+import me.mtynnn.valerinutils.ValerinUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;

@@ -1,10 +1,10 @@
-package me.Mtynnn.valerinUtils.modules.externalplaceholders;
+package me.mtynnn.valerinutils.modules.externalplaceholders;
 
-import me.Mtynnn.valerinUtils.ValerinUtils;
-import me.Mtynnn.valerinUtils.core.Module;
+import me.mtynnn.valerinutils.ValerinUtils;
+import me.mtynnn.valerinutils.core.Module;
 
-import me.Mtynnn.valerinUtils.modules.externalplaceholders.providers.PlaceholderProvider;
-import me.Mtynnn.valerinUtils.modules.externalplaceholders.providers.RoyalEconomyProvider;
+import me.mtynnn.valerinutils.modules.externalplaceholders.providers.PlaceholderProvider;
+import me.mtynnn.valerinutils.modules.externalplaceholders.providers.RoyalEconomyProvider;
 
 import org.bukkit.Bukkit;
 

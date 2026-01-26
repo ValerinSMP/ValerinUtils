@@ -1,4 +1,4 @@
-package me.Mtynnn.valerinUtils.modules.externalplaceholders.providers;
+package me.mtynnn.valerinutils.modules.externalplaceholders.providers;
 
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;

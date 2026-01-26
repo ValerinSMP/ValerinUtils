@@ -1,7 +1,7 @@
-package me.Mtynnn.valerinUtils.modules.menuitem;
+package me.mtynnn.valerinutils.modules.menuitem;
 
-import me.Mtynnn.valerinUtils.ValerinUtils;
-import me.Mtynnn.valerinUtils.core.Module;
+import me.mtynnn.valerinutils.ValerinUtils;
+import me.mtynnn.valerinutils.core.Module;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -86,7 +86,7 @@ public class MenuItemModule implements Module, Listener {
 
     @Override
     public void disable() {
-        // Bukkit limpia listeners al deshabilitar el plugin
+        org.bukkit.event.HandlerList.unregisterAll(this);
         saveDisabledPlayers();
     }
 
@@ -103,7 +103,18 @@ public class MenuItemModule implements Module, Listener {
     }
 
     private void saveDisabledPlayers() {
-        // Recargar antes de escribir para no pisar datos externos si el archivo se toca a mano
+        // Backup simple
+        if (dataFile.exists()) {
+            try {
+                java.nio.file.Files.copy(dataFile.toPath(),
+                        new File(dataFile.getParent(), "menuitem_data.yml.bak").toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException ignored) {
+            }
+        }
+
+        // Recargar antes de escribir para no pisar datos externos si el archivo se toca
+        // a mano
         FileConfiguration fresh = YamlConfiguration.loadConfiguration(dataFile);
         var list = disabledPlayers.stream()
                 .map(UUID::toString)
@@ -135,7 +146,7 @@ public class MenuItemModule implements Module, Listener {
             if (itemInSlot != null && !itemInSlot.getType().isAir()) {
                 return false; // Slot ocupado, no se puede activar
             }
-            
+
             if (disabledPlayers.remove(uuid)) {
                 saveDisabledPlayers();
             }

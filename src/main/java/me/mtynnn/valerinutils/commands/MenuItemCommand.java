@@ -1,7 +1,7 @@
-package me.Mtynnn.valerinUtils.commands;
+package me.mtynnn.valerinutils.commands;
 
-import me.Mtynnn.valerinUtils.ValerinUtils;
-import me.Mtynnn.valerinUtils.modules.menuitem.MenuItemModule;
+import me.mtynnn.valerinutils.ValerinUtils;
+import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
 

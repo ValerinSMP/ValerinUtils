@@ -1,6 +1,6 @@
 name: ValerinUtils
 version: "1.0-SNAPSHOT"
-main: me.Mtynnn.valerinUtils.ValerinUtils
+main: me.mtynnn.valerinutils.ValerinUtils
 api-version: "1.21"
 author: Mtynnn
 description: Utilidades varias para ValerinSMP

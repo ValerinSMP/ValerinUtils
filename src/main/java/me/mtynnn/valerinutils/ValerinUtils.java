@@ -1,17 +1,17 @@
-package me.Mtynnn.valerinUtils;
+package me.mtynnn.valerinutils;
 
-import me.Mtynnn.valerinUtils.commands.MenuItemCommand;
-import me.Mtynnn.valerinUtils.core.ModuleManager;
-import me.Mtynnn.valerinUtils.modules.externalplaceholders.ExternalPlaceholdersModule;
-import me.Mtynnn.valerinUtils.modules.menuitem.MenuItemModule;
-import me.Mtynnn.valerinUtils.modules.vote40.Vote40Module;
-import me.Mtynnn.valerinUtils.modules.joinquit.JoinQuitModule;
+import me.mtynnn.valerinutils.commands.MenuItemCommand;
+import me.mtynnn.valerinutils.core.ModuleManager;
+import me.mtynnn.valerinutils.modules.externalplaceholders.ExternalPlaceholdersModule;
+import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
+import me.mtynnn.valerinutils.modules.vote40.Vote40Module;
+import me.mtynnn.valerinutils.modules.joinquit.JoinQuitModule;
 
-import me.Mtynnn.valerinUtils.commands.ValerinUtilsCommand;
+import me.mtynnn.valerinutils.commands.ValerinUtilsCommand;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.bukkit.plugin.java.JavaPlugin;
-import me.Mtynnn.valerinUtils.placeholders.ValerinUtilsExpansion;
+import me.mtynnn.valerinutils.placeholders.ValerinUtilsExpansion;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import net.kyori.adventure.text.Component;

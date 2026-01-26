@@ -11,10 +11,7 @@ modules:
     enabled: true
   joinquit:
     enabled: true
-  ecoskillsrecount:
-    enabled: true
-    delay-ticks: 10
-    notify-player: false
+
 
 menuitem:
   slot: 8
@@ -56,7 +53,7 @@ messages:
   menuitem-toggled-off: '%prefix%&cItem de menú &fdesactivado&7.'
   menuitem-slot-occupied: '%prefix%&cNo puedes activar el item. El slot está ocupado, vacíalo primero.'
   
-  ecoskillsrecount-done: '%prefix%&aTus habilidades han sido recalculadas correctamente.'
+
 
 joinquit:
   enabled: true
