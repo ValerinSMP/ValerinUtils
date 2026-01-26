@@ -2,11 +2,10 @@ package me.Mtynnn.valerinUtils.modules.externalplaceholders;
 
 import me.Mtynnn.valerinUtils.ValerinUtils;
 import me.Mtynnn.valerinUtils.core.Module;
-import me.Mtynnn.valerinUtils.modules.externalplaceholders.providers.EcoSkillsProvider;
-import me.Mtynnn.valerinUtils.modules.externalplaceholders.providers.GrimACProvider;
+
 import me.Mtynnn.valerinUtils.modules.externalplaceholders.providers.PlaceholderProvider;
 import me.Mtynnn.valerinUtils.modules.externalplaceholders.providers.RoyalEconomyProvider;
-import me.Mtynnn.valerinUtils.modules.externalplaceholders.providers.TabProvider;
+
 import org.bukkit.Bukkit;
 
 import java.util.LinkedHashMap;
@@ -38,27 +37,6 @@ public class ExternalPlaceholdersModule implements Module {
             RoyalEconomyProvider royalProvider = new RoyalEconomyProvider(plugin);
             providers.put("royaleconomy", royalProvider);
             plugin.getLogger().info("[ExternalPlaceholders] RoyaleEconomy hooked");
-        }
-
-        // Registrar EcoSkills si está presente
-        if (Bukkit.getPluginManager().getPlugin("EcoSkills") != null) {
-            EcoSkillsProvider ecoSkillsProvider = new EcoSkillsProvider(plugin);
-            providers.put("ecoskills", ecoSkillsProvider);
-            plugin.getLogger().info("[ExternalPlaceholders] EcoSkills hooked");
-        }
-
-        // Registrar TAB si está presente
-        if (Bukkit.getPluginManager().getPlugin("TAB") != null) {
-            TabProvider tabProvider = new TabProvider(plugin);
-            providers.put("tab", tabProvider);
-            plugin.getLogger().info("[ExternalPlaceholders] TAB hooked");
-        }
-
-        // Registrar GrimAC si está presente
-        if (Bukkit.getPluginManager().getPlugin("GrimAC") != null) {
-            GrimACProvider grimACProvider = new GrimACProvider(plugin);
-            providers.put("grimac", grimACProvider);
-            plugin.getLogger().info("[ExternalPlaceholders] GrimAC hooked");
         }
 
         plugin.getLogger().info("[ExternalPlaceholders] " + providers.size() + " provider(s) loaded");

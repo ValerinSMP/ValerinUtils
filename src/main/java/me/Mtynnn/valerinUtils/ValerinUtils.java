@@ -6,7 +6,7 @@ import me.Mtynnn.valerinUtils.modules.externalplaceholders.ExternalPlaceholdersM
 import me.Mtynnn.valerinUtils.modules.menuitem.MenuItemModule;
 import me.Mtynnn.valerinUtils.modules.vote40.Vote40Module;
 import me.Mtynnn.valerinUtils.modules.joinquit.JoinQuitModule;
-import me.Mtynnn.valerinUtils.modules.ecoskillsrecount.EcoSkillsRecountModule;
+
 import me.Mtynnn.valerinUtils.commands.ValerinUtilsCommand;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -16,7 +16,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+
 import org.bukkit.configuration.file.FileConfiguration;
 
 public final class ValerinUtils extends JavaPlugin {
@@ -26,7 +26,6 @@ public final class ValerinUtils extends JavaPlugin {
     private MenuItemModule menuItemModule;
     private ExternalPlaceholdersModule externalPlaceholdersModule;
     private JoinQuitModule joinQuitModule;
-    private EcoSkillsRecountModule ecoSkillsRecountModule;
 
     @Override
     public void onEnable() {
@@ -46,13 +45,6 @@ public final class ValerinUtils extends JavaPlugin {
         // Módulo JoinQuit
         joinQuitModule = new JoinQuitModule(this);
         moduleManager.registerModule(joinQuitModule);
-
-        // Módulo EcoSkills Recount
-        if (Bukkit.getPluginManager().getPlugin("EcoSkills") != null) {
-            ecoSkillsRecountModule = new EcoSkillsRecountModule(this);
-            moduleManager.registerModule(ecoSkillsRecountModule);
-            getLogger().info("EcoSkills hooked - EcoSkillsRecountModule registered");
-        }
 
         if (Bukkit.getPluginManager().getPlugin("Votifier") != null
                 || Bukkit.getPluginManager().getPlugin("VotifierPlus") != null) {
@@ -111,10 +103,6 @@ public final class ValerinUtils extends JavaPlugin {
 
     public JoinQuitModule getJoinQuitModule() {
         return joinQuitModule;
-    }
-
-    public EcoSkillsRecountModule getEcoSkillsRecountModule() {
-        return ecoSkillsRecountModule;
     }
 
     public String getMessage(String key) {

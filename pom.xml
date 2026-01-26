@@ -98,24 +98,9 @@
             <version>LATEST</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>com.willfp</groupId>
-            <artifactId>eco</artifactId>
-            <version>6.74.3</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.github.NEZNAMY</groupId>
-            <artifactId>TAB-API</artifactId>
-            <version>5.3.2</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>ac.grim.grimac</groupId>
-            <artifactId>GrimAPI</artifactId>
-            <version>1.2.0.0</version>
-            <scope>provided</scope>
-        </dependency>
+
+
+
         <dependency>
             <groupId>net.luckperms</groupId>
             <artifactId>api</artifactId>
