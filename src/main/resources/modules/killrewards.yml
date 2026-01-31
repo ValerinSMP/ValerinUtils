@@ -1,0 +1,19 @@
+enabled: true
+
+rewards:
+  - chance: 100.0
+    commands:
+      - "eco give %killer% 100"
+      - "msg %killer% &a¡Has matado a %victim%!"
+  - chance: 5.0
+    commands:
+      - "give %killer% diamond 1"
+      - "broadcast &6¡%killer% obtuvo un diamante por matar a %victim%!"
+
+anti-abuse:
+  same-ip-check: true
+  cooldown-per-victim: 3600 # 1 hora
+  daily-limit: 10
+  victim:
+    min-playtime-minutes: 60
+    min-kdr: 0.5

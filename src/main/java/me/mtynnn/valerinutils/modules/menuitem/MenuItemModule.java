@@ -2,13 +2,12 @@ package me.mtynnn.valerinutils.modules.menuitem;
 
 import me.mtynnn.valerinutils.ValerinUtils;
 import me.mtynnn.valerinutils.core.Module;
+import me.mtynnn.valerinutils.core.PlayerData;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -31,46 +30,27 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 import org.bukkit.Sound;
 import java.util.Locale;
 
+@SuppressWarnings("deprecation") // Legacy ItemMeta API still required for older server compatibility
 public class MenuItemModule implements Module, Listener {
 
     private final ValerinUtils plugin;
     private final NamespacedKey menuItemKey;
 
-    // data.yml para guardar quién tiene desactivado el item
-    private final File dataFile;
-    private final FileConfiguration dataConfig;
-    private final Set<UUID> disabledPlayers = new HashSet<>();
+    // Cached values for performance
     private final Set<String> disabledWorlds = new HashSet<>();
+    private ItemStack cachedMenuItem = null;
+    private int cachedSlot = -1;
 
     public MenuItemModule(ValerinUtils plugin) {
         this.plugin = plugin;
         this.menuItemKey = new NamespacedKey(plugin, "menuitem");
-
-        // init data.yml
-        File folder = plugin.getDataFolder();
-        if (!folder.exists()) {
-            folder.mkdirs();
-        }
-        this.dataFile = new File(folder, "menuitem_data.yml");
-        if (!dataFile.exists()) {
-            try {
-                dataFile.createNewFile();
-            } catch (IOException e) {
-                plugin.getLogger().severe("No se pudo crear menuitem_data.yml: " + e.getMessage());
-            }
-        }
-        this.dataConfig = YamlConfiguration.loadConfiguration(dataFile);
-        loadDisabledPlayers();
         loadConfigSettings();
     }
 
@@ -87,56 +67,25 @@ public class MenuItemModule implements Module, Listener {
     @Override
     public void disable() {
         org.bukkit.event.HandlerList.unregisterAll(this);
-        saveDisabledPlayers();
     }
 
-    // ================== Persistencia de desactivados ==================
-
-    private void loadDisabledPlayers() {
-        disabledPlayers.clear();
-        for (String s : dataConfig.getStringList("menuitem-disabled")) {
-            try {
-                disabledPlayers.add(UUID.fromString(s));
-            } catch (IllegalArgumentException ignored) {
-            }
-        }
-    }
-
-    private void saveDisabledPlayers() {
-        // Backup simple
-        if (dataFile.exists()) {
-            try {
-                java.nio.file.Files.copy(dataFile.toPath(),
-                        new File(dataFile.getParent(), "menuitem_data.yml.bak").toPath(),
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException ignored) {
-            }
-        }
-
-        // Recargar antes de escribir para no pisar datos externos si el archivo se toca
-        // a mano
-        FileConfiguration fresh = YamlConfiguration.loadConfiguration(dataFile);
-        var list = disabledPlayers.stream()
-                .map(UUID::toString)
-                .toList();
-        fresh.set("menuitem-disabled", list);
-        try {
-            fresh.save(dataFile);
-        } catch (IOException e) {
-            plugin.getLogger().severe("No se pudo guardar menuitem_data.yml: " + e.getMessage());
-        }
-    }
+    // ================== Persistencia de desactivados (Ahora via PlayerData)
+    // ==================
 
     public boolean isDisabled(Player player) {
-        return disabledPlayers.contains(player.getUniqueId());
+        PlayerData data = plugin.getPlayerData(player.getUniqueId());
+        if (data == null)
+            return false;
+        return data.isMenuDisabled();
     }
 
     public boolean setDisabled(Player player, boolean disabled) {
-        UUID uuid = player.getUniqueId();
+        PlayerData data = plugin.getPlayerData(player.getUniqueId());
+        if (data == null)
+            return false;
+
         if (disabled) {
-            if (disabledPlayers.add(uuid)) {
-                saveDisabledPlayers();
-            }
+            data.setMenuDisabled(true);
             clearMenuItem(player);
             return true;
         } else {
@@ -147,9 +96,7 @@ public class MenuItemModule implements Module, Listener {
                 return false; // Slot ocupado, no se puede activar
             }
 
-            if (disabledPlayers.remove(uuid)) {
-                saveDisabledPlayers();
-            }
+            data.setMenuDisabled(false);
             giveMenuItem(player);
             return true;
         }
@@ -172,19 +119,27 @@ public class MenuItemModule implements Module, Listener {
     }
 
     private ConfigurationSection getSection() {
-        return plugin.getConfig().getConfigurationSection("menuitem");
+        return plugin.getConfigManager().getConfig("menuitem");
     }
 
     private int getConfiguredSlot() {
+        // Return cached value if available
+        if (cachedSlot >= 0) {
+            return cachedSlot;
+        }
+
         ConfigurationSection section = getSection();
-        if (section == null)
+        if (section == null) {
+            cachedSlot = 0;
             return 0;
+        }
 
         int slot = section.getInt("slot", 0);
         if (slot < 0)
             slot = 0;
         if (slot > 35)
             slot = 35;
+        cachedSlot = slot;
         return slot;
     }
 
@@ -197,6 +152,11 @@ public class MenuItemModule implements Module, Listener {
     }
 
     private ItemStack createMenuItem() {
+        // Return cached copy if available
+        if (cachedMenuItem != null) {
+            return cachedMenuItem.clone();
+        }
+
         ConfigurationSection section = getSection();
         String materialName = "COMPASS";
         String name = "&aMenu";
@@ -236,7 +196,16 @@ public class MenuItemModule implements Module, Listener {
             item.setItemMeta(meta);
         }
 
+        cachedMenuItem = item.clone();
         return item;
+    }
+
+    /**
+     * Invalidate cached values. Call this when config is reloaded.
+     */
+    public void invalidateCache() {
+        cachedMenuItem = null;
+        cachedSlot = -1;
     }
 
     private boolean isMenuItem(ItemStack stack) {

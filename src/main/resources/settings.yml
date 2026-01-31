@@ -1,0 +1,21 @@
+debug: true
+
+messages:
+  prefix: '&8[&#FFEE8Cᴠᴀʟᴇʀɪɴ&8]&r '
+  no-permission: '%prefix%&cNo tienes permiso para usar este comando.'
+  only-players: '%prefix%&cSolo jugadores pueden usar este comando.'
+  valerinutils-usage: '%prefix%&7Uso: &e/valerinutils reload'
+  valerinutils-reload-ok: '%prefix%&aConfiguración recargada y &fmenuitem &aactualizado.'
+  
+  # MenuItem Messages
+  menuitem-usage: '%prefix%&7Uso: &e/menu item <on|off|toggle>'
+  menuitem-on: '%prefix%&aItem de menú activado.'
+  menuitem-off: '%prefix%&cItem de menú desactivado.'
+  menuitem-toggled-on: '%prefix%&aItem de menú activado.'
+  menuitem-toggled-off: '%prefix%&cItem de menú desactivado.'
+  menuitem-slot-occupied: '%prefix%&cEl slot está ocupado, no se puede dar el item.'
+  menuitem-cooldown: '%prefix%&cDebes esperar &e%time%s &cpara volver a usar esto.'
+
+database:
+  # sqlite is the only optimized option for now
+  type: sqlite

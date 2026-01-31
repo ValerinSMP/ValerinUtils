@@ -3,11 +3,9 @@ package me.mtynnn.valerinutils.modules.joinquit;
 import me.mtynnn.valerinutils.ValerinUtils;
 import me.mtynnn.valerinutils.core.Module;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -17,8 +15,6 @@ import org.bukkit.event.player.PlayerQuitEvent;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
-import java.io.File;
-import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Random;
@@ -26,22 +22,27 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.Comparator;
 
+@SuppressWarnings("deprecation") // Legacy Bukkit API (setJoinMessage, Sound.valueOf) required for compatibility
 public class JoinQuitModule implements Module, Listener {
 
     private final ValerinUtils plugin;
-    private final File dataFile;
     private int uniquePlayerCount;
     private final Random random = new Random();
 
+    private static final String UNIQUE_PLAYERS_KEY = "unique_players";
+
     public JoinQuitModule(ValerinUtils plugin) {
         this.plugin = plugin;
-        this.dataFile = new File(plugin.getDataFolder(), "joinquit_data.yml");
         loadData();
     }
 
     @Override
     public String getId() {
         return "joinquit";
+    }
+
+    private FileConfiguration getConfig() {
+        return plugin.getConfigManager().getConfig("joinquit");
     }
 
     @Override
@@ -56,27 +57,31 @@ public class JoinQuitModule implements Module, Listener {
     }
 
     private void loadData() {
-        if (!dataFile.exists()) {
-            uniquePlayerCount = Bukkit.getOfflinePlayers().length;
-            saveData();
-        } else {
-            FileConfiguration data = YamlConfiguration.loadConfiguration(dataFile);
-            uniquePlayerCount = data.getInt("unique-players", Bukkit.getOfflinePlayers().length);
-        }
+        // Load from database
+        int defaultCount = Bukkit.getOfflinePlayers().length;
+        uniquePlayerCount = plugin.getDatabaseManager().getServerInt(UNIQUE_PLAYERS_KEY, defaultCount);
     }
 
     private void saveData() {
-        FileConfiguration data = YamlConfiguration.loadConfiguration(dataFile);
-        data.set("unique-players", uniquePlayerCount);
-        try {
-            data.save(dataFile);
-        } catch (IOException e) {
-            plugin.getLogger().warning("No se pudo guardar joinquit_data.yml");
-        }
+        plugin.getDatabaseManager().setServerInt(UNIQUE_PLAYERS_KEY, uniquePlayerCount);
     }
 
     private boolean isWorldDisabled(String worldName) {
-        List<String> disabled = plugin.getConfig().getStringList("joinquit.disabled-worlds");
+        // En el nuevo YAML, la ruta es root (ej: "disabled-worlds")
+        // En config v1 era "joinquit.disabled-worlds".
+        // ConfigManager debería haber migrado "modules.joinquit" -> root de
+        // joinquit.yml
+        // PERO JoinQuitModule structure en config antigua era:
+        // modules:
+        // joinquit:
+        // join: ...
+        // quit: ...
+
+        FileConfiguration cfg = getConfig();
+        if (cfg == null)
+            return false;
+
+        List<String> disabled = cfg.getStringList("disabled-worlds");
         return disabled.contains(worldName);
     }
 
@@ -104,20 +109,19 @@ public class JoinQuitModule implements Module, Listener {
 
         event.setJoinMessage(null); // Deshabilitar mensaje por defecto
 
-        FileConfiguration config = plugin.getConfig();
-        String path = "joinquit";
+        FileConfiguration config = getConfig();
+        if (config == null || !config.getBoolean("enabled", true))
+            return;
 
         // Incrementar contador si es nuevo (o confiar en hasPlayedBefore)
-        // Usamos hasPlayedBefore para la lógica de "Primera vez"
-        // Pero mantenemos nuestro contador para el número secuencial #ID
         boolean firstJoin = !player.hasPlayedBefore();
 
         if (firstJoin) {
             uniquePlayerCount++;
             saveData();
-            handleFirstJoin(player, config.getConfigurationSection(path + ".first-join"));
+            handleFirstJoin(player, config.getConfigurationSection("first-join"));
         } else {
-            handleJoin(player, config.getConfigurationSection(path + ".join"));
+            handleJoin(player, config.getConfigurationSection("join"));
         }
     }
 
@@ -137,7 +141,10 @@ public class JoinQuitModule implements Module, Listener {
 
         event.setQuitMessage(null);
 
-        handleQuit(player, plugin.getConfig().getConfigurationSection("joinquit.quit"));
+        FileConfiguration config = getConfig();
+        if (config != null) {
+            handleQuit(player, config.getConfigurationSection("quit"));
+        }
     }
 
     private void handleFirstJoin(Player player, ConfigurationSection section) {
@@ -155,8 +162,7 @@ public class JoinQuitModule implements Module, Listener {
             Component title = processPlaceholders(player, section.getString("title.title", ""));
             Component subtitle = processPlaceholders(player, section.getString("title.subtitle", ""));
 
-            Title.Times times = Title.Times.times(
-                    Duration.ofMillis(section.getInt("title.fade-in", 10) * 50L),
+            Title.Times times = Title.Times.times(Duration.ofMillis(section.getInt("title.fade-in", 10) * 50L),
                     Duration.ofMillis(section.getInt("title.stay", 60) * 50L),
                     Duration.ofMillis(section.getInt("title.fade-out", 10) * 50L));
 
@@ -209,21 +215,15 @@ public class JoinQuitModule implements Module, Listener {
                     // Sound
                     playSound(player, groupSection.getConfigurationSection("sound"));
 
-                    // Title (si existe en grupo)
+                    // Title
                     if (groupSection.getBoolean("title.enabled", false)) {
-                        // ... lógica de título duplicada o extraída?
-                        // Por simplicidad, si el grupo tiene title, lo usaremos.
-                        // Si no, NO muestra título (grupo anula default).
                         showTitle(player, groupSection.getConfigurationSection("title"));
                     }
 
-                    // MOTD (si existe)
+                    // MOTD
                     if (groupSection.getBoolean("motd.enabled", false)) {
                         showMotd(player, groupSection.getConfigurationSection("motd"));
                     } else if (section.getBoolean("motd.enabled")) {
-                        // Fallback MOTD global si el grupo no tiene uno específico?
-                        // Generalmente si tienes grupo, quieres override.
-                        // Pero el MOTD suele ser global. Lo dejaremos global si el grupo no define uno.
                         showMotd(player, section.getConfigurationSection("motd"));
                     }
 
@@ -257,8 +257,7 @@ public class JoinQuitModule implements Module, Listener {
         Component title = processPlaceholders(player, section.getString("title", ""));
         Component subtitle = processPlaceholders(player, section.getString("subtitle", ""));
 
-        Title.Times times = Title.Times.times(
-                Duration.ofMillis(section.getInt("fade-in", 10) * 50L),
+        Title.Times times = Title.Times.times(Duration.ofMillis(section.getInt("fade-in", 10) * 50L),
                 Duration.ofMillis(section.getInt("stay", 40) * 50L),
                 Duration.ofMillis(section.getInt("fade-out", 10) * 50L));
 
@@ -284,15 +283,7 @@ public class JoinQuitModule implements Module, Listener {
             broadcast(processPlaceholders(player, msg));
         }
 
-        // Sound (Global or to players?) - Usually Quit sounds are global or nearby?
-        // Let's play it globally to all players for now, or just don't play it if not
-        // requested specifically.
-        // Actually, JoinQuitPlus usually plays sound to the player (on join) but on
-        // quit... who hears it?
-        // Usually quit sounds are not standard unless it's a sound played TO other
-        // players.
-        // We will skip sound on quit for other players to avoid spam, or play it at the
-        // location.
+        // Sound
         if (section.getBoolean("sound.enabled")) {
             String soundName = section.getString("sound.name", "BLOCK_WOODEN_DOOR_CLOSE");
             float vol = (float) section.getDouble("sound.volume", 1.0);
@@ -333,9 +324,9 @@ public class JoinQuitModule implements Module, Listener {
             }
         }
 
-        String processed = message
-                .replace("%player%", player.getName())
-                .replace("%player_name%", player.getName()) // Alias para %player%
+        String processed = message.replace("%player%", player.getName()).replace("%player_name%", player.getName()) // Alias
+                                                                                                                    // para
+                                                                                                                    // %player%
                 .replace("%player_number%", String.valueOf(uniquePlayerCount))
                 .replace("%online%", String.valueOf(onlineCount))
                 .replace("%max%", String.valueOf(Bukkit.getMaxPlayers()));
@@ -363,11 +354,19 @@ public class JoinQuitModule implements Module, Listener {
     private boolean hasGroup(Player player, String groupName) {
         // return me.mtynnn.valerinutils.utils.LuckPermsHelper.hasGroup(player,
         // groupName, plugin);
+        // Temporarily disabled due to external dependencies check or simpler logic
         return false;
     }
 
     @Override
     public void disable() {
         org.bukkit.event.HandlerList.unregisterAll(this);
+        // unique-players data logic remains in flat file joinquit_data.yml for now
+        // as migrating it to global player DB implies tracking every single offline
+        // player ever joined?
+        // SQLite is capable, but "unique-players" is a global counter.
+        // It's fine to keep it in a small YAML or a settings table.
+        // For now, leaving it as is (optimized enough, only 1 loaded int).
+        saveData();
     }
 }

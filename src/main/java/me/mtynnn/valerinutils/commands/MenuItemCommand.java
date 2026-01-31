@@ -3,17 +3,16 @@ package me.mtynnn.valerinutils.commands;
 import me.mtynnn.valerinutils.ValerinUtils;
 import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
 import org.bukkit.command.*;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 public class MenuItemCommand implements CommandExecutor, TabCompleter {
 
     private final ValerinUtils plugin;
     private final MenuItemModule module;
+    private final Map<UUID, Long> cooldowns = new HashMap<>();
 
     public MenuItemCommand(ValerinUtils plugin, MenuItemModule module) {
         this.plugin = plugin;
@@ -24,12 +23,17 @@ public class MenuItemCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
 
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(plugin.getMessage("only-players"));
+            sender.sendMessage(getMessage("only-players", "&cSolo jugadores."));
             return true;
         }
 
         if (args.length == 0) {
-            sender.sendMessage(plugin.getMessage("menuitem-usage"));
+            sender.sendMessage(getMessage("usage", "&7Uso: &e/menu item <on|off|toggle>"));
+            return true;
+        }
+
+        // Check Cooldown
+        if (!processCooldown(player)) {
             return true;
         }
 
@@ -39,27 +43,27 @@ public class MenuItemCommand implements CommandExecutor, TabCompleter {
             case "on" -> {
                 boolean success = module.setDisabled(player, false);
                 if (success) {
-                    sender.sendMessage(plugin.getMessage("menuitem-on"));
+                    sender.sendMessage(getMessage("on", "&aActivado."));
                 } else {
-                    sender.sendMessage(plugin.getMessage("menuitem-slot-occupied"));
+                    sender.sendMessage(getMessage("slot-occupied", "&cSlot ocupado."));
                 }
             }
             case "off" -> {
                 module.setDisabled(player, true);
-                sender.sendMessage(plugin.getMessage("menuitem-off"));
+                sender.sendMessage(getMessage("off", "&cDesactivado."));
             }
             case "toggle" -> {
                 boolean disabled = module.isDisabled(player);
                 boolean success = module.setDisabled(player, !disabled);
                 if (success) {
                     sender.sendMessage(!disabled
-                            ? plugin.getMessage("menuitem-toggled-off")
-                            : plugin.getMessage("menuitem-toggled-on"));
+                            ? getMessage("toggled-off", "&cDesactivado.")
+                            : getMessage("toggled-on", "&aActivado."));
                 } else {
-                    sender.sendMessage(plugin.getMessage("menuitem-slot-occupied"));
+                    sender.sendMessage(getMessage("slot-occupied", "&cSlot ocupado."));
                 }
             }
-            default -> sender.sendMessage(plugin.getMessage("menuitem-usage"));
+            default -> sender.sendMessage(getMessage("usage", "&7Uso: &e/menu item <on|off|toggle>"));
         }
 
         return true;
@@ -78,5 +82,45 @@ public class MenuItemCommand implements CommandExecutor, TabCompleter {
             return out;
         }
         return List.of();
+    }
+
+    private boolean processCooldown(Player player) {
+        if (player.hasPermission("valerinutils.bypass.cooldown"))
+            return true;
+
+        FileConfiguration cfg = plugin.getConfigManager().getConfig("menuitem");
+        if (cfg == null)
+            return true;
+
+        int cooldownSec = cfg.getInt("cooldown-seconds", 3);
+        if (cooldownSec <= 0)
+            return true;
+
+        UUID uuid = player.getUniqueId();
+        long now = System.currentTimeMillis();
+        long last = cooldowns.getOrDefault(uuid, 0L);
+        long diff = now - last;
+        long cooldownMillis = cooldownSec * 1000L;
+
+        if (diff < cooldownMillis) {
+            double remaining = (cooldownMillis - diff) / 1000.0;
+            String msg = getMessage("cooldown", "&cEspera &e%time%s");
+            msg = msg.replace("%time%", String.format("%.1f", remaining));
+            player.sendMessage(msg);
+            return false;
+        }
+
+        cooldowns.put(uuid, now);
+        return true;
+    }
+
+    private String getMessage(String key, String def) {
+        FileConfiguration cfg = plugin.getConfigManager().getConfig("menuitem");
+        if (cfg == null)
+            return plugin.translateColors(def);
+        String val = cfg.getString("messages." + key);
+        if (val == null)
+            return plugin.translateColors(def);
+        return plugin.translateColors(val);
     }
 }

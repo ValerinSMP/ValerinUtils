@@ -39,11 +39,11 @@ public class Vote40Module implements Module, Listener {
         String serviceName = vote.getServiceName();
         String username = vote.getUsername();
 
-        FileConfiguration config = plugin.getConfig();
-        String targetService = config.getString("modules.vote40.service-name", "40Servidores");
+        FileConfiguration config = plugin.getConfigManager().getConfig("vote40");
+        String targetService = config.getString("service-name", "40Servidores");
 
         if (serviceName.equalsIgnoreCase(targetService)) {
-            long delaySeconds = config.getLong("modules.vote40.delay-seconds", 30);
+            long delaySeconds = config.getLong("delay-seconds", 30);
             long delayTicks = delaySeconds * 20L;
 
             plugin.getLogger().info("Voto recibido de " + username + " en " + serviceName + ". Ejecutando /vote40 en "

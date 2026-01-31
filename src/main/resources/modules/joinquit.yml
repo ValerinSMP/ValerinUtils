@@ -1,0 +1,142 @@
+enabled: true
+
+disabled-worlds:
+  - world_blacklist_example
+
+first-join:
+  enabled: false
+  broadcast-message:
+    '&e⭐ ɴᴜᴇᴠᴏ ᴀᴠᴇɴᴛᴜʀᴇʀᴏ &6%player_name% &ese ᴜɴᴇ ᴘᴏʀ ᴘʀɪᴍᴇʀᴀ ᴠᴇᴢ ⭐ &6(#%player_number%)'
+  title:
+    enabled: false
+    title: <gradient:#46C3D2:white><bold>¡BIENVENIDO!</bold>
+    subtitle: '&7¡Esperamos que te diviertas!'
+    fade-in: 10
+    stay: 60
+    fade-out: 10
+  sound:
+    enabled: true
+    name: ENTITY_PLAYER_LEVELUP
+    volume: 0.2
+    pitch: 1.0
+
+join:
+  # Grupos específicos (LuckPerms)
+  groups:
+    # --- STAFF ---
+    owner:
+      priority: 100
+      messages:
+      - '&6🌊 %luckperms_prefix% <gradient:#e03535:#651520>%player_name% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+      sound:
+        enabled: true
+        name: BLOCK_NOTE_BLOCK_BELL
+        volume: 1.0
+        pitch: 1.0
+    admin:
+      priority: 95
+      messages:
+      - '&6🌊 %luckperms_prefix% <gradient:#ff7a40:#b02000>%player_name% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+      sound:
+        enabled: true
+        name: BLOCK_NOTE_BLOCK_BELL
+        volume: 1.0
+        pitch: 1.0
+    mod:
+      priority: 90
+      messages:
+      - '&6🌊 %luckperms_prefix% <gradient:#ffaf20:#a03005>%player_name% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+      sound:
+        enabled: true
+        name: BLOCK_NOTE_BLOCK_BELL
+        volume: 1.0
+        pitch: 1.0
+    helper:
+      priority: 85
+      messages:
+      - '&6🌊 %luckperms_prefix% <gradient:#50ffc5:#009985>%player_name% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+      sound:
+        enabled: true
+        name: BLOCK_AMETHYST_BLOCK_CHIME
+        volume: 1.0
+        pitch: 1.0
+    
+    # --- VIPS (Mayor a Menor) ---
+    leyenda:
+      priority: 60
+      messages:
+      - '&6🌊 %luckperms_prefix% <gradient:#ffba60:#cf4b15>%player_name% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+      sound:
+        enabled: true
+        name: BLOCK_NOTE_BLOCK_BELL
+        volume: 0.5
+        pitch: 2.0
+    elite:
+      priority: 50
+      messages:
+      - '&6🌊 %luckperms_prefix% <#f6558e>%player_name% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+      sound:
+        enabled: true
+        name: BLOCK_NOTE_BLOCK_BELL
+        volume: 0.5
+        pitch: 1.5
+    arcano:
+      priority: 40
+      messages:
+      - '&6🌊 %luckperms_prefix% <#d97db3>%player_name% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+      sound:
+        enabled: true
+        name: BLOCK_NOTE_BLOCK_BELL
+        volume: 0.5
+        pitch: 1.0
+    ascendido:
+      priority: 30
+      messages:
+      - '&6🌊 %luckperms_prefix% <#9ce942>%player_name% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+      sound:
+        enabled: true
+        name: BLOCK_NOTE_BLOCK_BELL
+        volume: 0.5
+        pitch: 2.0
+    guardian:
+      priority: 20
+      messages:
+      - '&6🌊 %luckperms_prefix% <#50b5e8>%player_name% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+      sound:
+        enabled: true
+        name: BLOCK_NOTE_BLOCK_BELL
+        volume: 0.5
+        pitch: 1.0
+  
+  # Default (Sin rango, sin sonido)
+  messages:
+  - '&6🌊 &f%player% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+  
+  # Defaults deshabilitados para players normales
+  title:
+    enabled: false
+    title: ''
+    subtitle: ''
+    fade-in: 10
+    stay: 40
+    fade-out: 10
+  sound:
+    enabled: false
+    name: ENTITY_EXPERIENCE_ORB_PICKUP
+    volume: 0.2
+    pitch: 1.0
+  motd:
+    enabled: false
+    lines: []
+
+quit:
+  enabled: false
+  messages:
+  - '&8[&c-&8] &7%player%'
+  - '&8[&c-&8] &f¡Adiós, %player%!'
+  - '&8[&c-&8] &7%player% se ha desvanecido.'
+  sound:
+    enabled: false
+    name: BLOCK_WOODEN_DOOR_CLOSE
+    volume: 0.2
+    pitch: 1.0
