@@ -1,7 +1,6 @@
 package me.mtynnn.valerinutils.commands;
 
 import me.mtynnn.valerinutils.ValerinUtils;
-import me.mtynnn.valerinutils.modules.externalplaceholders.ExternalPlaceholdersModule;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -33,18 +32,12 @@ public class ValerinUtilsCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args[0].equalsIgnoreCase("reload")) {
-            plugin.reloadConfig();
+            // 1. Reload config files first
+            plugin.getConfigManager().reloadConfigs();
             plugin.updateConfig();
 
-            if (plugin.getMenuItemModule() != null) {
-                plugin.getMenuItemModule().refreshAllPlayers();
-            }
-
-            // Recargar providers externos
-            ExternalPlaceholdersModule extModule = plugin.getExternalPlaceholdersModule();
-            if (extModule != null) {
-                extModule.reloadAll();
-            }
+            // 2. Reload all modules (disable → re-enable based on config)
+            plugin.getModuleManager().reloadAll();
 
             sender.sendMessage(plugin.getMessage("valerinutils-reload-ok"));
             return true;

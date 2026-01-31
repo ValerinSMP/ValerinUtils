@@ -44,6 +44,9 @@ public class ConfigManager {
 
         // 3. Update Settings (Add missing keys for updates)
         updateSettingsConfig();
+
+        // 4. Update Module Configs (Add missing keys from new versions)
+        updateModuleConfigs();
     }
 
     private void updateSettingsConfig() {
@@ -91,8 +94,65 @@ public class ConfigManager {
         }
     }
 
+    /**
+     * Auto-update module configs with new keys from defaults.
+     * This ensures users coming from older versions get new features.
+     */
+    private void updateModuleConfigs() {
+        // JoinQuit - Add MOTD section if missing
+        updateJoinQuitConfig();
+    }
+
+    private void updateJoinQuitConfig() {
+        FileConfiguration config = getConfig("joinquit");
+        if (config == null)
+            return;
+
+        boolean changed = false;
+
+        // Add MOTD section keys individually (so partial configs get updated too)
+        if (!config.contains("join.motd.enabled")) {
+            config.set("join.motd.enabled", false);
+            changed = true;
+        }
+        if (!config.contains("join.motd.clear-chat")) {
+            config.set("join.motd.clear-chat", true);
+            changed = true;
+        }
+        if (!config.contains("join.motd.lines")) {
+            config.set("join.motd.lines", java.util.Arrays.asList(
+                    "",
+                    "&6╔══════════════════════════════════════╗",
+                    "&6║  &b&lBIENVENIDO A TU SERVIDOR  &6║",
+                    "&6╠══════════════════════════════════════╣",
+                    "&6║  &7❯ &fJugadores Online: &a%server_online%/%server_max_players%",
+                    "&6║  &7❯ &fTu Rango: &a%luckperms_prefix%",
+                    "&6╚══════════════════════════════════════╝",
+                    ""));
+            changed = true;
+        }
+
+        if (changed) {
+            saveConfig("joinquit");
+            plugin.getLogger().info("[JoinQuit] Config updated with new keys.");
+        }
+    }
+
     public FileConfiguration getConfig(String name) {
         return configs.get(name);
+    }
+
+    public void reloadConfigs() {
+        for (String id : files.keySet()) {
+            File file = files.get(id);
+            if (file.exists()) {
+                configs.put(id, YamlConfiguration.loadConfiguration(file));
+            }
+        }
+        // Re-run auto-updater after reload to ensure defaults are there
+        updateSettingsConfig();
+        updateModuleConfigs();
+        plugin.getLogger().info("All configuration files reloaded.");
     }
 
     public void saveConfig(String name) {

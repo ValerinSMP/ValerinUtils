@@ -1,5 +1,5 @@
 name: ValerinUtils
-version: "1.0-SNAPSHOT"
+version: "2.0.0"
 main: me.mtynnn.valerinutils.ValerinUtils
 api-version: "1.21"
 author: Mtynnn

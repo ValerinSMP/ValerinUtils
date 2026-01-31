@@ -102,12 +102,12 @@ public class JoinQuitModule implements Module, Listener {
 
         if (isVanished) {
             if (plugin.isDebug())
-                plugin.getLogger().info("Player is vanished (metadata valid), silencing join.");
+                plugin.getLogger().info("Player is vanished (metadata valid), silencing join message.");
             event.setJoinMessage(null);
-            return;
+            // Don't return here! We want to process private messages (MOTD, Title)
+        } else {
+            event.setJoinMessage(null); // Disable default message anyway as we handle it custom
         }
-
-        event.setJoinMessage(null); // Deshabilitar mensaje por defecto
 
         FileConfiguration config = getConfig();
         if (config == null || !config.getBoolean("enabled", true))
@@ -119,9 +119,9 @@ public class JoinQuitModule implements Module, Listener {
         if (firstJoin) {
             uniquePlayerCount++;
             saveData();
-            handleFirstJoin(player, config.getConfigurationSection("first-join"));
+            handleFirstJoin(player, config.getConfigurationSection("first-join"), isVanished);
         } else {
-            handleJoin(player, config.getConfigurationSection("join"));
+            handleJoin(player, config.getConfigurationSection("join"), isVanished);
         }
     }
 
@@ -147,17 +147,26 @@ public class JoinQuitModule implements Module, Listener {
         }
     }
 
-    private void handleFirstJoin(Player player, ConfigurationSection section) {
+    private void handleFirstJoin(Player player, ConfigurationSection section, boolean isVanished) {
         if (section == null || !section.getBoolean("enabled", false))
             return;
 
-        // Broadcast Message
-        List<String> messages = section.getStringList("broadcast-message");
-        for (String line : messages) {
-            broadcast(processPlaceholders(player, line));
+        // Broadcast Message - Only if NOT vanished
+        if (!isVanished) {
+            List<String> messages = section.getStringList("broadcast-message");
+            // Support single line config if needed, but usually list
+            if (messages.isEmpty() && section.contains("broadcast-message")) {
+                String single = section.getString("broadcast-message");
+                if (single != null)
+                    broadcast(processPlaceholders(player, single));
+            } else {
+                for (String line : messages) {
+                    broadcast(processPlaceholders(player, line));
+                }
+            }
         }
 
-        // Title
+        // Title - ALWAYS (Private)
         if (section.getBoolean("title.enabled", false)) {
             Component title = processPlaceholders(player, section.getString("title.title", ""));
             Component subtitle = processPlaceholders(player, section.getString("title.subtitle", ""));
@@ -169,11 +178,13 @@ public class JoinQuitModule implements Module, Listener {
             player.showTitle(Title.title(title, subtitle, times));
         }
 
-        // Sound
-        playSound(player, section.getConfigurationSection("sound"));
+        // Sound - Only if NOT vanished
+        if (!isVanished) {
+            playSound(player, section.getConfigurationSection("sound"));
+        }
     }
 
-    private void handleJoin(Player player, ConfigurationSection section) {
+    private void handleJoin(Player player, ConfigurationSection section, boolean isVanished) {
         if (section == null)
             return;
 
@@ -205,22 +216,26 @@ public class JoinQuitModule implements Module, Listener {
                 if (has) {
                     ConfigurationSection groupSection = groups.getConfigurationSection(groupKey);
 
-                    // Broadcast
-                    List<String> msgs = groupSection.getStringList("messages");
-                    if (!msgs.isEmpty()) {
-                        String msg = msgs.get(random.nextInt(msgs.size()));
-                        broadcast(processPlaceholders(player, msg));
+                    // Broadcast - Only if NOT vanished
+                    if (!isVanished) {
+                        List<String> msgs = groupSection.getStringList("messages");
+                        if (!msgs.isEmpty()) {
+                            String msg = msgs.get(random.nextInt(msgs.size()));
+                            broadcast(processPlaceholders(player, msg));
+                        }
                     }
 
-                    // Sound
-                    playSound(player, groupSection.getConfigurationSection("sound"));
+                    // Sound - Only if NOT vanished
+                    if (!isVanished) {
+                        playSound(player, groupSection.getConfigurationSection("sound"));
+                    }
 
-                    // Title
+                    // Title - ALWAYS
                     if (groupSection.getBoolean("title.enabled", false)) {
                         showTitle(player, groupSection.getConfigurationSection("title"));
                     }
 
-                    // MOTD
+                    // MOTD - ALWAYS
                     if (groupSection.getBoolean("motd.enabled", false)) {
                         showMotd(player, groupSection.getConfigurationSection("motd"));
                     } else if (section.getBoolean("motd.enabled")) {
@@ -233,20 +248,24 @@ public class JoinQuitModule implements Module, Listener {
         }
 
         // 2. Default Logic
-        // Broadcast Message (Random)
-        List<String> messages = section.getStringList("messages");
-        if (!messages.isEmpty()) {
-            String msg = messages.get(random.nextInt(messages.size()));
-            broadcast(processPlaceholders(player, msg));
+        // Broadcast Message (Random) - Only if NOT vanished
+        if (!isVanished) {
+            List<String> messages = section.getStringList("messages");
+            if (!messages.isEmpty()) {
+                String msg = messages.get(random.nextInt(messages.size()));
+                broadcast(processPlaceholders(player, msg));
+            }
         }
 
-        // Title
+        // Title - ALWAYS
         showTitle(player, section.getConfigurationSection("title"));
 
-        // Sound
-        playSound(player, section.getConfigurationSection("sound"));
+        // Sound - Only if NOT vanished
+        if (!isVanished) {
+            playSound(player, section.getConfigurationSection("sound"));
+        }
 
-        // MOTD
+        // MOTD - ALWAYS
         showMotd(player, section.getConfigurationSection("motd"));
     }
 
@@ -267,7 +286,18 @@ public class JoinQuitModule implements Module, Listener {
     private void showMotd(Player player, ConfigurationSection section) {
         if (section == null || !section.getBoolean("enabled", false))
             return;
-        for (String line : section.getStringList("lines")) {
+
+        // Clear chat if configured
+        if (section.getBoolean("clear-chat", false)) {
+            // Send 100 empty lines to clear player's chat
+            for (int i = 0; i < 100; i++) {
+                player.sendMessage("");
+            }
+        }
+
+        // Show MOTD lines
+        List<String> lines = section.getStringList("lines");
+        for (String line : lines) {
             player.sendMessage(processPlaceholders(player, line));
         }
     }

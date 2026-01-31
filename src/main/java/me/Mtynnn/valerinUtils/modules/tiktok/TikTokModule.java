@@ -100,7 +100,45 @@ public class TikTokModule extends Command implements Module {
 
     @Override
     public void disable() {
-        // Nothing to save locally, data is in DB
+        try {
+            Field bukkitCommandMap = Bukkit.getServer().getClass().getDeclaredField("commandMap");
+            bukkitCommandMap.setAccessible(true);
+            CommandMap commandMap = (CommandMap) bukkitCommandMap.get(Bukkit.getServer());
+
+            // Get knownCommands map via reflection to remove entries
+            // SimpleCommandMap (CraftBukkit) uses 'knownCommands'
+            Field knownCommandsField;
+            try {
+                knownCommandsField = commandMap.getClass().getDeclaredField("knownCommands");
+                knownCommandsField.setAccessible(true);
+            } catch (NoSuchFieldException e) {
+                // Should not happen on standard Spigot/Paper, but safety first
+                // Maybe it's in a superclass or renamed? usually SimpleCommandMap
+                return;
+            }
+
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Command> knownCommands = (java.util.Map<String, Command>) knownCommandsField
+                    .get(commandMap);
+
+            // Remove main command
+            knownCommands.remove(getName());
+            knownCommands.remove(plugin.getName().toLowerCase() + ":" + getName());
+
+            // Remove aliases
+            for (String alias : getAliases()) {
+                knownCommands.remove(alias);
+                knownCommands.remove(plugin.getName().toLowerCase() + ":" + alias);
+            }
+
+            // Standard unregister
+            this.unregister(commandMap);
+
+            plugin.getLogger().info("Unregistered dynamic command: /" + getName());
+
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to unregister command /" + getName() + ": " + e.getMessage());
+        }
     }
 
     @Override

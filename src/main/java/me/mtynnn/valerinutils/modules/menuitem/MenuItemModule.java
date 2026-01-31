@@ -62,11 +62,22 @@ public class MenuItemModule implements Module, Listener {
     @Override
     public void enable() {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        // Invalidate cache so fresh config values are used
+        invalidateCache();
     }
 
     @Override
     public void disable() {
+        // Unregister all event handlers
         org.bukkit.event.HandlerList.unregisterAll(this);
+
+        // Remove menu items from all online players
+        for (org.bukkit.entity.Player player : plugin.getServer().getOnlinePlayers()) {
+            clearMenuItem(player);
+        }
+
+        // Invalidate cache
+        invalidateCache();
     }
 
     // ================== Persistencia de desactivados (Ahora via PlayerData)

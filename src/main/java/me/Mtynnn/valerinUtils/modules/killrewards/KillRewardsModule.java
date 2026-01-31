@@ -58,18 +58,27 @@ public class KillRewardsModule implements Module, Listener {
         Player victim = event.getEntity();
         Player killer = victim.getKiller();
 
+        debug("PlayerDeathEvent triggered. Victim: " + victim.getName() +
+                ", Killer: " + (killer != null ? killer.getName() : "null"));
+
         // Actualizar stats (en memoria/BD via PlayerData)
         updateStats(victim, killer);
 
-        if (killer == null)
+        if (killer == null) {
+            debug("No killer, skipping rewards.");
             return;
-        if (victim.equals(killer))
-            return;
-
-        if (!checksPass(killer, victim)) {
+        }
+        if (victim.equals(killer)) {
+            debug("Suicide, skipping rewards.");
             return;
         }
 
+        if (!checksPass(killer, victim)) {
+            debug("Checks failed for " + killer.getName() + " -> " + victim.getName());
+            return;
+        }
+
+        debug("All checks passed! Giving rewards to " + killer.getName());
         giveRewards(killer, victim);
     }
 
@@ -92,12 +101,20 @@ public class KillRewardsModule implements Module, Listener {
 
     private boolean checksPass(Player killer, Player victim) {
         FileConfiguration cfg = getConfig();
-        if (cfg == null || !cfg.getBoolean("enabled", true))
+        if (cfg == null) {
+            debug("Config is null! Module may not be properly initialized.");
             return false;
+        }
+        if (!cfg.getBoolean("enabled", true)) {
+            debug("Module is disabled in config.");
+            return false;
+        }
 
         ConfigurationSection antiAbuse = cfg.getConfigurationSection("anti-abuse");
-        if (antiAbuse == null)
+        if (antiAbuse == null) {
+            debug("No anti-abuse section, all checks pass.");
             return true; // No settings = pass
+        }
 
         // 1. Same IP
         if (antiAbuse.getBoolean("same-ip-check", true)) {
@@ -200,6 +217,7 @@ public class KillRewardsModule implements Module, Listener {
         // Process rewards
         List<Map<?, ?>> rewards = cfg.getMapList("rewards");
         Random random = new Random();
+        debug("Processing " + rewards.size() + " rewards...");
 
         for (Map<?, ?> reward : rewards) {
             double chance = 100.0;
@@ -209,7 +227,9 @@ public class KillRewardsModule implements Module, Listener {
                     chance = ((Number) c).doubleValue();
             }
 
-            if (random.nextDouble() * 100.0 <= chance) {
+            double roll = random.nextDouble() * 100.0;
+            if (roll <= chance) {
+                debug("Reward chance hit (" + roll + " <= " + chance + ")");
                 List<String> commands = new ArrayList<>();
                 Object cmds = reward.get("commands");
                 if (cmds instanceof List) {
@@ -225,8 +245,11 @@ public class KillRewardsModule implements Module, Listener {
                         continue;
                     String parsed = cmd.replace("%killer%", killer.getName())
                             .replace("%victim%", victim.getName());
+                    debug("Executing command: " + parsed);
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsed);
                 }
+            } else {
+                debug("Reward chance missed (" + roll + " > " + chance + ")");
             }
         }
     }

@@ -136,7 +136,42 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             getCommand("menuitem").setTabCompleter(mic);
         }
 
-        getLogger().info("ValerinUtils 2.0 (Optimized) enabled");
+        // 6. Startup Banner
+        printStartupBanner();
+    }
+
+    private void printStartupBanner() {
+        String version = getPluginMeta().getVersion();
+
+        // Check hooks
+        boolean papiHooked = Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null;
+        boolean luckPermsHooked = Bukkit.getPluginManager().getPlugin("LuckPerms") != null;
+        boolean vaultHooked = Bukkit.getPluginManager().getPlugin("Vault") != null;
+        boolean votifierHooked = Bukkit.getPluginManager().getPlugin("Votifier") != null
+                || Bukkit.getPluginManager().getPlugin("VotifierPlus") != null;
+
+        // Check enabled modules
+        boolean menuItemEnabled = moduleManager.isModuleEnabled("menuitem");
+        boolean joinQuitEnabled = moduleManager.isModuleEnabled("joinquit");
+        boolean killRewardsEnabled = moduleManager.isModuleEnabled("killrewards");
+        boolean tikTokEnabled = moduleManager.isModuleEnabled("tiktok");
+        boolean vote40Enabled = moduleManager.isModuleEnabled("vote40");
+
+        getLogger().info("");
+        getLogger().info("  ValerinUtils v" + version);
+        getLogger().info("  Developed by mtynnn");
+        getLogger().info("");
+        getLogger().info("  Hooks: PAPI " + (papiHooked ? "✔" : "✘")
+                + " | LuckPerms " + (luckPermsHooked ? "✔" : "✘")
+                + " | Vault " + (vaultHooked ? "✔" : "✘")
+                + " | Votifier " + (votifierHooked ? "✔" : "✘"));
+        getLogger().info("  Modules: MenuItem " + (menuItemEnabled ? "✔" : "✘")
+                + " | JoinQuit " + (joinQuitEnabled ? "✔" : "✘")
+                + " | KillRewards " + (killRewardsEnabled ? "✔" : "✘")
+                + " | TikTok " + (tikTokEnabled ? "✔" : "✘")
+                + " | Vote40 " + (vote40Enabled ? "✔" : "✘"));
+        getLogger().info("");
+        getLogger().info("  ValerinUtils has been enabled successfully!");
     }
 
     @Override
@@ -403,6 +438,10 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     }
 
     // --- Getters for Modules ---
+    public ModuleManager getModuleManager() {
+        return moduleManager;
+    }
+
     public MenuItemModule getMenuItemModule() {
         return menuItemModule;
     }

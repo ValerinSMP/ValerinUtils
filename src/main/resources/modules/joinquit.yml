@@ -127,7 +127,20 @@ join:
     pitch: 1.0
   motd:
     enabled: false
-    lines: []
+    clear-chat: true  # Limpia el chat del jugador antes de mostrar el MOTD
+    lines:
+      - ''
+      - '&6╔══════════════════════════════════════╗'
+      - '&6║  &b&lBIENVENIDO A VALERIN SURVIVAL  &6║'
+      - '&6╠══════════════════════════════════════╣'
+      - '&6║  &7❯ &fJugadores Online: &a%server_online%/%server_max_players%'
+      - '&6║  &7❯ &fTu Rango: &a%luckperms_prefix%'
+      - '&6║  &7❯ &fDinero: &a%vault_eco_balance%'
+      - '&6╠══════════════════════════════════════╣'
+      - '&6║  &e⚠ &7Usa &b/tienda &7para ver la tienda'
+      - '&6║  &e⚠ &7Usa &b/votar &7para votar por el servidor'
+      - '&6╚══════════════════════════════════════╝'
+      - ''
 
 quit:
   enabled: false

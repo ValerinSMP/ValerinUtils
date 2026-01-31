@@ -3,12 +3,9 @@ enabled: true
 rewards:
   - chance: 100.0
     commands:
-      - "eco give %killer% 100"
-      - "msg %killer% &a¡Has matado a %victim%!"
+      - "eco give %killer% 100" 
   - chance: 5.0
-    commands:
-      - "give %killer% diamond 1"
-      - "broadcast &6¡%killer% obtuvo un diamante por matar a %victim%!"
+    commands: []
 
 anti-abuse:
   same-ip-check: true
