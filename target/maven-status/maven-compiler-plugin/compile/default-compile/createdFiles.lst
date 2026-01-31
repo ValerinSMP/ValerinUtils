@@ -1,0 +1,16 @@
+me\mtynnn\valerinutils\modules\tiktok\TikTokModule.class
+me\mtynnn\valerinutils\core\ModuleManager.class
+me\mtynnn\valerinutils\modules\killrewards\KillRewardsModule.class
+me\mtynnn\valerinutils\commands\MenuItemCommand.class
+me\mtynnn\valerinutils\modules\externalplaceholders\providers\RoyalEconomyProvider$1.class
+me\mtynnn\valerinutils\modules\externalplaceholders\providers\RoyalEconomyProvider.class
+me\mtynnn\valerinutils\placeholders\ValerinUtilsExpansion.class
+me\mtynnn\valerinutils\modules\joinquit\JoinQuitModule.class
+me\mtynnn\valerinutils\modules\menuitem\MenuItemModule.class
+me\mtynnn\valerinutils\modules\killrewards\KillRewardsModule$DailyTracker.class
+me\mtynnn\valerinutils\core\Module.class
+me\mtynnn\valerinutils\modules\externalplaceholders\ExternalPlaceholdersModule.class
+me\mtynnn\valerinutils\ValerinUtils.class
+me\mtynnn\valerinutils\modules\externalplaceholders\providers\PlaceholderProvider.class
+me\mtynnn\valerinutils\modules\vote40\Vote40Module.class
+me\mtynnn\valerinutils\commands\ValerinUtilsCommand.class

@@ -10,6 +10,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -79,11 +80,27 @@ public class JoinQuitModule implements Module, Listener {
         return disabled.contains(worldName);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+
+        if (plugin.isDebug()) {
+            plugin.getLogger().info("[Debug] Join Event - Metadata keys for " + player.getName() + ": "
+                    + player.getMetadata("vanished").toString());
+        }
+
         if (isWorldDisabled(player.getWorld().getName()))
             return;
+
+        // Check for vanish (Robust check)
+        boolean isVanished = player.hasMetadata("vanished") || player.hasMetadata("CMI_Vanish");
+
+        if (isVanished) {
+            if (plugin.isDebug())
+                plugin.getLogger().info("Player is vanished (metadata valid), silencing join.");
+            event.setJoinMessage(null);
+            return;
+        }
 
         event.setJoinMessage(null); // Deshabilitar mensaje por defecto
 
@@ -104,11 +121,19 @@ public class JoinQuitModule implements Module, Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         if (isWorldDisabled(player.getWorld().getName()))
             return;
+
+        // Check for vanish
+        boolean isVanished = player.hasMetadata("vanished") || player.hasMetadata("CMI_Vanish");
+
+        if (isVanished) {
+            event.setQuitMessage(null);
+            return;
+        }
 
         event.setQuitMessage(null);
 
@@ -336,7 +361,9 @@ public class JoinQuitModule implements Module, Listener {
 
     // Logic extracted to LuckPermsHelper
     private boolean hasGroup(Player player, String groupName) {
-        return me.mtynnn.valerinutils.utils.LuckPermsHelper.hasGroup(player, groupName, plugin);
+        // return me.mtynnn.valerinutils.utils.LuckPermsHelper.hasGroup(player,
+        // groupName, plugin);
+        return false;
     }
 
     @Override

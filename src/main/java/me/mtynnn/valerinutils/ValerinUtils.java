@@ -6,18 +6,22 @@ import me.mtynnn.valerinutils.modules.externalplaceholders.ExternalPlaceholdersM
 import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
 import me.mtynnn.valerinutils.modules.vote40.Vote40Module;
 import me.mtynnn.valerinutils.modules.joinquit.JoinQuitModule;
-
+import me.mtynnn.valerinutils.modules.killrewards.KillRewardsModule;
 import me.mtynnn.valerinutils.commands.ValerinUtilsCommand;
+import me.mtynnn.valerinutils.placeholders.ValerinUtilsExpansion;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.bukkit.plugin.java.JavaPlugin;
-import me.mtynnn.valerinutils.placeholders.ValerinUtilsExpansion;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 
 import org.bukkit.configuration.file.FileConfiguration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Collections;
 
 public final class ValerinUtils extends JavaPlugin {
 
@@ -26,6 +30,7 @@ public final class ValerinUtils extends JavaPlugin {
     private MenuItemModule menuItemModule;
     private ExternalPlaceholdersModule externalPlaceholdersModule;
     private JoinQuitModule joinQuitModule;
+    private KillRewardsModule killRewardsModule;
 
     @Override
     public void onEnable() {
@@ -48,9 +53,13 @@ public final class ValerinUtils extends JavaPlugin {
 
         if (Bukkit.getPluginManager().getPlugin("Votifier") != null
                 || Bukkit.getPluginManager().getPlugin("VotifierPlus") != null) {
-            moduleManager.registerModule(new Vote40Module(this));
+            Vote40Module voteModule = new Vote40Module(this);
+            moduleManager.registerModule(voteModule);
             getLogger().info("Votifier/VotifierPlus hooked - Vote40Module registered");
         }
+
+        killRewardsModule = new KillRewardsModule(this);
+        moduleManager.registerModule(killRewardsModule);
 
         moduleManager.enableAll();
 
@@ -105,16 +114,54 @@ public final class ValerinUtils extends JavaPlugin {
         return joinQuitModule;
     }
 
+    public KillRewardsModule getKillRewardsModule() {
+        return killRewardsModule;
+    }
+
     public String getMessage(String key) {
         FileConfiguration cfg = getConfig();
 
         String prefixRaw = cfg.getString("messages.prefix", "&8[&bValerin&fUtils&8]&r ");
         String prefix = ChatColor.translateAlternateColorCodes('&', prefixRaw);
 
+        // Check if list first
+        if (cfg.isList("messages." + key)) {
+            List<String> list = cfg.getStringList("messages." + key);
+            if (list.isEmpty())
+                return "";
+            // Return first line if single String expected
+            return translateColors(list.get(0).replace("%prefix%", prefix));
+        }
+
         String raw = cfg.getString("messages." + key, "&cMensaje faltante: " + key);
         raw = raw.replace("%prefix%", prefix);
 
         return translateColors(raw);
+    }
+
+    public List<String> getMessageList(String key) {
+        FileConfiguration cfg = getConfig();
+
+        String prefixRaw = cfg.getString("messages.prefix", "&8[&bValerin&fUtils&8]&r ");
+        String prefix = ChatColor.translateAlternateColorCodes('&', prefixRaw);
+
+        if (cfg.isList("messages." + key)) {
+            List<String> rawList = cfg.getStringList("messages." + key);
+            List<String> processed = new ArrayList<>();
+            for (String line : rawList) {
+                line = line.replace("%prefix%", prefix);
+                processed.add(translateColors(line));
+            }
+            return processed;
+        } else {
+            // Fallback for single string
+            String raw = cfg.getString("messages." + key);
+            if (raw == null) {
+                return Collections.singletonList(translateColors("&cMensaje faltante: " + key));
+            }
+            raw = raw.replace("%prefix%", prefix);
+            return Collections.singletonList(translateColors(raw));
+        }
     }
 
     public String translateColors(String message) {
@@ -125,11 +172,10 @@ public final class ValerinUtils extends JavaPlugin {
         Matcher matcher = pattern.matcher(message);
         while (matcher.find()) {
             String color = message.substring(matcher.start(), matcher.end());
-            // net.md_5.bungee.api.ChatColor es accesible en Paper/Spigot moderno
             try {
                 message = message.replace(color, net.md_5.bungee.api.ChatColor.of(color.substring(1)).toString());
             } catch (Exception e) {
-                // Falladback si no es compatible
+                // Fallback
             }
             matcher = pattern.matcher(message);
         }
@@ -140,11 +186,7 @@ public final class ValerinUtils extends JavaPlugin {
         if (text == null)
             return Component.empty();
 
-        // Estrategia Híbrida:
-        // 1. Convertir códigos de color legacy (&c, &#RRGGBB) a tags MiniMessage
         String processed = legacyToMiniMessage(text);
-
-        // 2. Parsear con MiniMessage
         return MiniMessage.miniMessage().deserialize(processed);
     }
 
@@ -152,12 +194,8 @@ public final class ValerinUtils extends JavaPlugin {
         if (text == null)
             return "";
 
-        // Reemplazar &#RRGGBB a <#RRGGBB>
-        // Patrón para &#......
         text = text.replaceAll("&#([0-9a-fA-F]{6})", "<#$1>");
 
-        // Reemplazar &x a <color>
-        // Mapeo básico de colores legacy
         text = text.replace("&0", "<black>");
         text = text.replace("&1", "<dark_blue>");
         text = text.replace("&2", "<dark_green>");
@@ -175,7 +213,6 @@ public final class ValerinUtils extends JavaPlugin {
         text = text.replace("&e", "<yellow>");
         text = text.replace("&f", "<white>");
 
-        // Decoraciones
         text = text.replace("&k", "<obfuscated>");
         text = text.replace("&l", "<bold>");
         text = text.replace("&m", "<strikethrough>");
