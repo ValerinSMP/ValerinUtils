@@ -1,116 +1,103 @@
 # ValerinUtils
 
-**ValerinUtils** es el plugin de utilidades núcleo diseñado específicamente para **ValerinSMP**. Proporciona una suite de herramientas esenciales, mejoras de calidad de vida y mecánicas personalizadas para potenciar la experiencia del servidor.
+ValerinUtils es el plugin de utilidad central diseñado para **ValerinSMP**, proporcionando herramientas esenciales de gestión del servidor, mecánicas personalizadas y expansiones internas de API.
 
----
+## Módulos
 
-## 🚀 Características Principales
+El plugin opera con una arquitectura modular definida en `config.yml`. Cada módulo puede ser habilitado o deshabilitado independientemente.
 
-El plugin funciona mediante un sistema modular eficiente. Cada característica puede ser activada o desactivada independientemente desde `config.yml`.
+### KillRewards
 
-### ⚔️ KillRewards
+Maneja la distribución de recompensas de PvP con mecanismos anti-abuso configurables.
 
-Sistema avanzado de recompensas por PvP con protecciones anti-abuso robustas.
+**Configuración:**
 
-- **Recompensas Configurables**: Ejecuta comandos o da dinero al matar jugadores.
-- **Anti-Farm**: Evita el abuso mediante cooldowns por víctima y límites diarios.
-- **Checks de Seguridad**:
-  - Detección de misma IP.
-  - Requisito de tiempo de juego mínimo para la víctima.
-  - Requisito de KDR mínimo.
+- `cooldown-per-victim`: Segundos antes de que un jugador pueda recibir recompensa nuevamente por matar a la misma víctima.
+- `same-ip-check`: Previene recompensas si el asesino y la víctima comparten IP.
+- `daily-limit`: Máximo de recompensas por jugador por día.
+- `min-playtime-minutes`: Tiempo de juego requerido para que la víctima otorgue recompensa.
+- `min-kdr`: KDR mínimo requerido para la víctima.
 
-### 🎮 JoinQuit
+### JoinQuit
 
-Gestión de mensajes de entrada y salida personalizados.
+Gestiona mensajes personalizados de entrada y salida, con soporte para permisos y modos silenciosos para staff.
 
-- Mensajes vip y default separados.
-- Integración completa con **PlaceholderAPI**.
-- Ocultación de mensajes de entrada/salida silenciosa para staff.
+**Permisos:**
 
-### 🗳️ Vote40
+- `valerinutils.join.vip`: Muestra el mensaje de entrada VIP definido en la configuración.
+- `valerinutils.join.silent`: Suprime mensajes de entrada/salida (útil para staff).
 
-Integración ligera para recompensas de votación.
+### Vote40
 
-- Listener para Votifier/NuVotifier.
-- Ejecución de comandos con delay configurable.
-- Soporte para servicios específicos (ej. 40servidoresMC).
+Se integra con Votifier/NuVotifier para manejar recompensas de votos específicamente para la lista de servidores 40servidoresMC.
 
-### 📱 TikTok
+**Características:**
 
-Comando promocional `/tiktok`.
+- Delay configurable para la ejecución de comandos.
+- Validación específica del servicio.
 
-- Transmite mensajes clickeables y efectos visuales a todos los jugadores.
-- Ideal para fomentar la creación de contenido en la comunidad.
+### TikTok
 
-### 📋 MenuItem
+Módulo promocional que permite a los jugadores reclamar una recompensa única por apoyar al servidor en TikTok.
 
-Utilidad para ejecutar comandos a través de items en menús.
+**Comandos:**
+| Comando | Descripción | Permiso |
+|---------|-------------|---------|
+| `/tiktok` | Reclama la recompensa definida. | `valerinutils.tiktok` |
 
-- Facilita la creación de guís interactivos.
+### MenuItem
 
-### 🧩 ExternalPlaceholders
+Utilidad para ejecutar comandos a través de items en el inventario, típicamente usado en plugins de menús.
 
-Expansión interna de placeholders.
+**Comandos:**
+| Comando | Descripción | Alias |
+|---------|-------------|-------|
+| `/menuitem` | Alterna el estado del item de menú. | `/menu` |
 
-- Provee variables personalizadas para ser usadas en otros plugins (tablist, chat, scoreboards).
+**Placeholders:**
 
----
+- `%valerinutils_menuitem_enabled%`: Devuelve `true` o `false` basado en el estado del jugador.
 
-## 🛠️ Instalación y Compilación
+### ExternalPlaceholders
 
-### Requisitos
+Expansión interna para PlaceholderAPI que expone datos del plugin y ganchos (hooks) a otros plugins.
 
-- **Java**: JDK 21 o superior.
-- **Maven**: 3.8.0 o superior.
-- **Servidor**: PaperMC, Purpur o derivado (1.20.4+).
+**Placeholders Disponibles:**
+| Placeholder | Descripción |
+|-------------|-------------|
+| `%valerinutils_player_number%` | Total de entradas únicas (basado en rastreo interno). |
+| `%valerinutils_total_players%` | Igual que el anterior. |
+| `%valerinutils_first_join_date%` | Fecha del primer ingreso del jugador (DD/MM/YYYY HH:mm). |
 
-### Compilar desde el Código Fuente
+## Comandos Generales
 
-1. Clona el repositorio:
+| Comando         | Uso                    | Permiso              | Descripción                          |
+| --------------- | ---------------------- | -------------------- | ------------------------------------ |
+| `/valerinutils` | `/valerinutils reload` | `valerinutils.admin` | Recarga la configuración del plugin. |
 
-   ```bash
-   git clone https://github.com/ValerinSMP/ValerinUtils.git
-   cd ValerinUtils
-   ```
+## Instalación
 
-2. Compila con Maven:
-
+1. Asegúrate de tener **Java 21** o superior instalado.
+2. Compila el proyecto usando Maven:
    ```bash
    mvn clean package
    ```
+3. Localiza el jar en el directorio `target/`.
+4. Coloca `ValerinUtils-1.0-SNAPSHOT.jar` en la carpeta `plugins/` del servidor.
+5. Reinicia el servidor.
 
-3. El plugin compilado estará en la carpeta `target/`:
-   - `ValerinUtils-1.0-SNAPSHOT.jar`
+## Dependencias
 
----
+- **Dependencias Fuertes**: Ninguna (Standalone).
+- **Dependencias Suaves**:
+  - PlaceholderAPI
+  - Votifier / VotifierPlus
+  - RoyaleEconomy (para hooks específicos de placeholders)
 
-## ⚙️ Configuración
+## Estado de Compilación
 
-El archivo `config.yml` se generará automáticamente en el primer inicio.
+Este proyecto usa Maven para la gestión de dependencias y compilación.
 
-```yaml
-debug: false # Activar para ver logs detallados en consola
-
-modules:
-  killrewards:
-    enabled: true
-    anti-abuse:
-      same-ip-check: true
-      cooldown-per-victim: 3600
-  joinquit:
-    enabled: true
-  # ... otros módulos
-```
-
----
-
-## 🤝 Contribución
-
-Este es un proyecto privado para **ValerinSMP**.
-
-- **Reportar Bugs**: Usar el issue tracker del repositorio.
-- **Pull Requests**: Bienvenidos para mejoras pequeñas o correcciones.
-
----
-
-Desarrollado con ❤️ para **ValerinSMP**.
+- **Group ID**: `me.mtynnn`
+- **Artifact ID**: `ValerinUtils`
+- **Version**: `1.0-SNAPSHOT`
