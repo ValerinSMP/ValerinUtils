@@ -1,6 +1,7 @@
 me\mtynnn\valerinutils\core\PlayerData.class
 me\mtynnn\valerinutils\core\ModuleManager.class
 me\mtynnn\valerinutils\modules\killrewards\KillRewardsModule.class
+me\mtynnn\valerinutils\modules\deathmessages\DeathMessagesModule.class
 me\mtynnn\valerinutils\placeholders\ValerinUtilsExpansion.class
 me\mtynnn\valerinutils\core\ConfigManager.class
 me\mtynnn\valerinutils\ValerinUtils.class

@@ -86,7 +86,8 @@ public class DatabaseManager {
                 "daily_kills INTEGER DEFAULT 0, " +
                 "last_daily_reset BIGINT DEFAULT 0, " +
                 "menu_disabled BOOLEAN DEFAULT 0, " +
-                "royal_pay_disabled BOOLEAN DEFAULT 0" +
+                "royal_pay_disabled BOOLEAN DEFAULT 0, " +
+                "death_messages_disabled BOOLEAN DEFAULT 0" +
                 ");";
 
         try (Statement stmt = getConnection().createStatement()) {
@@ -100,6 +101,11 @@ public class DatabaseManager {
             }
             try {
                 stmt.execute("ALTER TABLE player_data ADD COLUMN royal_pay_disabled BOOLEAN DEFAULT 0;");
+            } catch (SQLException ignored) {
+                // Column likely exists
+            }
+            try {
+                stmt.execute("ALTER TABLE player_data ADD COLUMN death_messages_disabled BOOLEAN DEFAULT 0;");
             } catch (SQLException ignored) {
                 // Column likely exists
             }

@@ -19,40 +19,20 @@ import java.lang.reflect.Field;
 import java.util.List;
 
 @SuppressWarnings("deprecation") // Sound.valueOf is deprecated but required for compatibility
-public class TikTokModule extends Command implements Module {
+public class TikTokModule extends Command implements Module, org.bukkit.command.CommandExecutor {
 
     private final ValerinUtils plugin;
+    private boolean isDynamic = false;
 
     public TikTokModule(ValerinUtils plugin) {
-        // Since we need config to get command name, effectively we need to lazy load or
-        // load here
-        // We'll trust ConfigManager is loaded before modules init.
-        super("tiktok"); // Fallback name, can't easily change registration dynamically without reload,
-                         // relying on default or migrated
-        // Actually, let's try to get it from config if available
-
+        // ... (constructor remains similar, just cleanup comments if needed)
+        super("tiktok");
         this.plugin = plugin;
-
-        // Note: super() must be first. If we wanted dynamic name from config, we'd need
-        // to fetch config in super call.
-        // But java doesn't allow instance access there.
-        // For v2.0 optimization, let's hardcode default "tiktok" or accept that init
-        // order implies "tiktok"
-        // If we want dynamic command name, we should have used a separate
-        // CommandExecutor registration or aliases.
-        // For now, retaining structure but utilizing config manager for runtime
-        // settings.
 
         FileConfiguration cfg = plugin.getConfigManager().getConfig("tiktok");
         if (cfg != null) {
             String name = cfg.getString("tiktok.command-name");
-            if (name != null && !name.equalsIgnoreCase("tiktok")) {
-                // Changing the name of this object won't change registration easily if we
-                // already called super("tiktok")
-                // In a perfect refactor we'd use setValid() or something but Command name is
-                // final-ish.
-                // We'll stick to "tiktok" as base usage, update aliases/usage from settings.
-            }
+            // ... (name checking logic)
         }
 
         this.setDescription("Reclama recompensa única");
@@ -76,17 +56,28 @@ public class TikTokModule extends Command implements Module {
             return;
         }
 
+        String configuredName = cfg.getString("command-name", "tiktok");
+        if (configuredName.equalsIgnoreCase("tiktok")) {
+            // Static registration (Preferred)
+            isDynamic = false;
+            org.bukkit.command.PluginCommand cmd = plugin.getCommand("tiktok");
+            if (cmd != null) {
+                cmd.setExecutor(this);
+            }
+            plugin.getLogger().info("TikTok command registered via plugin.yml");
+            return;
+        }
+
+        // Dynamic Registration (Fallback for custom names)
+        isDynamic = true;
         try {
             Field bukkitCommandMap = Bukkit.getServer().getClass().getDeclaredField("commandMap");
             bukkitCommandMap.setAccessible(true);
             CommandMap commandMap = (CommandMap) bukkitCommandMap.get(Bukkit.getServer());
 
-            // To support custom command name from config, we *could* rename here or
-            // register under alias
-            String cmdName = cfg.getString("command-name", "tiktok");
-            if (!cmdName.equalsIgnoreCase(getName())) {
-                if (!this.setName(cmdName)) {
-                    // If setName fails (it returns boolean), register as alias?
+            if (!configuredName.equalsIgnoreCase(getName())) {
+                if (!this.setName(configuredName)) {
+                    // ignore
                 }
             }
 
@@ -100,6 +91,14 @@ public class TikTokModule extends Command implements Module {
 
     @Override
     public void disable() {
+        if (!isDynamic) {
+            org.bukkit.command.PluginCommand cmd = plugin.getCommand("tiktok");
+            if (cmd != null) {
+                cmd.setExecutor(null);
+            }
+            return;
+        }
+
         try {
             Field bukkitCommandMap = Bukkit.getServer().getClass().getDeclaredField("commandMap");
             bukkitCommandMap.setAccessible(true);
@@ -112,8 +111,6 @@ public class TikTokModule extends Command implements Module {
                 knownCommandsField = commandMap.getClass().getDeclaredField("knownCommands");
                 knownCommandsField.setAccessible(true);
             } catch (NoSuchFieldException e) {
-                // Should not happen on standard Spigot/Paper, but safety first
-                // Maybe it's in a superclass or renamed? usually SimpleCommandMap
                 return;
             }
 
@@ -141,6 +138,13 @@ public class TikTokModule extends Command implements Module {
         }
     }
 
+    // Bridge for CommandExecutor
+    @Override
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label,
+            @NotNull String[] args) {
+        return execute(sender, label, args);
+    }
+
     @Override
     public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
         FileConfiguration cfg = getConfig();
@@ -158,7 +162,12 @@ public class TikTokModule extends Command implements Module {
         Player player = (Player) sender;
         PlayerData data = plugin.getPlayerData(player.getUniqueId());
 
-        if (data != null && data.isTikTokClaimed()) {
+        if (data == null) {
+            player.sendMessage(plugin.translateColors("&cError cargando tus datos. Por favor intenta reloguear."));
+            return true;
+        }
+
+        if (data.isTikTokClaimed()) {
             player.sendMessage(getMessage("reward-already-claimed"));
             return true;
         }

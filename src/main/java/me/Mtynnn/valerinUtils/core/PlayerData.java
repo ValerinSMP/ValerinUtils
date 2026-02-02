@@ -12,6 +12,7 @@ public class PlayerData {
     private long lastDailyReset; // Timestamp of the last day tracked
     private boolean menuDisabled;
     private boolean royalPayDisabled;
+    private boolean deathMessagesDisabled;
 
     private boolean dirty = false; // If true, needs saving
 
@@ -39,6 +40,15 @@ public class PlayerData {
 
     public void setRoyalPayDisabled(boolean royalPayDisabled) {
         this.royalPayDisabled = royalPayDisabled;
+        this.dirty = true;
+    }
+
+    public boolean isDeathMessagesDisabled() {
+        return deathMessagesDisabled;
+    }
+
+    public void setDeathMessagesDisabled(boolean deathMessagesDisabled) {
+        this.deathMessagesDisabled = deathMessagesDisabled;
         this.dirty = true;
     }
 

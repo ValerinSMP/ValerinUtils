@@ -17,3 +17,11 @@ commands:
   menuitem:
     description: Activa o desactiva tu item de menú
     aliases: [menu]
+
+  deathmsg:
+    description: Configura tus mensajes de muerte
+    aliases: [dmsg]
+
+  tiktok:
+    description: Reclama recompensa de TikTok
+    aliases: [tt]

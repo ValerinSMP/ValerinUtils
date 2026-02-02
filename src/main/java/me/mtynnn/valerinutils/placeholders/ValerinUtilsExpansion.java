@@ -64,6 +64,14 @@ public class ValerinUtilsExpansion extends PlaceholderExpansion {
             return String.valueOf(enabled);
         }
 
+        // %valerinutils_deathmessages_enabled%
+        if (params.equalsIgnoreCase("deathmessages_enabled")) {
+            var data = plugin.getPlayerData(player.getUniqueId());
+            if (data == null)
+                return "true"; // Default
+            return String.valueOf(!data.isDeathMessagesDisabled());
+        }
+
         // %valerinutils_player_number%
         // %valerinutils_total_players%
         if (params.equals("player_number") || params.equals("total_players")) {

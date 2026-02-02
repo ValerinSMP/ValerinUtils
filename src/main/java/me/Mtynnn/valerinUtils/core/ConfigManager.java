@@ -37,6 +37,7 @@ public class ConfigManager {
         registerConfig("joinquit", "modules/joinquit.yml");
         registerConfig("vote40", "modules/vote40.yml");
         registerConfig("menuitem", "modules/menuitem.yml");
+        registerConfig("deathmessages", "modules/deathmessages.yml");
 
         // 2. Check for migration (Will merge legacy values into the just-created
         // defaults)

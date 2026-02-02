@@ -30,16 +30,31 @@ public class ModuleManager {
     }
 
     public void enableAll() {
+        if (!(plugin instanceof me.mtynnn.valerinutils.ValerinUtils vPlugin))
+            return;
+
         for (Module module : modules.values()) {
-            String path = "modules." + module.getId() + ".enabled";
-            boolean enabled = plugin.getConfig().getBoolean(path, true);
+            // Check specific config for module
+            org.bukkit.configuration.file.FileConfiguration cfg = vPlugin.getConfigManager().getConfig(module.getId());
+            boolean enabled = true;
+            if (cfg != null) {
+                enabled = cfg.getBoolean("enabled", true);
+            } else {
+                // Fallback to main config for backwards compatibility or global toggles
+                String path = "modules." + module.getId() + ".enabled";
+                enabled = plugin.getConfig().getBoolean(path, true);
+            }
+
             if (!enabled) {
-                plugin.getLogger().info("Modulo desactivado en la config: " + module.getId());
+                vPlugin.getLogger().info("Modulo desactivado en la config: " + module.getId());
+                // Force disable to cleanup any residual state (like items from previous
+                // session)
+                module.disable();
                 continue;
             }
             module.enable();
             enabledModules.add(module.getId());
-            plugin.getLogger().info("Modulo activado: " + module.getId());
+            vPlugin.getLogger().info("Modulo activado: " + module.getId());
         }
     }
 
@@ -57,26 +72,44 @@ public class ModuleManager {
      * then re-enables based on current config.
      */
     public void reloadAll() {
+        if (!(plugin instanceof me.mtynnn.valerinutils.ValerinUtils vPlugin))
+            return;
+
+        Set<String> alreadyDisabled = new java.util.HashSet<>();
+
         // First, disable all currently enabled modules
         for (Module module : modules.values()) {
             if (enabledModules.contains(module.getId())) {
                 module.disable();
-                plugin.getLogger().info("Modulo desactivado para reload: " + module.getId());
+                alreadyDisabled.add(module.getId());
+                vPlugin.getLogger().info("Modulo desactivado previo reload: " + module.getId());
             }
         }
         enabledModules.clear();
 
         // Then re-enable based on new config
         for (Module module : modules.values()) {
-            String path = "modules." + module.getId() + ".enabled";
-            boolean enabled = plugin.getConfig().getBoolean(path, true);
+            // Check specific config for module
+            org.bukkit.configuration.file.FileConfiguration cfg = vPlugin.getConfigManager().getConfig(module.getId());
+            boolean enabled = true;
+            if (cfg != null) {
+                enabled = cfg.getBoolean("enabled", true);
+            } else {
+                String path = "modules." + module.getId() + ".enabled";
+                enabled = plugin.getConfig().getBoolean(path, true);
+            }
+
             if (!enabled) {
-                plugin.getLogger().info("Modulo desactivado en la config: " + module.getId());
+                // Force disable ONLY if not already disabled during this run
+                if (!alreadyDisabled.contains(module.getId())) {
+                    vPlugin.getLogger().info("Modulo desactivado en la config: " + module.getId());
+                    module.disable();
+                }
                 continue;
             }
             module.enable();
             enabledModules.add(module.getId());
-            plugin.getLogger().info("Modulo reactivado: " + module.getId());
+            vPlugin.getLogger().info("Modulo reactivado: " + module.getId());
         }
     }
 }

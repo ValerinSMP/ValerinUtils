@@ -12,6 +12,7 @@ import me.mtynnn.valerinutils.modules.killrewards.KillRewardsModule;
 import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
 import me.mtynnn.valerinutils.modules.tiktok.TikTokModule;
 import me.mtynnn.valerinutils.modules.vote40.Vote40Module;
+import me.mtynnn.valerinutils.modules.deathmessages.DeathMessagesModule;
 import me.mtynnn.valerinutils.placeholders.ValerinUtilsExpansion;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -25,6 +26,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -53,9 +55,27 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private JoinQuitModule joinQuitModule;
     private KillRewardsModule killRewardsModule;
     private TikTokModule tikTokModule;
+    private DeathMessagesModule deathMessagesModule;
 
     // Cache
     private final Map<UUID, PlayerData> playerDataCache = new ConcurrentHashMap<>();
+
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        // Enforce cleanup if MenuItem module is disabled in config
+        // This handles cases where items persist from previous sessions when module was
+        // enabled
+        if (menuItemModule != null) {
+            FileConfiguration config = configManager.getConfig("menuitem");
+            boolean enabled = true;
+            if (config != null) {
+                enabled = config.getBoolean("enabled", true);
+            }
+            if (!enabled) {
+                menuItemModule.clearMenuItem(event.getPlayer());
+            }
+        }
+    }
 
     // Performance: Pre-compiled patterns and cached values
     private static final Pattern HEX_PATTERN = Pattern.compile("&#[a-fA-F0-9]{6}");
@@ -117,6 +137,9 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         tikTokModule = new TikTokModule(this);
         moduleManager.registerModule(tikTokModule);
 
+        deathMessagesModule = new DeathMessagesModule(this);
+        moduleManager.registerModule(deathMessagesModule);
+
         moduleManager.enableAll();
 
         // 5. Hooks & Commands
@@ -138,6 +161,29 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
         // 6. Startup Banner
         printStartupBanner();
+
+        // 7. Reload Support: Load data for online players
+        if (!Bukkit.getOnlinePlayers().isEmpty()) {
+            getLogger().info("Loading data for " + Bukkit.getOnlinePlayers().size() + " online players...");
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                UUID uuid = p.getUniqueId(); // Capture for lambda
+                String name = p.getName();
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        PlayerData data = loadPlayerDataFromDB(uuid);
+                        if (data == null) {
+                            data = new PlayerData(uuid, name);
+                        } else {
+                            data.setName(name);
+                        }
+                        playerDataCache.put(uuid, data);
+                    } catch (SQLException e) {
+                        getLogger().severe("Failed to load data for " + name + " during reload.");
+                        e.printStackTrace();
+                    }
+                });
+            }
+        }
     }
 
     private void printStartupBanner() {
@@ -253,6 +299,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
                     pd.setLastDailyReset(rs.getLong("last_daily_reset"));
                     pd.setMenuDisabled(rs.getBoolean("menu_disabled"));
                     pd.setRoyalPayDisabled(rs.getBoolean("royal_pay_disabled"));
+                    pd.setDeathMessagesDisabled(rs.getBoolean("death_messages_disabled"));
                     pd.setDirty(false);
                     return pd;
                 }
@@ -264,12 +311,12 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private void savePlayerDataToDB(PlayerData data) {
         if (data == null)
             return;
-        String sql = "INSERT INTO player_data (uuid, name, tiktok_claimed, kills, deaths, daily_kills, last_daily_reset, menu_disabled, royal_pay_disabled) "
+        String sql = "INSERT INTO player_data (uuid, name, tiktok_claimed, kills, deaths, daily_kills, last_daily_reset, menu_disabled, royal_pay_disabled, death_messages_disabled) "
                 +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
                 "ON CONFLICT(uuid) DO UPDATE SET " +
                 "name=excluded.name, tiktok_claimed=excluded.tiktok_claimed, kills=excluded.kills, " +
-                "deaths=excluded.deaths, daily_kills=excluded.daily_kills, last_daily_reset=excluded.last_daily_reset, menu_disabled=excluded.menu_disabled, royal_pay_disabled=excluded.royal_pay_disabled";
+                "deaths=excluded.deaths, daily_kills=excluded.daily_kills, last_daily_reset=excluded.last_daily_reset, menu_disabled=excluded.menu_disabled, royal_pay_disabled=excluded.royal_pay_disabled, death_messages_disabled=excluded.death_messages_disabled";
 
         try (PreparedStatement ps = databaseManager.getConnection().prepareStatement(sql)) {
             ps.setString(1, data.getUuid().toString());
@@ -281,6 +328,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             ps.setLong(7, data.getLastDailyReset());
             ps.setBoolean(8, data.isMenuDisabled());
             ps.setBoolean(9, data.isRoyalPayDisabled());
+            ps.setBoolean(10, data.isDeathMessagesDisabled());
             ps.executeUpdate();
         } catch (SQLException e) {
             getLogger().severe("Could not save data for " + data.getName());
@@ -317,6 +365,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
                         count++;
                     }
                 } catch (Exception e) {
+                    getLogger().warning("Failed to migrate TikTok claim for UUID: " + uuidStr);
                 }
             }
             getLogger().info("Migrated " + count + " TikTok records.");
@@ -460,6 +509,10 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
     public TikTokModule getTikTokModule() {
         return tikTokModule;
+    }
+
+    public DeathMessagesModule getDeathMessagesModule() {
+        return deathMessagesModule;
     }
 
     // --- Message Utils (Legacy Compat) ---

@@ -64,6 +64,8 @@ public class MenuItemModule implements Module, Listener {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
         // Invalidate cache so fresh config values are used
         invalidateCache();
+        // Give/refresh items for all online players
+        refreshAllPlayers();
     }
 
     @Override
@@ -230,20 +232,35 @@ public class MenuItemModule implements Module, Listener {
         return flag != null && flag == (byte) 1;
     }
 
-    private void clearMenuItem(Player player) {
+    public void clearMenuItem(Player player) {
         PlayerInventory inv = player.getInventory();
-        ItemStack[] contents = inv.getContents();
         boolean changed = false;
 
+        // 1. Check main contents (includes hotbar, inventory, armor, offhand on some
+        // versions)
+        ItemStack[] contents = inv.getContents();
         for (int i = 0; i < contents.length; i++) {
             if (isMenuItem(contents[i])) {
                 contents[i] = null;
                 changed = true;
             }
         }
+        if (changed)
+            inv.setContents(contents);
+
+        // 2. Double check off-hand just in case
+        if (isMenuItem(inv.getItemInOffHand())) {
+            inv.setItemInOffHand(null);
+            changed = true;
+        }
+
+        // 3. Check cursor (important if player is moving the item during reload)
+        if (isMenuItem(player.getItemOnCursor())) {
+            player.setItemOnCursor(null);
+            changed = true;
+        }
 
         if (changed) {
-            inv.setContents(contents);
             player.updateInventory();
         }
     }

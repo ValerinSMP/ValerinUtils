@@ -1,0 +1,120 @@
+enabled: true
+
+# Configuración de Mensajes de Muerte
+messages:
+  # PvP (Jugador mata a Jugador)
+  killed:
+    module:
+      chat:
+        enabled: true
+        message:
+          - "&#FF6961☠ &#FF6961%victim% &7fue asesinado por &#FF6961🗡 %attacker%"
+      actionbar:
+        enabled: false
+        message:
+          - ""
+      title:
+        enabled: false
+        message:
+          - ""
+      subtitle:
+        enabled: false
+        message:
+          - ""
+
+  # PvE / Otras muertes
+  died:
+    module:
+      chat:
+        enabled: true
+        message:
+          - "&#FF6961☠ &#FF6961%victim% &7ha muerto"
+      actionbar:
+        enabled: false
+        message:
+          - ""
+      title:
+        enabled: false
+        message:
+          - ""
+      subtitle:
+        enabled: false
+        message:
+          - ""
+
+  # Mensajes del sistema / Comandos
+  no_permission:
+    module:
+      chat:
+        enabled: true
+        message:
+          - "&8[&#FF6961ᴍᴜᴇʀᴛᴇs&8] &cNo tienes permisos."
+      actionbar:
+        enabled: false
+        message:
+          - ""
+      title:
+        enabled: false
+        message:
+          - ""
+      subtitle:
+        enabled: false
+        message:
+          - ""
+
+  reload_success:
+    module:
+      chat:
+        enabled: true
+        message:
+          - "&8[&#FF6961ᴍᴜᴇʀᴛᴇs&8] &aConfiguración recargada."
+      actionbar:
+        enabled: false
+        message:
+          - ""
+      title:
+        enabled: false
+        message:
+          - ""
+      subtitle:
+        enabled: false
+        message:
+          - ""
+
+  toggle_enabled:
+    module:
+      chat:
+        enabled: true
+        message:
+          - "&8[&#FF6961ᴍᴜᴇʀᴛᴇs&8] &7Mensajes de muerte &aactivados&7."
+      actionbar:
+        enabled: false
+        message:
+          - ""
+      title:
+        enabled: false
+        message:
+          - ""
+      subtitle:
+        enabled: false
+        message:
+          - ""
+
+  toggle_disabled:
+    module:
+      chat:
+        enabled: true
+        message:
+          - "&8[&#FF6961ᴍᴜᴇʀᴛᴇs&8] &7Mensajes de muerte &cdesactivados&7."
+      actionbar:
+        enabled: false
+        message:
+          - ""
+      title:
+        enabled: false
+        message:
+          - ""
+      subtitle:
+        enabled: false
+        message:
+          - ""
