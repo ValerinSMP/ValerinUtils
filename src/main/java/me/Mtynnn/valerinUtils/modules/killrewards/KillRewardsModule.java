@@ -190,6 +190,41 @@ public class KillRewardsModule implements Module, Listener {
             }
         }
 
+        // 6. Team Abuse Check
+        if (antiAbuse.getBoolean("prevent-team-killing", false)) {
+            if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+                try {
+                    // Use PAPI to check if both are in the same team
+                    // %vteams_team_id% usually returns an ID if in a team
+                    String killerTeam = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(killer,
+                            "%vteams_team_id%");
+                    String victimTeam = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(victim,
+                            "%vteams_team_id%");
+
+                    // Verify parsed values are valid (PAPI returns strict string if not parsed?)
+                    // Usually returns "identifier_param" if failed, or empty string.
+                    // We check if it is not null, not empty, and not the raw placeholder.
+                    boolean kValid = killerTeam != null && !killerTeam.isEmpty() && !killerTeam.startsWith("%");
+                    boolean vValid = victimTeam != null && !victimTeam.isEmpty() && !victimTeam.startsWith("%");
+
+                    if (kValid && vValid && killerTeam.equals(victimTeam)) {
+                        debug("Same team detected (" + killerTeam + "): " + killer.getName() + " -> "
+                                + victim.getName());
+                        // Send message
+                        String msg = plugin.getConfigManager().getConfig("settings").getString(
+                                "messages.killrewards.team-kill-deny", "&cNo puedes abusar matando a tu equipo.");
+                        if (msg != null && !msg.isEmpty()) {
+                            killer.sendMessage(plugin.translateColors(msg));
+                        }
+                        return false;
+                    }
+
+                } catch (NoClassDefFoundError | Exception e) {
+                    debug("Error checking team placeholders: " + e.getMessage());
+                }
+            }
+        }
+
         return true;
     }
 
@@ -244,7 +279,8 @@ public class KillRewardsModule implements Module, Listener {
                     if (cmd == null)
                         continue;
                     String parsed = cmd.replace("%killer%", killer.getName())
-                            .replace("%victim%", victim.getName());
+                            .replace("%victim%", victim.getName())
+                            .replace("%player%", killer.getName());
                     debug("Executing command: " + parsed);
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsed);
                 }

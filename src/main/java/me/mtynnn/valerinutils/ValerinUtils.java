@@ -13,6 +13,7 @@ import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
 import me.mtynnn.valerinutils.modules.tiktok.TikTokModule;
 import me.mtynnn.valerinutils.modules.vote40.Vote40Module;
 import me.mtynnn.valerinutils.modules.deathmessages.DeathMessagesModule;
+import me.mtynnn.valerinutils.modules.votetracking.VoteTrackingModule;
 import me.mtynnn.valerinutils.placeholders.ValerinUtilsExpansion;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -55,6 +56,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private JoinQuitModule joinQuitModule;
     private KillRewardsModule killRewardsModule;
     private TikTokModule tikTokModule;
+    private VoteTrackingModule voteTrackingModule;
     private DeathMessagesModule deathMessagesModule;
 
     // Cache
@@ -110,7 +112,29 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         // 2. Data Migration (v1 -> v2)
         performDataMigration();
 
-        // 3. Register Events
+        // 3. Reload Support: Load data for online players (Pre-load before modules)
+        if (!Bukkit.getOnlinePlayers().isEmpty()) {
+            getLogger().info("Loading data for " + Bukkit.getOnlinePlayers().size() + " online players...");
+            // We need to do this synchronously to ensure data is available for modules
+            // enabling
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                try {
+                    UUID uuid = p.getUniqueId();
+                    PlayerData data = loadPlayerDataFromDB(uuid);
+                    if (data == null) {
+                        data = new PlayerData(uuid, p.getName());
+                    } else {
+                        data.setName(p.getName());
+                    }
+                    playerDataCache.put(uuid, data);
+                } catch (SQLException e) {
+                    getLogger().severe("Failed to load data for " + p.getName() + " during reload.");
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        // 4. Register Events
         getServer().getPluginManager().registerEvents(this, this);
 
         // 4. Initialize Modules
@@ -129,6 +153,9 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
                 || Bukkit.getPluginManager().getPlugin("VotifierPlus") != null) {
             Vote40Module voteModule = new Vote40Module(this);
             moduleManager.registerModule(voteModule);
+
+            voteTrackingModule = new VoteTrackingModule(this);
+            moduleManager.registerModule(voteTrackingModule);
         }
 
         killRewardsModule = new KillRewardsModule(this);
@@ -162,26 +189,10 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         // 6. Startup Banner
         printStartupBanner();
 
-        // 7. Reload Support: Load data for online players
-        if (!Bukkit.getOnlinePlayers().isEmpty()) {
-            getLogger().info("Loading data for " + Bukkit.getOnlinePlayers().size() + " online players...");
+        // 8. Cleanup ghost MenuItems if module is disabled (Reload fix)
+        if (!moduleManager.isModuleEnabled("menuitem")) {
             for (Player p : Bukkit.getOnlinePlayers()) {
-                UUID uuid = p.getUniqueId(); // Capture for lambda
-                String name = p.getName();
-                CompletableFuture.runAsync(() -> {
-                    try {
-                        PlayerData data = loadPlayerDataFromDB(uuid);
-                        if (data == null) {
-                            data = new PlayerData(uuid, name);
-                        } else {
-                            data.setName(name);
-                        }
-                        playerDataCache.put(uuid, data);
-                    } catch (SQLException e) {
-                        getLogger().severe("Failed to load data for " + name + " during reload.");
-                        e.printStackTrace();
-                    }
-                });
+                menuItemModule.clearMenuItem(p);
             }
         }
     }
@@ -202,6 +213,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         boolean killRewardsEnabled = moduleManager.isModuleEnabled("killrewards");
         boolean tikTokEnabled = moduleManager.isModuleEnabled("tiktok");
         boolean vote40Enabled = moduleManager.isModuleEnabled("vote40");
+        boolean voteTrackingEnabled = moduleManager.isModuleEnabled("votetracking");
 
         getLogger().info("");
         getLogger().info("  ValerinUtils v" + version);
@@ -215,7 +227,8 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
                 + " | JoinQuit " + (joinQuitEnabled ? "✔" : "✘")
                 + " | KillRewards " + (killRewardsEnabled ? "✔" : "✘")
                 + " | TikTok " + (tikTokEnabled ? "✔" : "✘")
-                + " | Vote40 " + (vote40Enabled ? "✔" : "✘"));
+                + " | Vote40 " + (vote40Enabled ? "✔" : "✘")
+                + " | VoteStats " + (voteTrackingEnabled ? "✔" : "✘"));
         getLogger().info("");
         getLogger().info("  ValerinUtils has been enabled successfully!");
     }
@@ -515,6 +528,10 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         return deathMessagesModule;
     }
 
+    public VoteTrackingModule getVoteTrackingModule() {
+        return voteTrackingModule;
+    }
+
     // --- Message Utils (Legacy Compat) ---
     public String getMessage(String key) {
         // Now mostly used by MenuItem or others, but better to use ConfigManager
@@ -609,6 +626,9 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private String legacyToMiniMessage(String text) {
         if (text == null || text.isEmpty())
             return "";
+
+        // Convert internal section symbols to ampersands first
+        text = text.replace('§', '&');
 
         // Use pre-compiled pattern for hex colors
         text = HEX_TO_MINI_PATTERN.matcher(text).replaceAll("<#$1>");

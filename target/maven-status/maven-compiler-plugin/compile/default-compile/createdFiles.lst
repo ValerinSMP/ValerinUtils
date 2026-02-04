@@ -5,6 +5,7 @@ me\mtynnn\valerinutils\modules\deathmessages\DeathMessagesModule.class
 me\mtynnn\valerinutils\placeholders\ValerinUtilsExpansion.class
 me\mtynnn\valerinutils\core\ConfigManager.class
 me\mtynnn\valerinutils\ValerinUtils.class
+me\mtynnn\valerinutils\modules\votetracking\VoteTrackingModule.class
 me\mtynnn\valerinutils\modules\tiktok\TikTokModule.class
 me\mtynnn\valerinutils\core\DatabaseManager.class
 me\mtynnn\valerinutils\commands\MenuItemCommand.class

@@ -227,9 +227,29 @@ public class MenuItemModule implements Module, Listener {
         ItemMeta meta = stack.getItemMeta();
         if (meta == null)
             return false;
+
+        // 1. Check Permanent Data Container (Tags)
         PersistentDataContainer data = meta.getPersistentDataContainer();
         Byte flag = data.get(menuItemKey, PersistentDataType.BYTE);
-        return flag != null && flag == (byte) 1;
+        if (flag != null && flag == (byte) 1) {
+            return true;
+        }
+
+        // 2. Fallback: Check Name & Material (For legacy/glitching items)
+        ConfigurationSection section = getSection();
+        if (section != null) {
+            String cfgName = ChatColor.translateAlternateColorCodes('&', section.getString("name", ""));
+            if (!cfgName.isEmpty() && meta.hasDisplayName() && meta.getDisplayName().equals(cfgName)) {
+                String materialName = section.getString("material", "COMPASS");
+                if (stack.getType() == Material.matchMaterial(materialName)) {
+                    // Update tag for future efficiency (optional, but lets just identifying it as
+                    // menu)
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public void clearMenuItem(Player player) {
@@ -367,19 +387,32 @@ public class MenuItemModule implements Module, Listener {
     }
 
     // Click en inventario (incluye shift-click, números, etc.)
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST) // Removed ignoreCancelled to ensure we always check
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player))
             return;
         if (isDisabled(player))
             return;
 
+        // Support for swapping with numbers
         if (event.getClick() == ClickType.NUMBER_KEY) {
             int button = event.getHotbarButton();
             ItemStack itemInHotbar = player.getInventory().getItem(button);
             if (isMenuItem(itemInHotbar)) {
                 event.setCancelled(true);
-                player.updateInventory();
+                // Force update next tick to fix visual glitches
+                Bukkit.getScheduler().runTask(plugin, player::updateInventory);
+                return;
+            }
+        }
+
+        // Support for Swap Offhand in inventory
+        if (event.getClick() == ClickType.SWAP_OFFHAND) {
+            ItemStack offhand = player.getInventory().getItemInOffHand();
+            ItemStack current = event.getCurrentItem();
+            if (isMenuItem(offhand) || isMenuItem(current)) {
+                event.setCancelled(true);
+                Bukkit.getScheduler().runTask(plugin, player::updateInventory);
                 return;
             }
         }
@@ -389,13 +422,18 @@ public class MenuItemModule implements Module, Listener {
 
         if (isMenuItem(current) || isMenuItem(cursor)) {
             event.setCancelled(true);
-            player.updateInventory();
-            runMenuCommand(player);
+
+            // Execute command only if clicking the item directly (contextual)
+            if (isMenuItem(current)) {
+                runMenuCommand(player);
+            }
+
+            Bukkit.getScheduler().runTask(plugin, player::updateInventory);
         }
     }
 
     // Drag en inventario
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onInventoryDrag(InventoryDragEvent event) {
         if (!(event.getWhoClicked() instanceof Player player))
             return;
@@ -405,7 +443,7 @@ public class MenuItemModule implements Module, Listener {
         ItemStack oldCursor = event.getOldCursor();
         if (isMenuItem(oldCursor)) {
             event.setCancelled(true);
-            player.updateInventory();
+            Bukkit.getScheduler().runTask(plugin, player::updateInventory);
             runMenuCommand(player);
         }
     }
@@ -437,7 +475,7 @@ public class MenuItemModule implements Module, Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onDrop(PlayerDropItemEvent event) {
         Player player = event.getPlayer();
         if (isDisabled(player))
@@ -445,11 +483,11 @@ public class MenuItemModule implements Module, Listener {
 
         if (isMenuItem(event.getItemDrop().getItemStack())) {
             event.setCancelled(true);
-            player.updateInventory();
+            Bukkit.getScheduler().runTask(plugin, player::updateInventory);
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onSwap(PlayerSwapHandItemsEvent event) {
         Player player = event.getPlayer();
         if (isDisabled(player))
@@ -457,7 +495,7 @@ public class MenuItemModule implements Module, Listener {
 
         if (isMenuItem(event.getMainHandItem()) || isMenuItem(event.getOffHandItem())) {
             event.setCancelled(true);
-            player.updateInventory();
+            Bukkit.getScheduler().runTask(plugin, player::updateInventory);
         }
     }
 

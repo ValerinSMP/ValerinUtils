@@ -14,3 +14,4 @@ anti-abuse:
   victim:
     min-playtime-minutes: 60
     min-kdr: 0.5
+  prevent-team-killing: true

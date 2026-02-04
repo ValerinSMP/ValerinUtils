@@ -15,6 +15,9 @@ messages:
   menuitem-toggled-off: '%prefix%&cItem de menú desactivado.'
   menuitem-slot-occupied: '%prefix%&cEl slot está ocupado, no se puede dar el item.'
   menuitem-cooldown: '%prefix%&cDebes esperar &e%time%s &cpara volver a usar esto.'
+  
+  killrewards:
+    team-kill-deny: '%prefix%&cNo puedes obtener recompensas matando a miembros de tu equipo.'
 
 database:
   # sqlite is the only optimized option for now

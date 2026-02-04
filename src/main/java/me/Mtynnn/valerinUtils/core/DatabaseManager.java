@@ -113,6 +113,21 @@ public class DatabaseManager {
             plugin.getLogger().log(Level.SEVERE, "Could not create tables", e);
         }
 
+        // Table: player_votes
+        // Stores individual vote records for detailed stats
+        String votesSql = "CREATE TABLE IF NOT EXISTS player_votes (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "uuid TEXT, " +
+                "service_name TEXT, " +
+                "timestamp BIGINT" +
+                ");";
+
+        try (Statement stmt = getConnection().createStatement()) {
+            stmt.execute(votesSql);
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not create player_votes table", e);
+        }
+
         // Table: server_data
         // Stores global server stats (key-value pairs)
         String serverDataSql = "CREATE TABLE IF NOT EXISTS server_data (" +
@@ -158,4 +173,50 @@ public class DatabaseManager {
 
     // Async helper to run standard queries if needed, but we used PreparedStatement
     // in Logic
+
+    // ================== Vote Tracking ==================
+
+    public void addVote(String uuid, String serviceName, long timestamp) {
+        String sql = "INSERT INTO player_votes (uuid, service_name, timestamp) VALUES (?, ?, ?)";
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
+            ps.setString(1, uuid);
+            ps.setString(2, serviceName);
+            ps.setLong(3, timestamp);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not add vote record", e);
+        }
+    }
+
+    public int getVotesBetween(String uuid, long startTimestamp, long endTimestamp) {
+        String sql = "SELECT COUNT(*) FROM player_votes WHERE uuid = ? AND timestamp >= ? AND timestamp <= ?";
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
+            ps.setString(1, uuid);
+            ps.setLong(2, startTimestamp);
+            ps.setLong(3, endTimestamp);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not count votes", e);
+        }
+        return 0;
+    }
+
+    public int getTotalVotes(String uuid) {
+        String sql = "SELECT COUNT(*) FROM player_votes WHERE uuid = ?";
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
+            ps.setString(1, uuid);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not count total votes", e);
+        }
+        return 0;
+    }
 }
