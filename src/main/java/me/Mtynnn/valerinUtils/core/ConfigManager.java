@@ -38,6 +38,8 @@ public class ConfigManager {
         registerConfig("vote40", "modules/vote40.yml");
         registerConfig("menuitem", "modules/menuitem.yml");
         registerConfig("deathmessages", "modules/deathmessages.yml");
+        registerConfig("geodes", "modules/geodes.yml");
+        registerConfig("votetracking", "modules/votetracking.yml");
 
         // 2. Check for migration (Will merge legacy values into the just-created
         // defaults)
@@ -206,27 +208,16 @@ public class ConfigManager {
         }
 
         // Migrate Modules
-        // Strategy:
-        // 1. Try to get data from 'modules.<name>' (Legacy nested)
-        // 2. Try to get data from '<name>' (Legacy root)
-
-        // KillRewards (Was fully nested in modules.killrewards)
         migrateModule(legacy, "modules.killrewards", "modules/killrewards.yml", "killrewards");
-
-        // Vote40 (Was fully nested)
         migrateModule(legacy, "modules.vote40", "modules/vote40.yml", "vote40");
-
-        // TikTok (Split: modules.tiktok.enabled + tiktok root)
-        migrateModule(legacy, "modules.tiktok", "modules/tiktok.yml", "tiktok"); // Get enabled
-        migrateModule(legacy, "tiktok", "modules/tiktok.yml", "tiktok"); // Get root data
-
-        // JoinQuit (Split)
+        migrateModule(legacy, "modules.tiktok", "modules/tiktok.yml", "tiktok");
+        migrateModule(legacy, "tiktok", "modules/tiktok.yml", "tiktok");
         migrateModule(legacy, "modules.joinquit", "modules/joinquit.yml", "joinquit");
         migrateModule(legacy, "joinquit", "modules/joinquit.yml", "joinquit");
-
-        // MenuItem (Split)
         migrateModule(legacy, "modules.menuitem", "modules/menuitem.yml", "menuitem");
         migrateModule(legacy, "menuitem", "modules/menuitem.yml", "menuitem");
+        migrateModule(legacy, "votetracking", "modules/votetracking.yml", "votetracking");
+        migrateModule(legacy, "modules.votetracking", "modules/votetracking.yml", "votetracking");
 
         // Rename old config
         File backup = new File(plugin.getDataFolder(), "config.yml.old");
@@ -247,19 +238,18 @@ public class ConfigManager {
                 newConfig.set(key, section.get(key));
             }
         } else {
-            // It might be just a value, not a section?
-            // Usually we are migrating sections.
-            // If legacyPath points to a value, we can't easily map it to root without
-            // knowing key.
-            // But our legacy config structure is always sections for these modules.
+            Object val = legacy.get(legacyPath);
+            if (val instanceof Boolean) {
+                newConfig.set("enabled", val);
+            }
         }
 
         try {
             newConfig.save(newFile);
-            // Update the cache so the plugin uses the new values immediately
             configs.put(configKey, newConfig);
         } catch (IOException e) {
             plugin.getLogger().severe("Failed to migrate " + legacyPath);
         }
     }
+
 }

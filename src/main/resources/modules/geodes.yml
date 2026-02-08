@@ -1,0 +1,73 @@
+enabled: false
+
+# --- Global Audio Settings ---
+sounds:
+  open:
+    enabled: true
+    # List of sounds to play simultaneously when any geode is opened
+    list:
+      - { sound: "BLOCK_AMETHYST_BLOCK_CHIME", vol: 1.0, pitch: 1.2 }
+      - { sound: "BLOCK_CHORUS_FLOWER_DEATH", vol: 0.8, pitch: 1.5 }
+  success:
+    enabled: true
+    sound: "ENTITY_PLAYER_LEVELUP"
+    vol: 0.5
+    pitch: 2.0
+  fail:
+    enabled: true
+    sound: "BLOCK_GRAVEL_BREAK"
+    vol: 0.7
+    pitch: 0.5
+
+# --- Geodes Configuration ---
+geodes:
+  galena:
+    name: "<light_purple>Geoda de Galena"
+    rewards:
+      - chance: 0.2
+        command: "reforges give %player% mythic"
+        message: "%prefix%&a¡Has obtenido una &4Piedra de Reforja Mítica&a!"
+      - chance: 0.8
+        command: "reforges give %player% legendary"
+        message: "%prefix%&a¡Has obtenido una &6Piedra de Reforja Legendaria&a!"
+      - chance: 1.5
+        command: "reforges give %player% epic"
+        message: "%prefix%&a¡Has obtenido una &dPiedra de Reforja Épica&a!"
+      - chance: 3.0
+        command: "reforges give %player% rare"
+        message: "%prefix%&a¡Has obtenido una &9Piedra de Reforja Rara&a!"
+    fail-message: "&7La geoda de galena estaba vacía..."
+
+  caliza:
+    name: "<white>Geoda de Piedra Caliza"
+    rewards:
+      - chance: 0.5
+        command: "reforges give %player% epic"
+        message: "%prefix%&a¡Has obtenido una &dPiedra de Reforja Épica&a!"
+      - chance: 1.0
+        command: "reforges give %player% rare"
+        message: "%prefix%&a¡Has obtenido una &9Piedra de Reforja Rara&a!"
+      - chance: 2.0
+        command: "reforges give %player% uncommon"
+        message: "%prefix%&a¡Has obtenido una &2Piedra de Reforja Poco Común&a!"
+      - chance: 5.0
+        command: "reforges give %player% common"
+        message: "%prefix%&a¡Has obtenido una &7Piedra de Reforja Común&a!"
+    fail-message: "&7La geoda de caliza estaba vacía..."
+
+  pirita:
+    name: "<gold>Geoda de Pirita"
+    rewards:
+      - chance: 0.5
+        command: "reforges give %player% legendary"
+        message: "%prefix%&a¡Has obtenido una &6Piedra de Reforja Legendaria&a!"
+      - chance: 1.0
+        command: "reforges give %player% epic"
+        message: "%prefix%&a¡Has obtenido una &dPiedra de Reforja Épica&a!"
+      - chance: 2.0
+        command: "reforges give %player% rare"
+        message: "%prefix%&a¡Has obtenido una &9Piedra de Reforja Rara&a!"
+      - chance: 4.0
+        command: "reforges give %player% uncommon"
+        message: "%prefix%&a¡Has obtenido una &2Piedra de Reforja Poco Común&a!"
+    fail-message: "&7La geoda de pirita estaba vacía..."

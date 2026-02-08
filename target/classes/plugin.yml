@@ -25,3 +25,8 @@ commands:
   tiktok:
     description: Reclama recompensa de TikTok
     aliases: [tt]
+
+  geode:
+    description: Comando interno para manejar apertura de geodas
+    permission: valerinutils.geodes.admin
+

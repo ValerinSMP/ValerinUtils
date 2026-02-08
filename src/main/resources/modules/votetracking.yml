@@ -1,1 +1,37 @@
 enabled: true
+
+# --- Global Vote Settings ---
+# This submodule handles what happens when a player votes while online.
+feedback:
+  enabled: true
+  
+  # Commands to run from console (supports %player%)
+  commands:
+    - "crate key give %player% llave_votos"
+    - "money give %player% 2500"
+  
+  # Messages to send to the player
+  chat-message: "%prefix%&a¡Gracias por votar por el servidor!"
+  action-bar: "&e+1 Voto registrado &7(Premio entregado)"
+  
+  # Audio settings
+  sounds:
+    - { sound: "ENTITY_PLAYER_LEVELUP", vol: 0.5, pitch: 1.5 }
+    - { sound: "BLOCK_NOTE_BLOCK_CHIME", vol: 1.0, pitch: 2.0 }
+  
+  # Visual effects (particles)
+  particles:
+    enabled: true
+    type: "TOTEM_OF_UNDYING"
+    amount: 30
+    offset: 0.5
+    speed: 0.5
+
+# --- Global Broadcast Settings ---
+# This message is sent to ALL online players when someone votes.
+broadcast:
+  enabled: true
+  chat-message:
+    - ""
+    - "&8[&6ᴠᴏᴛᴏꜱ&8] &6%player% &fha votado por el servidor y ha recibido sus recompensas, apoyanos con &a/vote"
+    - ""

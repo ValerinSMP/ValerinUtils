@@ -13,6 +13,7 @@ import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
 import me.mtynnn.valerinutils.modules.tiktok.TikTokModule;
 import me.mtynnn.valerinutils.modules.vote40.Vote40Module;
 import me.mtynnn.valerinutils.modules.deathmessages.DeathMessagesModule;
+import me.mtynnn.valerinutils.modules.geodes.GeodesModule;
 import me.mtynnn.valerinutils.modules.votetracking.VoteTrackingModule;
 import me.mtynnn.valerinutils.placeholders.ValerinUtilsExpansion;
 import net.kyori.adventure.text.Component;
@@ -58,6 +59,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private TikTokModule tikTokModule;
     private VoteTrackingModule voteTrackingModule;
     private DeathMessagesModule deathMessagesModule;
+    private GeodesModule geodesModule;
 
     // Cache
     private final Map<UUID, PlayerData> playerDataCache = new ConcurrentHashMap<>();
@@ -167,6 +169,9 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         deathMessagesModule = new DeathMessagesModule(this);
         moduleManager.registerModule(deathMessagesModule);
 
+        geodesModule = new GeodesModule(this);
+        moduleManager.registerModule(geodesModule);
+
         moduleManager.enableAll();
 
         // 5. Hooks & Commands
@@ -214,6 +219,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         boolean tikTokEnabled = moduleManager.isModuleEnabled("tiktok");
         boolean vote40Enabled = moduleManager.isModuleEnabled("vote40");
         boolean voteTrackingEnabled = moduleManager.isModuleEnabled("votetracking");
+        boolean geodesEnabled = moduleManager.isModuleEnabled("geodes");
 
         getLogger().info("");
         getLogger().info("  ValerinUtils v" + version);
@@ -228,7 +234,8 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
                 + " | KillRewards " + (killRewardsEnabled ? "✔" : "✘")
                 + " | TikTok " + (tikTokEnabled ? "✔" : "✘")
                 + " | Vote40 " + (vote40Enabled ? "✔" : "✘")
-                + " | VoteStats " + (voteTrackingEnabled ? "✔" : "✘"));
+                + " | VoteStats " + (voteTrackingEnabled ? "✔" : "✘")
+                + " | Geodes " + (geodesEnabled ? "✔" : "✘"));
         getLogger().info("");
         getLogger().info("  ValerinUtils has been enabled successfully!");
     }
@@ -530,6 +537,10 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
     public VoteTrackingModule getVoteTrackingModule() {
         return voteTrackingModule;
+    }
+
+    public GeodesModule getGeodesModule() {
+        return geodesModule;
     }
 
     // --- Message Utils (Legacy Compat) ---
