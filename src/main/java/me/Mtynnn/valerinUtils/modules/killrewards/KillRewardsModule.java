@@ -15,17 +15,16 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 
 import java.util.*;
 
+import net.milkbowl.vault.economy.Economy;
+import org.bukkit.event.EventPriority;
+import org.bukkit.plugin.RegisteredServiceProvider;
+
 public class KillRewardsModule implements Module, Listener {
 
     private final ValerinUtils plugin;
+    private Economy economy = null;
 
     // Cache para Cooldowns: KillerUUID -> Map<VictimUUID, Timestamp>
-    // Los cooldowns son efímeros, se pueden mantener en memoria.
-    // Si el server reinicia, se pierden, pero es aceptable para "anti-farming" de
-    // sesión.
-    // Si necesitamos persistencia estricta de cooldowns entre reinicios, deberíamos
-    // agregarlo a la BD,
-    // pero para optimización de alto rendimiento, RAM es mejor para esto.
     private final Map<UUID, Map<UUID, Long>> cooldowns = new HashMap<>();
 
     public KillRewardsModule(ValerinUtils plugin) {
@@ -39,13 +38,25 @@ public class KillRewardsModule implements Module, Listener {
 
     @Override
     public void enable() {
+        setupEconomy();
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+    }
+
+    private boolean setupEconomy() {
+        if (plugin.getServer().getPluginManager().getPlugin("Vault") == null) {
+            return false;
+        }
+        RegisteredServiceProvider<Economy> rsp = plugin.getServer().getServicesManager().getRegistration(Economy.class);
+        if (rsp == null) {
+            return false;
+        }
+        economy = rsp.getProvider();
+        return economy != null;
     }
 
     @Override
     public void disable() {
         HandlerList.unregisterAll(this);
-        // Cooldowns are cleared on restart (intended optimization)
         cooldowns.clear();
     }
 
@@ -53,12 +64,12 @@ public class KillRewardsModule implements Module, Listener {
         return plugin.getConfigManager().getConfig("killrewards");
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player victim = event.getEntity();
         Player killer = victim.getKiller();
 
-        debug("PlayerDeathEvent triggered. Victim: " + victim.getName() +
+        debug("PlayerDeathEvent triggered (LOWEST). Victim: " + victim.getName() +
                 ", Killer: " + (killer != null ? killer.getName() : "null"));
 
         // Actualizar stats (en memoria/BD via PlayerData)
@@ -78,8 +89,46 @@ public class KillRewardsModule implements Module, Listener {
             return;
         }
 
-        debug("All checks passed! Giving rewards to " + killer.getName());
+        debug("All checks passed! Processing rewards for " + killer.getName());
+
+        // 1. Percentage Reward (Vault)
+        handlePercentageReward(killer, victim);
+
+        // 2. Standard Rewards (Commands)
         giveRewards(killer, victim);
+    }
+
+    private void handlePercentageReward(Player killer, Player victim) {
+        if (economy == null) {
+            debug("Vault Economy not found, skipping percentage reward.");
+            return;
+        }
+
+        FileConfiguration cfg = getConfig();
+        if (cfg == null || !cfg.getBoolean("percentage-reward.enabled", false)) {
+            return;
+        }
+
+        double percentage = cfg.getDouble("percentage-reward.percentage", 0.0);
+        if (percentage <= 0)
+            return;
+
+        double victimBalance = economy.getBalance(victim);
+        double rewardAmount = victimBalance * (percentage / 100.0);
+
+        if (rewardAmount > 0) {
+            economy.depositPlayer(killer, rewardAmount);
+            debug("Deposited " + rewardAmount + " to " + killer.getName() + " (from " + victimBalance + ")");
+
+            String rewardMsg = cfg.getString("percentage-reward.reward-message", "&aReceived $%amount%");
+            rewardMsg = rewardMsg.replace("%amount%", String.format("%.2f", rewardAmount))
+                    .replace("%victim%", victim.getName())
+                    .replace("%percentage%", String.valueOf(percentage));
+            killer.sendMessage(plugin.translateColors(rewardMsg));
+        } else {
+            // Optional: fallback message or debug
+            debug("Reward amount is 0, skipping deposit.");
+        }
     }
 
     private void updateStats(Player victim, Player killer) {
@@ -107,6 +156,12 @@ public class KillRewardsModule implements Module, Listener {
         }
         if (!cfg.getBoolean("enabled", true)) {
             debug("Module is disabled in config.");
+            return false;
+        }
+
+        List<String> disabledWorlds = cfg.getStringList("disabled-worlds");
+        if (disabledWorlds.contains(victim.getWorld().getName())) {
+            debug("KillRewards disabled in world: " + victim.getWorld().getName());
             return false;
         }
 

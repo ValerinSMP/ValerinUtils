@@ -4,7 +4,7 @@ main: me.mtynnn.valerinutils.ValerinUtils
 api-version: "1.21"
 author: Mtynnn
 description: Utilidades varias para ValerinSMP
-softdepend: [PlaceholderAPI, Votifier, VotifierPlus, RoyaleEconomy]
+softdepend: [PlaceholderAPI, Votifier, VotifierPlus, RoyaleEconomy, Vault, LuckPerms]
 
 commands:
   valerinutils:
