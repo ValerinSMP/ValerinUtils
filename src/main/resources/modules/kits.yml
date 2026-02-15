@@ -1,0 +1,25 @@
+enabled: true
+
+# Configuración de Kits automáticos
+settings:
+  starter_kit_enabled: true
+  respawn_kit_enabled: true
+
+# Este kit se entrega al entrar por primera vez y al reaparecer
+auto_kit:
+  items:
+    - material: STONE_SWORD
+      slot: 0
+    - material: STONE_AXE
+      slot: 1
+    - material: COOKED_PORKCHOP
+      amount: 8
+      slot: 2
+  armor:
+    helmet: CHAINMAIL_HELMET
+    chestplate: CHAINMAIL_CHESTPLATE
+    leggings: CHAINMAIL_LEGGINGS
+    boots: CHAINMAIL_BOOTS
+
+# Los kits de Shulker se guardarán aquí automáticamente
+kits: {}

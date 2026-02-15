@@ -9,6 +9,7 @@ import org.bukkit.command.TabCompleter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 public class ValerinUtilsCommand implements CommandExecutor, TabCompleter {
 
@@ -43,6 +44,48 @@ public class ValerinUtilsCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (args[0].equalsIgnoreCase("debug")) {
+            if (args.length < 2) {
+                sender.sendMessage(plugin.translateColors("%prefix%&cUso: /valerinutils debug <modulo> [on|off|toggle]"));
+                return true;
+            }
+
+            String moduleId = args[1].toLowerCase();
+            Set<String> known = plugin.getModuleManager().getRegisteredModuleIds();
+            if (!known.contains(moduleId)) {
+                sender.sendMessage(plugin.translateColors(
+                        "%prefix%&cMódulo desconocido: &e" + moduleId + "&c. Usa tab para ver opciones."));
+                return true;
+            }
+
+            boolean newValue;
+            if (args.length >= 3) {
+                String mode = args[2].toLowerCase();
+                switch (mode) {
+                    case "on", "true", "enable" -> {
+                        plugin.setModuleDebugEnabled(moduleId, true);
+                        newValue = true;
+                    }
+                    case "off", "false", "disable" -> {
+                        plugin.setModuleDebugEnabled(moduleId, false);
+                        newValue = false;
+                    }
+                    case "toggle" -> newValue = plugin.toggleModuleDebug(moduleId);
+                    default -> {
+                        sender.sendMessage(plugin.translateColors(
+                                "%prefix%&cUso: /valerinutils debug <modulo> [on|off|toggle]"));
+                        return true;
+                    }
+                }
+            } else {
+                newValue = plugin.toggleModuleDebug(moduleId);
+            }
+
+            sender.sendMessage(plugin.translateColors("%prefix%&7Debug de &e" + moduleId + "&7: "
+                    + (newValue ? "&aACTIVADO" : "&cDESACTIVADO")));
+            return true;
+        }
+
         sender.sendMessage(plugin.getMessage("valerinutils-usage"));
         return true;
     }
@@ -59,7 +102,23 @@ public class ValerinUtilsCommand implements CommandExecutor, TabCompleter {
             if ("reload".startsWith(args[0].toLowerCase())) {
                 completions.add("reload");
             }
+            if ("debug".startsWith(args[0].toLowerCase())) {
+                completions.add("debug");
+            }
             return completions;
+        }
+
+        if (args.length == 2 && args[0].equalsIgnoreCase("debug")) {
+            String partial = args[1].toLowerCase();
+            return plugin.getModuleManager().getRegisteredModuleIds().stream()
+                    .filter(m -> m.startsWith(partial))
+                    .toList();
+        }
+
+        if (args.length == 3 && args[0].equalsIgnoreCase("debug")) {
+            List<String> modes = List.of("toggle", "on", "off");
+            String partial = args[2].toLowerCase();
+            return modes.stream().filter(m -> m.startsWith(partial)).toList();
         }
 
         return Collections.emptyList();

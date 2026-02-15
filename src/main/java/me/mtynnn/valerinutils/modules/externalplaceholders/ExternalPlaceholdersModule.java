@@ -7,6 +7,8 @@ import me.mtynnn.valerinutils.modules.externalplaceholders.providers.Placeholder
 import me.mtynnn.valerinutils.modules.externalplaceholders.providers.RoyalEconomyProvider;
 
 import org.bukkit.Bukkit;
+import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -44,6 +46,11 @@ public class ExternalPlaceholdersModule implements Module {
 
     @Override
     public void disable() {
+        for (PlaceholderProvider provider : providers.values()) {
+            if (provider instanceof Listener listener) {
+                HandlerList.unregisterAll(listener);
+            }
+        }
         providers.clear();
     }
 

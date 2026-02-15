@@ -13,6 +13,8 @@ public class PlayerData {
     private boolean menuDisabled;
     private boolean royalPayDisabled;
     private boolean deathMessagesDisabled;
+    private boolean starterKitReceived;
+    private String nickname;
 
     private boolean dirty = false; // If true, needs saving
 
@@ -115,11 +117,29 @@ public class PlayerData {
         this.dirty = true;
     }
 
+    public boolean isStarterKitReceived() {
+        return starterKitReceived;
+    }
+
+    public void setStarterKitReceived(boolean starterKitReceived) {
+        this.starterKitReceived = starterKitReceived;
+        this.dirty = true;
+    }
+
     public boolean isDirty() {
         return dirty;
     }
 
     public void setDirty(boolean dirty) {
         this.dirty = dirty;
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
+        this.dirty = true;
     }
 }

@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.Collections;
 
 public class ModuleManager {
 
@@ -23,6 +24,10 @@ public class ModuleManager {
 
     public Module getModule(String id) {
         return modules.get(id);
+    }
+
+    public Set<String> getRegisteredModuleIds() {
+        return Collections.unmodifiableSet(modules.keySet());
     }
 
     public boolean isModuleEnabled(String id) {

@@ -87,7 +87,9 @@ public class DatabaseManager {
                 "last_daily_reset BIGINT DEFAULT 0, " +
                 "menu_disabled BOOLEAN DEFAULT 0, " +
                 "royal_pay_disabled BOOLEAN DEFAULT 0, " +
-                "death_messages_disabled BOOLEAN DEFAULT 0" +
+                "death_messages_disabled BOOLEAN DEFAULT 0, " +
+                "starter_kit_received BOOLEAN DEFAULT 0, " +
+                "nickname TEXT" +
                 ");";
 
         try (Statement stmt = getConnection().createStatement()) {
@@ -107,7 +109,14 @@ public class DatabaseManager {
             try {
                 stmt.execute("ALTER TABLE player_data ADD COLUMN death_messages_disabled BOOLEAN DEFAULT 0;");
             } catch (SQLException ignored) {
-                // Column likely exists
+            }
+            try {
+                stmt.execute("ALTER TABLE player_data ADD COLUMN starter_kit_received BOOLEAN DEFAULT 0;");
+            } catch (SQLException ignored) {
+            }
+            try {
+                stmt.execute("ALTER TABLE player_data ADD COLUMN nickname TEXT;");
+            } catch (SQLException ignored) {
             }
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not create tables", e);
@@ -139,6 +148,47 @@ public class DatabaseManager {
             stmt.execute(serverDataSql);
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not create server_data table", e);
+        }
+
+        // Table: player_codes
+        // Tracks one-time codes used by players
+        String codesSql = "CREATE TABLE IF NOT EXISTS player_codes (" +
+                "uuid TEXT, " +
+                "code TEXT, " +
+                "PRIMARY KEY (uuid, code)" +
+                ");";
+
+        try (Statement stmt = getConnection().createStatement()) {
+            stmt.execute(codesSql);
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not create player_codes table", e);
+        }
+    }
+
+    // ================== Reward Codes ==================
+
+    public boolean hasUsedCode(String uuid, String code) {
+        String sql = "SELECT 1 FROM player_codes WHERE uuid = ? AND code = ?";
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
+            ps.setString(1, uuid);
+            ps.setString(2, code.toUpperCase());
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Error checking code usage", e);
+        }
+        return false;
+    }
+
+    public void markCodeUsed(String uuid, String code) {
+        String sql = "INSERT INTO player_codes (uuid, code) VALUES (?, ?)";
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
+            ps.setString(1, uuid);
+            ps.setString(2, code.toUpperCase());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Error marking code as used", e);
         }
     }
 

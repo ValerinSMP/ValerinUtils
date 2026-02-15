@@ -1,5 +1,5 @@
 name: ValerinUtils
-version: "2.0.5"
+version: "2.0.0"
 main: me.mtynnn.valerinutils.ValerinUtils
 api-version: "1.21"
 author: Mtynnn
@@ -45,9 +45,6 @@ commands:
     description: Abre un telar
   stonecutter:
     description: Abre un cortapiedras
-  disposal:
-    description: Abre un basurero (disposal)
-    aliases: [trash, basurero, diposal]
   gmc:
     description: Cambia a modo creativo
     usage: /gmc
@@ -116,7 +113,3 @@ commands:
 
   vukits:
     description: Sistema de kits basados en Shulker Boxes
-  kits:
-    description: Alias del sistema de kits (/vukits)
-    usage: "/kits <subcomando>"
-    aliases: [kit]

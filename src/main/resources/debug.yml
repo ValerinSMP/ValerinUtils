@@ -1,0 +1,10 @@
+## ValerinUtils - Debug flags
+# Activa/desactiva debug por módulo (persistente).
+#
+# Ejemplo:
+# modules:
+#   kits:
+#     enabled: true
+#   utility:
+#     enabled: false
+modules: {}

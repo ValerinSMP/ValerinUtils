@@ -1,5 +1,5 @@
 name: ValerinUtils
-version: "2.0.0"
+version: "2.0.5"
 main: me.mtynnn.valerinutils.ValerinUtils
 api-version: "1.21"
 author: Mtynnn
@@ -22,11 +22,101 @@ commands:
     description: Configura tus mensajes de muerte
     aliases: [dmsg]
 
-  tiktok:
-    description: Reclama recompensa de TikTok
-    aliases: [tt]
-
+  code:
+    description: Reclamar recompensas con códigos
+    usage: /code
+  craft:
+    description: Abre una mesa de trabajo
+    aliases: [wv, workbench]
+  enderchest:
+    description: Abre tu cofre del ender
+    aliases: [ec]
+  anvil:
+    description: Abre un yunque
+  smithingtable:
+    description: Abre una mesa de herrería
+    aliases: [st]
+  cartographytable:
+    description: Abre una mesa de cartografía
+    aliases: [ct]
+  grindstone:
+    description: Abre una piedra de afilar
+  loom:
+    description: Abre un telar
+  stonecutter:
+    description: Abre un cortapiedras
+  disposal:
+    description: Abre un basurero (disposal)
+    aliases: [trash, basurero, diposal]
+  gmc:
+    description: Cambia a modo creativo
+    usage: /gmc
+  gms:
+    description: Cambia a modo supervivencia
+    usage: /gms
+  gmsp:
+    description: Cambia a modo espectador
+    usage: /gmsp
+  gma:
+    description: Cambia a modo aventura
+    usage: /gma
+  hat:
+    description: Ponte el item de la mano como sombrero
+    usage: /hat
+  condense:
+    description: Condensa items en bloques
+    usage: /condense
+  seen:
+    description: Mira la última vez que se vio a un jugador
+    usage: /seen <jugador>
+  clear:
+    description: Limpia tu inventario o el de otro jugador
+    usage: /clear [jugador]
+  ping:
+    description: Muestra tu latencia o la de otro jugador
+    usage: /ping [jugador]
+  fly:
+    description: Activa o desactiva el modo vuelo
+    usage: /fly [jugador]
+  speed:
+    description: Ajusta tu velocidad de vuelo o caminata
+    usage: /speed <velocidad> [jugador]
+  broadcast:
+    description: Envía un anuncio global
+    usage: /broadcast <mensaje>
+    aliases: [bc, anuncio]
+  heal:
+    description: Restaura tu vida y hambre
+    usage: /heal [jugador]
+  feed:
+    description: Restaura tu nivel de hambre
+    usage: /feed [jugador]
+  repair:
+    description: Repara el objeto que tienes en la mano
+    usage: /repair
+    aliases: [fix]
+  nick:
+    description: Cambia tu nombre en el chat
+    usage: /nick <apodo|off>
+  skull:
+    description: Obtén la cabeza de un jugador
+    usage: /skull [jugador]
+  suicide:
+    description: Comando para reaparecer
+    usage: /suicide
+  near:
+    description: Muestra jugadores cercanos
+    usage: /near [radio]
+  top:
+    description: Te teletransporta al bloque más alto
+    usage: /top
   geode:
     description: Comando interno para manejar apertura de geodas
     permission: valerinutils.geodes.admin
 
+  vukits:
+    description: Sistema de kits basados en Shulker Boxes
+  kits:
+    description: Alias del sistema de kits (/vukits)
+    usage: "/kits <subcomando>"
+    aliases: [kit]

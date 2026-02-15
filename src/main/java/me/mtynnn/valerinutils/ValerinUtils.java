@@ -10,7 +10,8 @@ import me.mtynnn.valerinutils.modules.externalplaceholders.ExternalPlaceholdersM
 import me.mtynnn.valerinutils.modules.joinquit.JoinQuitModule;
 import me.mtynnn.valerinutils.modules.killrewards.KillRewardsModule;
 import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
-import me.mtynnn.valerinutils.modules.tiktok.TikTokModule;
+import me.mtynnn.valerinutils.modules.codes.CodesModule;
+import me.mtynnn.valerinutils.modules.utility.UtilityModule;
 import me.mtynnn.valerinutils.modules.vote40.Vote40Module;
 import me.mtynnn.valerinutils.modules.deathmessages.DeathMessagesModule;
 import me.mtynnn.valerinutils.modules.geodes.GeodesModule;
@@ -56,10 +57,12 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private ExternalPlaceholdersModule externalPlaceholdersModule;
     private JoinQuitModule joinQuitModule;
     private KillRewardsModule killRewardsModule;
-    private TikTokModule tikTokModule;
+    private CodesModule codesModule;
     private VoteTrackingModule voteTrackingModule;
     private DeathMessagesModule deathMessagesModule;
     private GeodesModule geodesModule;
+    private me.mtynnn.valerinutils.modules.kits.KitsModule kitsModule;
+    private UtilityModule utilityModule;
 
     // Cache
     private final Map<UUID, PlayerData> playerDataCache = new ConcurrentHashMap<>();
@@ -163,14 +166,20 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         killRewardsModule = new KillRewardsModule(this);
         moduleManager.registerModule(killRewardsModule);
 
-        tikTokModule = new TikTokModule(this);
-        moduleManager.registerModule(tikTokModule);
+        codesModule = new CodesModule(this);
+        moduleManager.registerModule(codesModule);
 
         deathMessagesModule = new DeathMessagesModule(this);
         moduleManager.registerModule(deathMessagesModule);
 
         geodesModule = new GeodesModule(this);
         moduleManager.registerModule(geodesModule);
+
+        kitsModule = new me.mtynnn.valerinutils.modules.kits.KitsModule(this);
+        moduleManager.registerModule(kitsModule);
+
+        utilityModule = new UtilityModule(this);
+        moduleManager.registerModule(utilityModule);
 
         moduleManager.enableAll();
 
@@ -216,10 +225,12 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         boolean menuItemEnabled = moduleManager.isModuleEnabled("menuitem");
         boolean joinQuitEnabled = moduleManager.isModuleEnabled("joinquit");
         boolean killRewardsEnabled = moduleManager.isModuleEnabled("killrewards");
-        boolean tikTokEnabled = moduleManager.isModuleEnabled("tiktok");
+        boolean codesEnabled = moduleManager.isModuleEnabled("codes");
         boolean vote40Enabled = moduleManager.isModuleEnabled("vote40");
         boolean voteTrackingEnabled = moduleManager.isModuleEnabled("votetracking");
         boolean geodesEnabled = moduleManager.isModuleEnabled("geodes");
+        boolean kitsEnabled = moduleManager.isModuleEnabled("kits");
+        boolean utilityEnabled = moduleManager.isModuleEnabled("utility");
 
         getLogger().info("");
         getLogger().info("  ValerinUtils v" + version);
@@ -232,10 +243,12 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         getLogger().info("  Modules: MenuItem " + (menuItemEnabled ? "✔" : "✘")
                 + " | JoinQuit " + (joinQuitEnabled ? "✔" : "✘")
                 + " | KillRewards " + (killRewardsEnabled ? "✔" : "✘")
-                + " | TikTok " + (tikTokEnabled ? "✔" : "✘")
+                + " | Codes " + (codesEnabled ? "✔" : "✘")
                 + " | Vote40 " + (vote40Enabled ? "✔" : "✘")
                 + " | VoteStats " + (voteTrackingEnabled ? "✔" : "✘")
-                + " | Geodes " + (geodesEnabled ? "✔" : "✘"));
+                + " | Geodes " + (geodesEnabled ? "✔" : "✘")
+                + " | Kits " + (kitsEnabled ? "✔" : "✘")
+                + " | Utility " + (utilityEnabled ? "✔" : "✘"));
         getLogger().info("");
         getLogger().info("  ValerinUtils has been enabled successfully!");
     }
@@ -320,6 +333,8 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
                     pd.setMenuDisabled(rs.getBoolean("menu_disabled"));
                     pd.setRoyalPayDisabled(rs.getBoolean("royal_pay_disabled"));
                     pd.setDeathMessagesDisabled(rs.getBoolean("death_messages_disabled"));
+                    pd.setStarterKitReceived(rs.getBoolean("starter_kit_received"));
+                    pd.setNickname(rs.getString("nickname"));
                     pd.setDirty(false);
                     return pd;
                 }
@@ -331,12 +346,17 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private void savePlayerDataToDB(PlayerData data) {
         if (data == null)
             return;
-        String sql = "INSERT INTO player_data (uuid, name, tiktok_claimed, kills, deaths, daily_kills, last_daily_reset, menu_disabled, royal_pay_disabled, death_messages_disabled) "
+        String sql = "INSERT INTO player_data (uuid, name, tiktok_claimed, kills, deaths, daily_kills, last_daily_reset, menu_disabled, royal_pay_disabled, death_messages_disabled, starter_kit_received, nickname) "
                 +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
                 "ON CONFLICT(uuid) DO UPDATE SET " +
                 "name=excluded.name, tiktok_claimed=excluded.tiktok_claimed, kills=excluded.kills, " +
-                "deaths=excluded.deaths, daily_kills=excluded.daily_kills, last_daily_reset=excluded.last_daily_reset, menu_disabled=excluded.menu_disabled, royal_pay_disabled=excluded.royal_pay_disabled, death_messages_disabled=excluded.death_messages_disabled";
+                "deaths=excluded.deaths, daily_kills=excluded.daily_kills, last_daily_reset=excluded.last_daily_reset, "
+                +
+                "menu_disabled=excluded.menu_disabled, royal_pay_disabled=excluded.royal_pay_disabled, " +
+                "death_messages_disabled=excluded.death_messages_disabled, starter_kit_received=excluded.starter_kit_received, "
+                +
+                "nickname=excluded.nickname";
 
         try (PreparedStatement ps = databaseManager.getConnection().prepareStatement(sql)) {
             ps.setString(1, data.getUuid().toString());
@@ -349,6 +369,8 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             ps.setBoolean(8, data.isMenuDisabled());
             ps.setBoolean(9, data.isRoyalPayDisabled());
             ps.setBoolean(10, data.isDeathMessagesDisabled());
+            ps.setBoolean(11, data.isStarterKitReceived());
+            ps.setString(12, data.getNickname());
             ps.executeUpdate();
         } catch (SQLException e) {
             getLogger().severe("Could not save data for " + data.getName());
@@ -527,8 +549,8 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         return killRewardsModule;
     }
 
-    public TikTokModule getTikTokModule() {
-        return tikTokModule;
+    public CodesModule getCodesModule() {
+        return codesModule;
     }
 
     public DeathMessagesModule getDeathMessagesModule() {
@@ -541,6 +563,30 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
     public GeodesModule getGeodesModule() {
         return geodesModule;
+    }
+
+    // --- Debug flags (per-module) ---
+    public boolean isModuleDebugEnabled(String moduleId) {
+        FileConfiguration dbg = configManager.getConfig("debug");
+        if (dbg == null || moduleId == null || moduleId.isBlank()) {
+            return false;
+        }
+        return dbg.getBoolean("modules." + moduleId.toLowerCase() + ".enabled", false);
+    }
+
+    public boolean toggleModuleDebug(String moduleId) {
+        boolean next = !isModuleDebugEnabled(moduleId);
+        setModuleDebugEnabled(moduleId, next);
+        return next;
+    }
+
+    public void setModuleDebugEnabled(String moduleId, boolean enabled) {
+        FileConfiguration dbg = configManager.getConfig("debug");
+        if (dbg == null || moduleId == null || moduleId.isBlank()) {
+            return;
+        }
+        dbg.set("modules." + moduleId.toLowerCase() + ".enabled", enabled);
+        configManager.saveConfig("debug");
     }
 
     // --- Message Utils (Legacy Compat) ---

@@ -1,0 +1,28 @@
+enabled: true
+
+# Configuración del cartel de entrada
+# La primera línea (índice 0) es donde el jugador escribe el código.
+code-sign:
+  lines:
+    - ""
+    - "↑↑↑↑↑↑↑↑↑↑↑↑↑"
+    - "    Codigo   "
+    - ""
+
+# Lista de códigos disponibles
+codes:
+  "SUNDIR":
+    commands:
+      - "money give %player% 25000"
+      - "give %player% diamond_helmet 1"
+      - "give %player% diamond_chestplate 1"
+      - "give %player% diamond_leggings 1"
+      - "give %player% diamond_boots 1"
+      - "give %player% golden_apple 10"
+    once: true # Solo se puede usar una vez por jugador
+
+messages:
+  usage: "%prefix%&7Uso: &e/code"
+  invalid-code: "%prefix%&cEl código &e%code% &cno es válido."
+  already-used: "%prefix%&cYa has reclamado este código anteriormente."
+  success: "%prefix%&a¡Código &e%code% &areclamado con éxito!"

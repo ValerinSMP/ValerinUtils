@@ -32,6 +32,7 @@ public class ConfigManager {
     public void loadAll() {
         // 1. Initialize all configs (Create defaults from JAR if missing)
         registerConfig("settings", "settings.yml");
+        registerConfig("debug", "debug.yml");
         registerConfig("killrewards", "modules/killrewards.yml");
         registerConfig("tiktok", "modules/tiktok.yml");
         registerConfig("joinquit", "modules/joinquit.yml");
@@ -40,7 +41,9 @@ public class ConfigManager {
         registerConfig("deathmessages", "modules/deathmessages.yml");
         registerConfig("geodes", "modules/geodes.yml");
         registerConfig("votetracking", "modules/votetracking.yml");
-
+        registerConfig("kits", "modules/kits.yml");
+        registerConfig("codes", "modules/codes.yml");
+        registerConfig("utilities", "modules/utilities.yml");
         // 2. Check for migration (Will merge legacy values into the just-created
         // defaults)
         migrateLegacyConfig(); // Legacy config.yml -> new structure
@@ -104,6 +107,8 @@ public class ConfigManager {
     private void updateModuleConfigs() {
         // JoinQuit - Add MOTD section if missing
         updateJoinQuitConfig();
+        updateKitsConfig();
+        updateUtilitiesConfig();
     }
 
     private void updateJoinQuitConfig() {
@@ -138,6 +143,54 @@ public class ConfigManager {
         if (changed) {
             saveConfig("joinquit");
             plugin.getLogger().info("[JoinQuit] Config updated with new keys.");
+        }
+    }
+
+    private void updateKitsConfig() {
+        FileConfiguration config = getConfig("kits");
+        if (config == null)
+            return;
+
+        boolean changed = false;
+
+        if (!config.contains("settings.debug_command_spam")) {
+            config.set("settings.debug_command_spam", false);
+            changed = true;
+        }
+
+        if (changed) {
+            saveConfig("kits");
+            plugin.getLogger().info("[Kits] Config updated with new keys.");
+        }
+    }
+
+    private void updateUtilitiesConfig() {
+        FileConfiguration config = getConfig("utilities");
+        if (config == null)
+            return;
+
+        boolean changed = false;
+
+        if (!config.contains("commands.disposal.enabled")) {
+            config.set("commands.disposal.enabled", true);
+            changed = true;
+        }
+        if (!config.contains("commands.disposal.permission")) {
+            config.set("commands.disposal.permission", "valerinutils.utility.disposal");
+            changed = true;
+        }
+        if (!config.contains("messages.disposal-title")) {
+            config.set("messages.disposal-title", "&8Basurero");
+            changed = true;
+        }
+        if (!config.contains("sounds.disposal")) {
+            config.set("sounds.disposal", "BLOCK_BARREL_OPEN");
+            changed = true;
+        }
+
+        if (changed) {
+            saveConfig("utilities");
+            plugin.getLogger().info("[Utility] Config updated with new keys.");
         }
     }
 
