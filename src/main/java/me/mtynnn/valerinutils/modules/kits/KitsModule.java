@@ -8,6 +8,8 @@ import org.bukkit.block.ShulkerBox;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.command.BlockCommandSender;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.ConfigurationSection;
@@ -17,9 +19,11 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -41,8 +45,10 @@ public class KitsModule implements Module, Listener, CommandExecutor, TabComplet
     private static final int PLAYER_INV_SIZE = 36;
     private static final long INITIAL_KIT_COOLDOWN_MS = 5L * 60L * 1000L;
     private final Map<UUID, Long> initialKitNextUseAtMs = new ConcurrentHashMap<>();
+    private final Map<UUID, String> lastDeathWorldByPlayer = new ConcurrentHashMap<>();
     private long lastConsoleNoArgsWarnAtMs = 0L;
     private long lastConsoleUnknownWarnAtMs = 0L;
+    private long lastConsolePlayerOnlyWarnAtMs = 0L;
     private long lastConsoleTraceAtMs = 0L;
 
     public KitsModule(ValerinUtils plugin) {
@@ -112,7 +118,7 @@ public class KitsModule implements Module, Listener, CommandExecutor, TabComplet
         switch (sub) {
             case "create":
                 if (!(sender instanceof Player player)) {
-                    sender.sendMessage(plugin.translateColors("%prefix%&cEste subcomando solo puede usarse en juego."));
+                    maybeWarnConsolePlayerOnlySub(command.getName(), sub, args, sender);
                     return true;
                 }
                 if (!player.hasPermission("valerinutils.kits.admin"))
@@ -125,7 +131,7 @@ public class KitsModule implements Module, Listener, CommandExecutor, TabComplet
                 break;
             case "preview":
                 if (!(sender instanceof Player player)) {
-                    sender.sendMessage(plugin.translateColors("%prefix%&cEste subcomando solo puede usarse en juego."));
+                    maybeWarnConsolePlayerOnlySub(command.getName(), sub, args, sender);
                     return true;
                 }
                 if (args.length < 2) {
@@ -175,7 +181,7 @@ public class KitsModule implements Module, Listener, CommandExecutor, TabComplet
                 break;
             case "inicial":
                 if (!(sender instanceof Player player)) {
-                    sender.sendMessage(plugin.translateColors("%prefix%&cEste subcomando solo puede usarse en juego."));
+                    maybeWarnConsolePlayerOnlySub(command.getName(), sub, args, sender);
                     return true;
                 }
                 handleInitialKit(player);
@@ -365,6 +371,48 @@ public class KitsModule implements Module, Listener, CommandExecutor, TabComplet
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         initialKitNextUseAtMs.remove(event.getPlayer().getUniqueId());
+        lastDeathWorldByPlayer.remove(event.getPlayer().getUniqueId());
+    }
+
+    @EventHandler
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        Player victim = event.getEntity();
+        if (victim.getWorld() != null) {
+            lastDeathWorldByPlayer.put(victim.getUniqueId(), victim.getWorld().getName().toLowerCase());
+        }
+    }
+
+    @EventHandler
+    public void onServerCommand(ServerCommandEvent event) {
+        String raw = event.getCommand();
+        if (raw == null) {
+            return;
+        }
+
+        String lowered = raw.toLowerCase().trim();
+        if (!(lowered.startsWith("kit") || lowered.startsWith("kits") || lowered.startsWith("vukits"))) {
+            return;
+        }
+
+        if (!isDebugEnabled()) {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        if (now - lastConsoleTraceAtMs < 60000L) {
+            return;
+        }
+        lastConsoleTraceAtMs = now;
+
+        CommandSender sender = event.getSender();
+        String senderInfo = sender != null ? sender.getClass().getSimpleName() : "null";
+        if (sender instanceof BlockCommandSender bcs) {
+            senderInfo = "BlockCommandSender@" + bcs.getBlock().getLocation();
+        } else if (sender instanceof ConsoleCommandSender) {
+            senderInfo = "Console";
+        }
+
+        plugin.getLogger().warning("[Kits] Detectado comando desde servidor: /" + raw + " (sender=" + senderInfo + ")");
     }
 
     @EventHandler
@@ -373,9 +421,31 @@ public class KitsModule implements Module, Listener, CommandExecutor, TabComplet
         if (!cfg.getBoolean("settings.respawn_kit_enabled", true))
             return;
 
+        String deathWorld = lastDeathWorldByPlayer.remove(event.getPlayer().getUniqueId());
+        if (deathWorld != null) {
+            List<String> disabledWorlds = cfg.getStringList("settings.respawn_kit_disabled_worlds");
+            for (String world : disabledWorlds) {
+                if (world != null && deathWorld.equalsIgnoreCase(world.trim())) {
+                    return;
+                }
+            }
+        }
+
+        boolean onlyOnDeath = cfg.getBoolean("settings.respawn_kit_only_on_death", true);
+        if (onlyOnDeath) {
+            try {
+                if (event.getRespawnReason() != PlayerRespawnEvent.RespawnReason.DEATH) {
+                    return;
+                }
+            } catch (Throwable ignored) {
+                // If server implementation doesn't support respawn reason, fall back to old behavior.
+            }
+        }
+
+        boolean overwrite = cfg.getBoolean("settings.respawn_kit_overwrite", false);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (event.getPlayer().isOnline()) {
-                giveAutoKit(event.getPlayer(), true);
+                giveAutoKit(event.getPlayer(), overwrite);
             }
         }, 5L);
     }
@@ -526,11 +596,29 @@ public class KitsModule implements Module, Listener, CommandExecutor, TabComplet
         maybeLogCallerTrace("unknown-sub", "/" + commandName + " " + sub);
     }
 
+    private void maybeWarnConsolePlayerOnlySub(String commandName, String sub, String[] args, CommandSender sender) {
+        long now = System.currentTimeMillis();
+        if (now - lastConsolePlayerOnlyWarnAtMs < 60000L) {
+            return;
+        }
+        lastConsolePlayerOnlyWarnAtMs = now;
+
+        String senderInfo = sender != null ? sender.getClass().getSimpleName() : "null";
+        if (sender instanceof BlockCommandSender bcs) {
+            senderInfo = "BlockCommandSender@" + bcs.getBlock().getLocation();
+        } else if (sender instanceof ConsoleCommandSender) {
+            senderInfo = "Console";
+        }
+
+        String commandLine = "/" + commandName + " " + String.join(" ", args);
+        plugin.getLogger().warning("[Kits] Subcomando solo-jugador ejecutado desde servidor: " + commandLine
+                + " (sender=" + senderInfo + ").");
+        maybeLogCallerTrace("player-only", commandLine);
+    }
+
     private void maybeLogCallerTrace(String reason, String commandLine) {
         FileConfiguration cfg = getConfig();
-        boolean debugEnabled = plugin.isModuleDebugEnabled(getId())
-                || (cfg != null && cfg.getBoolean("settings.debug_command_spam", false));
-        if (!debugEnabled) {
+        if (!isDebugEnabled()) {
             return;
         }
 
@@ -566,6 +654,11 @@ public class KitsModule implements Module, Listener, CommandExecutor, TabComplet
                 plugin.getLogger().warning(line);
             }
         }
+    }
+
+    private boolean isDebugEnabled() {
+        FileConfiguration cfg = getConfig();
+        return plugin.isModuleDebugEnabled(getId()) || (cfg != null && cfg.getBoolean("settings.debug_command_spam", false));
     }
 
     private boolean noPerms(Player player) {

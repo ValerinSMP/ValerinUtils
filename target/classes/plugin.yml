@@ -1,5 +1,5 @@
 name: ValerinUtils
-version: "2.0.5"
+version: "2.0.10"
 main: me.mtynnn.valerinutils.ValerinUtils
 api-version: "1.21"
 author: Mtynnn
@@ -21,6 +21,11 @@ commands:
   deathmsg:
     description: Configura tus mensajes de muerte
     aliases: [dmsg]
+  vuspawn:
+    description: Configura el spawn (firstjoin/death)
+    usage: "/vuspawn <set|off|info> ..."
+    permission: valerinutils.admin
+    aliases: [setspawn]
 
   code:
     description: Reclamar recompensas con códigos

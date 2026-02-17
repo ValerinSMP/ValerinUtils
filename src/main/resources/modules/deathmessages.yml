@@ -1,5 +1,18 @@
 enabled: true
 
+# Spawn settings
+spawn:
+  # Teleport en primer ingreso al servidor
+  first-join:
+    enabled: false
+    location: "world_lobby;-4;141;107;0;0"
+    delay-ticks: 1
+
+  # Forzar respawn en una ubicación
+  on-death:
+    enabled: false
+    location: "world_lobby;-4;141;107;0;0"
+
 # Configuración de Mensajes de Muerte
 messages:
   # PvP (Jugador mata a Jugador)

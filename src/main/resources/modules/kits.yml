@@ -4,6 +4,14 @@ enabled: true
 settings:
   starter_kit_enabled: true
   respawn_kit_enabled: true
+  # Si está en true, el respawn kit solo se aplica cuando el respawn fue por MUERTE.
+  # Esto evita que se aplique al salir del End (portal del dragón), plugins, etc.
+  respawn_kit_only_on_death: true
+  # Si está en true, el respawn kit sobrescribe slots/armadura. Recomendado: false.
+  respawn_kit_overwrite: false
+  # Mundos donde NO se dará el kit al reaparecer por muerte.
+  # Se compara contra el mundo donde murió el jugador.
+  respawn_kit_disabled_worlds: []
 
 # Este kit se entrega al entrar por primera vez y al reaparecer
 auto_kit:

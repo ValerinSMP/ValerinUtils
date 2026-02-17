@@ -109,6 +109,7 @@ public class ConfigManager {
         updateJoinQuitConfig();
         updateKitsConfig();
         updateUtilitiesConfig();
+        updateDeathMessagesConfig();
     }
 
     private void updateJoinQuitConfig() {
@@ -157,6 +158,18 @@ public class ConfigManager {
             config.set("settings.debug_command_spam", false);
             changed = true;
         }
+        if (!config.contains("settings.respawn_kit_only_on_death")) {
+            config.set("settings.respawn_kit_only_on_death", true);
+            changed = true;
+        }
+        if (!config.contains("settings.respawn_kit_overwrite")) {
+            config.set("settings.respawn_kit_overwrite", false);
+            changed = true;
+        }
+        if (!config.contains("settings.respawn_kit_disabled_worlds")) {
+            config.set("settings.respawn_kit_disabled_worlds", java.util.Collections.emptyList());
+            changed = true;
+        }
 
         if (changed) {
             saveConfig("kits");
@@ -191,6 +204,41 @@ public class ConfigManager {
         if (changed) {
             saveConfig("utilities");
             plugin.getLogger().info("[Utility] Config updated with new keys.");
+        }
+    }
+
+    private void updateDeathMessagesConfig() {
+        FileConfiguration config = getConfig("deathmessages");
+        if (config == null)
+            return;
+
+        boolean changed = false;
+
+        if (!config.contains("spawn.first-join.enabled")) {
+            config.set("spawn.first-join.enabled", false);
+            changed = true;
+        }
+        if (!config.contains("spawn.first-join.location")) {
+            config.set("spawn.first-join.location", "world_lobby;-4;141;107;0;0");
+            changed = true;
+        }
+        if (!config.contains("spawn.first-join.delay-ticks")) {
+            config.set("spawn.first-join.delay-ticks", 1);
+            changed = true;
+        }
+
+        if (!config.contains("spawn.on-death.enabled")) {
+            config.set("spawn.on-death.enabled", false);
+            changed = true;
+        }
+        if (!config.contains("spawn.on-death.location")) {
+            config.set("spawn.on-death.location", "world_lobby;-4;141;107;0;0");
+            changed = true;
+        }
+
+        if (changed) {
+            saveConfig("deathmessages");
+            plugin.getLogger().info("[DeathMessages] Config updated with new keys.");
         }
     }
 
