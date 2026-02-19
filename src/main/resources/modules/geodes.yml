@@ -26,48 +26,48 @@ geodes:
     rewards:
       - chance: 0.2
         command: "reforges give %player% mythic"
-        message: "%prefix%&a¡Has obtenido una &4Piedra de Reforja Mítica&a!"
+        message: "%prefix%<green>¡Has obtenido una <dark_red>Piedra de Reforja Mítica<green>!"
       - chance: 0.8
         command: "reforges give %player% legendary"
-        message: "%prefix%&a¡Has obtenido una &6Piedra de Reforja Legendaria&a!"
+        message: "%prefix%<green>¡Has obtenido una <gold>Piedra de Reforja Legendaria<green>!"
       - chance: 1.5
         command: "reforges give %player% epic"
-        message: "%prefix%&a¡Has obtenido una &dPiedra de Reforja Épica&a!"
+        message: "%prefix%<green>¡Has obtenido una <light_purple>Piedra de Reforja Épica<green>!"
       - chance: 3.0
         command: "reforges give %player% rare"
-        message: "%prefix%&a¡Has obtenido una &9Piedra de Reforja Rara&a!"
-    fail-message: "&7La geoda de galena estaba vacía..."
+        message: "%prefix%<green>¡Has obtenido una <blue>Piedra de Reforja Rara<green>!"
+    fail-message: "<gray>La geoda de galena estaba vacía..."
 
   caliza:
     name: "<white>Geoda de Piedra Caliza"
     rewards:
       - chance: 0.5
         command: "reforges give %player% epic"
-        message: "%prefix%&a¡Has obtenido una &dPiedra de Reforja Épica&a!"
+        message: "%prefix%<green>¡Has obtenido una <light_purple>Piedra de Reforja Épica<green>!"
       - chance: 1.0
         command: "reforges give %player% rare"
-        message: "%prefix%&a¡Has obtenido una &9Piedra de Reforja Rara&a!"
+        message: "%prefix%<green>¡Has obtenido una <blue>Piedra de Reforja Rara<green>!"
       - chance: 2.0
         command: "reforges give %player% uncommon"
-        message: "%prefix%&a¡Has obtenido una &2Piedra de Reforja Poco Común&a!"
+        message: "%prefix%<green>¡Has obtenido una <dark_green>Piedra de Reforja Poco Común<green>!"
       - chance: 5.0
         command: "reforges give %player% common"
-        message: "%prefix%&a¡Has obtenido una &7Piedra de Reforja Común&a!"
-    fail-message: "&7La geoda de caliza estaba vacía..."
+        message: "%prefix%<green>¡Has obtenido una <gray>Piedra de Reforja Común<green>!"
+    fail-message: "<gray>La geoda de caliza estaba vacía..."
 
   pirita:
     name: "<gold>Geoda de Pirita"
     rewards:
       - chance: 0.5
         command: "reforges give %player% legendary"
-        message: "%prefix%&a¡Has obtenido una &6Piedra de Reforja Legendaria&a!"
+        message: "%prefix%<green>¡Has obtenido una <gold>Piedra de Reforja Legendaria<green>!"
       - chance: 1.0
         command: "reforges give %player% epic"
-        message: "%prefix%&a¡Has obtenido una &dPiedra de Reforja Épica&a!"
+        message: "%prefix%<green>¡Has obtenido una <light_purple>Piedra de Reforja Épica<green>!"
       - chance: 2.0
         command: "reforges give %player% rare"
-        message: "%prefix%&a¡Has obtenido una &9Piedra de Reforja Rara&a!"
+        message: "%prefix%<green>¡Has obtenido una <blue>Piedra de Reforja Rara<green>!"
       - chance: 4.0
         command: "reforges give %player% uncommon"
-        message: "%prefix%&a¡Has obtenido una &2Piedra de Reforja Poco Común&a!"
-    fail-message: "&7La geoda de pirita estaba vacía..."
+        message: "%prefix%<green>¡Has obtenido una <dark_green>Piedra de Reforja Poco Común<green>!"
+    fail-message: "<gray>La geoda de pirita estaba vacía..."

@@ -1,5 +1,5 @@
 name: ValerinUtils
-version: "2.0.10"
+version: "2.0.16"
 main: me.mtynnn.valerinutils.ValerinUtils
 api-version: "1.21"
 author: Mtynnn
@@ -29,7 +29,7 @@ commands:
 
   code:
     description: Reclamar recompensas con códigos
-    usage: /code
+    usage: /code [código]
   craft:
     description: Abre una mesa de trabajo
     aliases: [wv, workbench]
@@ -112,9 +112,9 @@ commands:
   near:
     description: Muestra jugadores cercanos
     usage: /near [radio]
-  top:
+  vtop:
     description: Te teletransporta al bloque más alto
-    usage: /top
+    usage: /vtop
   geode:
     description: Comando interno para manejar apertura de geodas
     permission: valerinutils.geodes.admin
@@ -125,3 +125,8 @@ commands:
     description: Alias del sistema de kits (/vukits)
     usage: "/kits <subcomando>"
     aliases: [kit]
+
+  pvpmina:
+    description: Comandos del sistema de Mina PvP
+    aliases: [minapvp]
+    permission: valerinutils.pvpmina.use

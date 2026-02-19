@@ -83,6 +83,7 @@ public class ValerinUtilsCommand implements CommandExecutor, TabCompleter {
 
             sender.sendMessage(plugin.translateColors("%prefix%&7Debug de &e" + moduleId + "&7: "
                     + (newValue ? "&aACTIVADO" : "&cDESACTIVADO")));
+            plugin.getLogger().info("[DebugCommand] " + sender.getName() + " set debug " + moduleId + "=" + newValue);
             return true;
         }
 

@@ -87,9 +87,7 @@ public class VoteTrackingModule implements Module, Listener {
 
     private void recordVoteOffline(UUID uuid, String service, long timestamp) {
         plugin.getDatabaseManager().addVote(uuid.toString(), service, timestamp);
-        if (plugin.isDebug()) {
-            plugin.getLogger().info("[VoteTracking] Vote recorded for " + uuid + " from " + service);
-        }
+        plugin.debug(getId(), "Vote recorded for " + uuid + " from " + service);
     }
 
     private void handleFeedback(Player player) {

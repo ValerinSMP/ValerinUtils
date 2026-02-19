@@ -16,6 +16,7 @@ import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -27,17 +28,24 @@ import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
 
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.bukkit.event.Listener;
 
 public class UtilityModule implements Module, CommandExecutor, Listener {
 
     private final ValerinUtils plugin;
     private final Map<Material, Material> condenseMap = new HashMap<>();
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+    private static final String[] REGISTERED_COMMANDS = {
+            "craft", "enderchest", "anvil", "smithingtable",
+            "cartographytable", "grindstone", "loom", "stonecutter",
+            "disposal",
+            "hat", "condense", "seen", "clear", "gmc", "gms", "gmsp", "gma", "ping",
+            "fly", "speed", "broadcast", "heal", "feed", "repair", "nick", "skull", "suicide", "near", "vtop"
+    };
 
     private static class DisposalHolder implements InventoryHolder {
         @Override
@@ -80,14 +88,7 @@ public class UtilityModule implements Module, CommandExecutor, Listener {
         if (cfg == null || !cfg.getBoolean("enabled", true))
             return;
 
-        String[] cmds = {
-                "craft", "enderchest", "anvil", "smithingtable",
-                "cartographytable", "grindstone", "loom", "stonecutter",
-                "disposal",
-                "hat", "condense", "seen", "clear", "gmc", "gms", "gmsp", "gma", "ping",
-                "fly", "speed", "broadcast", "heal", "feed", "repair", "nick", "skull", "suicide", "near", "top"
-        };
-        for (String c : cmds)
+        for (String c : REGISTERED_COMMANDS)
             registerCommand(c);
 
         Bukkit.getPluginManager().registerEvents(this, plugin);
@@ -102,6 +103,12 @@ public class UtilityModule implements Module, CommandExecutor, Listener {
     @Override
     public void disable() {
         HandlerList.unregisterAll(this);
+        for (String cmdName : REGISTERED_COMMANDS) {
+            PluginCommand cmd = plugin.getCommand(cmdName);
+            if (cmd != null) {
+                cmd.setExecutor(null);
+            }
+        }
     }
 
     private FileConfiguration getConfig() {
@@ -157,7 +164,7 @@ public class UtilityModule implements Module, CommandExecutor, Listener {
             case "skull" -> handleSkull(player, args);
             case "suicide" -> handleSuicide(player, args);
             case "near" -> handleNear(player, args);
-            case "top" -> handleTop(player, args);
+            case "vtop" -> handleTop(player, args);
         }
         return true;
     }
@@ -293,8 +300,11 @@ public class UtilityModule implements Module, CommandExecutor, Listener {
         }
 
         String message = String.join(" ", args);
-        String formatted = getMessage("broadcast-format").replace("%message%", message);
-        Bukkit.broadcast(plugin.parseComponent(formatted));
+        List<String> formattedLines = getMessageLines("broadcast-format");
+        for (String line : formattedLines) {
+            String formatted = line.replace("%message%", message);
+            Bukkit.broadcast(plugin.parseComponent(formatted));
+        }
         for (Player p : Bukkit.getOnlinePlayers()) {
             playSound(p, "broadcast");
         }
@@ -409,7 +419,7 @@ public class UtilityModule implements Module, CommandExecutor, Listener {
         ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) skull.getItemMeta();
         meta.setOwningPlayer(Bukkit.getOfflinePlayer(name));
-        meta.displayName(plugin.parseComponent("&eCabeza de " + name));
+        meta.displayName(plugin.parseComponent("<yellow>Cabeza de " + name));
         skull.setItemMeta(meta);
 
         player.getInventory().addItem(skull);
@@ -697,5 +707,18 @@ public class UtilityModule implements Module, CommandExecutor, Listener {
         if (cfg == null)
             return "";
         return plugin.translateColors(cfg.getString("messages." + key, ""));
+    }
+
+    private List<String> getMessageLines(String key) {
+        FileConfiguration cfg = getConfig();
+        if (cfg == null)
+            return Collections.emptyList();
+
+        String path = "messages." + key;
+        if (cfg.isList(path)) {
+            return cfg.getStringList(path);
+        }
+
+        return List.of(cfg.getString(path, ""));
     }
 }

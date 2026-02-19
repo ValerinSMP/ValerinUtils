@@ -22,7 +22,7 @@ codes:
     once: true # Solo se puede usar una vez por jugador
 
 messages:
-  usage: "%prefix%&7Uso: &e/code"
-  invalid-code: "%prefix%&cEl código &e%code% &cno es válido."
-  already-used: "%prefix%&cYa has reclamado este código anteriormente."
-  success: "%prefix%&a¡Código &e%code% &areclamado con éxito!"
+  usage: "%prefix%<gray>Uso: <yellow>/code [código] <gray>o escríbelo en el cartel."
+  invalid-code: "%prefix%<red>El código <yellow>%code% <red>no es válido."
+  already-used: "%prefix%<red>Ya has reclamado este código anteriormente."
+  success: "%prefix%<green>¡Código <yellow>%code% <green>reclamado con éxito!"

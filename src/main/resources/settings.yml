@@ -1,23 +1,23 @@
 debug: true
 
 messages:
-  prefix: '&8[&#FFEE8Cᴠᴀʟᴇʀɪɴ&8]&r '
-  no-permission: '%prefix%&cNo tienes permiso para usar este comando.'
-  only-players: '%prefix%&cSolo jugadores pueden usar este comando.'
-  valerinutils-usage: '%prefix%&7Uso: &e/valerinutils reload'
-  valerinutils-reload-ok: '%prefix%&aConfiguración recargada y &fmenuitem &aactualizado.'
+  prefix: '<dark_gray>[<color:#FFEE8C>ᴠᴀʟᴇʀɪɴ<dark_gray>]<reset> '
+  no-permission: '%prefix%<red>No tienes permiso para usar este comando.'
+  only-players: '%prefix%<red>Solo jugadores pueden usar este comando.'
+  valerinutils-usage: '%prefix%<gray>Uso: <yellow>/valerinutils reload'
+  valerinutils-reload-ok: '%prefix%<green>Configuración recargada y <white>menuitem <green>actualizado.'
   
   # MenuItem Messages
-  menuitem-usage: '%prefix%&7Uso: &e/menu item <on|off|toggle>'
-  menuitem-on: '%prefix%&aItem de menú activado.'
-  menuitem-off: '%prefix%&cItem de menú desactivado.'
-  menuitem-toggled-on: '%prefix%&aItem de menú activado.'
-  menuitem-toggled-off: '%prefix%&cItem de menú desactivado.'
-  menuitem-slot-occupied: '%prefix%&cEl slot está ocupado, no se puede dar el item.'
-  menuitem-cooldown: '%prefix%&cDebes esperar &e%time%s &cpara volver a usar esto.'
+  menuitem-usage: '%prefix%<gray>Uso: <yellow>/menu item <on|off|toggle>'
+  menuitem-on: '%prefix%<green>Item de menú activado.'
+  menuitem-off: '%prefix%<red>Item de menú desactivado.'
+  menuitem-toggled-on: '%prefix%<green>Item de menú activado.'
+  menuitem-toggled-off: '%prefix%<red>Item de menú desactivado.'
+  menuitem-slot-occupied: '%prefix%<red>El slot está ocupado, no se puede dar el item.'
+  menuitem-cooldown: '%prefix%<red>Debes esperar <yellow>%time%s <red>para volver a usar esto.'
   
   killrewards:
-    team-kill-deny: '%prefix%&cNo puedes obtener recompensas matando a miembros de tu equipo.'
+    team-kill-deny: '%prefix%<red>No puedes obtener recompensas matando a miembros de tu equipo.'
 
 database:
   # sqlite is the only optimized option for now

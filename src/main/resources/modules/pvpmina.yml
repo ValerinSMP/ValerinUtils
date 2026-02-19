@@ -1,0 +1,73 @@
+enabled: true
+world: "world_minapvp"
+interval-minutes: 120 # Rotación cada 2 horas
+
+# Mensajes y Feedback
+messages:
+  mode-change: 
+    - ""
+    - "%prefix% <gold>🔔 <white>La mina pvp ha cambiado al modo: <reset>%mode% <green>/warp minapvp"
+    - ""
+  bossbar-toggle-on: "%prefix% <green>Has activado la BossBar de PvP Mina."
+  bossbar-toggle-off: "%prefix% <red>Has desactivado la BossBar de PvP Mina."
+  item-blocked: "%prefix%<red>Este item no está permitido en el modo actual (%mode%)."
+  # Placeholders: %mode%, %time_left% (HH:mm:ss)
+  bossbar-title: "<red>Modo PvP: %mode% <dark_red>(%time_left%)"
+  bossbar-color: "RED" # PINK, BLUE, RED, GREEN, YELLOW, PURPLE, WHITE
+  bossbar-style: "SOLID" # SOLID, SEGMENTED_6, SEGMENTED_10, SEGMENTED_12, SEGMENTED_20
+  
+  # Sonido al cambiar de modo
+  change-sound: "ENTITY_WITHER_SPAWN" # Sonido de Minecraft
+
+# Definición de Modos
+modes:
+  sword:
+    display-name: "<gradient:#0C595A:#00BBE4>Espada 🗡</gradient>"
+    blocked-items:
+      - MACE
+      - TRIDENT
+      - END_CRYSTAL
+      - RESPAWN_ANCHOR
+      - OBSIDIAN
+    commands-on-start:
+      - "rg flag -w world_minapvp minepvp_pvp block-place deny"
+      - "rg flag -w world_minapvp minepvp_pvp block-break deny"
+    commands-on-end: []
+
+  mace:
+    display-name: "<gradient:#5C437B:#CAAAE8>Maza 🔱</gradient>"
+    blocked-items:
+      - TRIDENT
+      - END_CRYSTAL
+      - RESPAWN_ANCHOR
+      - OBSIDIAN
+    commands-on-start:
+      - "rg flag -w world_minapvp minepvp_pvp block-place deny"
+      - "rg flag -w world_minapvp minepvp_pvp block-break deny"
+    commands-on-end: []
+
+  crystal:
+    display-name: "<gradient:#2A035C:#8200A3>Crystal ☄</gradient>"
+    blocked-items:
+      - MACE
+      - TRIDENT
+    commands-on-start:
+      - "rg flag -w world_minapvp minepvp_pvp block-place allow"
+      - "rg flag -w world_minapvp minepvp_pvp block-break allow"
+    commands-on-end:
+      - "rg flag -w world_minapvp minepvp_pvp block-place deny" 
+      - "rg flag -w world_minapvp minepvp_pvp block-break deny"
+
+  spear:
+    display-name: "<gradient:#0C305A:#0085A3>Lanza ✎</gradient>"
+    blocked-items:
+      - MACE
+      - END_CRYSTAL
+      - RESPAWN_ANCHOR
+      - OBSIDIAN
+    commands-on-start:
+      - "rg flag -w world_minapvp minepvp_pvp block-place deny"
+      - "rg flag -w world_minapvp minepvp_pvp block-break deny"
+    commands-on-end: []
+
+fallback-mode: sword

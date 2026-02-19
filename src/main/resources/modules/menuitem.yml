@@ -1,13 +1,13 @@
 enabled: true
 slot: 8
 material: PAPER
-name: '&bMenú del Aventurero &7(Click Derecho)'
+name: '<aqua>Menú del Aventurero <gray>(Click Derecho)'
 lore:
-- '&7Accede al menú del aventurero'
-- '&7para habilidades, gestión de protes,'
-- '&7warps, config ¡y más!'
+- '<gray>Accede al menú del aventurero'
+- '<gray>para habilidades, gestión de protes,'
+- '<gray>warps, config ¡y más!'
 - ''
-- '&e¡Click para abrir!'
+- '<yellow>¡Click para abrir!'
 command: dm open menu %player%
 custom-model-data: 3
 
@@ -22,10 +22,10 @@ sound:
 cooldown-seconds: 3
 
 messages:
-  usage: '&7Uso: &e/menuitem &f<on|off|toggle>'
-  on: '&aItem de menú &factivado&7. Ahora ocupará el slot configurado.'
-  off: '&cItem de menú &fdesactivado&7. El slot queda libre.'
-  toggled-on: '&aItem de menú &factivado&7.'
-  toggled-off: "&cItem de menú &fdesactivado&7."
-  slot-occupied: '&cNo puedes activar el item. El slot está ocupado, vacíalo primero.'
-  cooldown: '&cDebes esperar &e%time%s &cpara volver a usar esto.'
+  usage: '<gray>Uso: <yellow>/menuitem <white><on|off|toggle>'
+  on: '<green>Item de menú <white>activado<gray>. Ahora ocupará el slot configurado.'
+  off: '<red>Item de menú <white>desactivado<gray>. El slot queda libre.'
+  toggled-on: '<green>Item de menú <white>activado<gray>.'
+  toggled-off: "<red>Item de menú <white>desactivado<gray>."
+  slot-occupied: '<red>No puedes activar el item. El slot está ocupado, vacíalo primero.'
+  cooldown: '<red>Debes esperar <yellow>%time%s <red>para volver a usar esto.'

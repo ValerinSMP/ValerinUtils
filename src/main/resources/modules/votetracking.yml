@@ -11,8 +11,8 @@ feedback:
     - "money give %player% 2500"
   
   # Messages to send to the player
-  chat-message: "%prefix%&a¡Gracias por votar por el servidor!"
-  action-bar: "&e+1 Voto registrado &7(Premio entregado)"
+  chat-message: "%prefix%<green>¡Gracias por votar por el servidor!"
+  action-bar: "<yellow>+1 Voto registrado <gray>(Premio entregado)"
   
   # Audio settings
   sounds:
@@ -33,5 +33,5 @@ broadcast:
   enabled: true
   chat-message:
     - ""
-    - "&8[&6ᴠᴏᴛᴏꜱ&8] &6%player% &fha votado por el servidor y ha recibido sus recompensas, apoyanos con &a/vote"
+    - "<dark_gray>[<gold>ᴠᴏᴛᴏꜱ<dark_gray>] <gold>%player% <white>ha votado por el servidor y ha recibido sus recompensas, apoyanos con <green>/vote"
     - ""

@@ -22,5 +22,5 @@ disabled-worlds:
 percentage-reward:
   enabled: true
   percentage: 25.0
-  fallback-message: "%prefix%&cɴᴏ sᴇ ᴘᴜᴅᴏ ᴄᴀʟᴄᴜʟᴀʀ ʟᴀ ʀᴇᴄᴏᴍᴘᴇɴsᴀ."
-  reward-message: "%prefix%&#B5EAD7ʜᴀs ʀᴇᴄɪʙɪᴅᴏ &e$%amount% &#B5EAD7ᴘᴏʀ ᴍᴀᴛᴀʀ ᴀ &#FF9AA2%victim% &7(&#B5EAD7%percentage%% ᴅᴇ sᴜ sᴀʟᴅᴏ&7)"
+  fallback-message: "%prefix%<red>ɴᴏ sᴇ ᴘᴜᴅᴏ ᴄᴀʟᴄᴜʟᴀʀ ʟᴀ ʀᴇᴄᴏᴍᴘᴇɴsᴀ."
+  reward-message: "%prefix%<color:#B5EAD7>ʜᴀs ʀᴇᴄɪʙɪᴅᴏ <yellow>$%amount% <color:#B5EAD7>ᴘᴏʀ ᴍᴀᴛᴀʀ ᴀ <color:#FF9AA2>%victim% <gray>(<color:#B5EAD7>%percentage%% ᴅᴇ sᴜ sᴀʟᴅᴏ<gray>)"

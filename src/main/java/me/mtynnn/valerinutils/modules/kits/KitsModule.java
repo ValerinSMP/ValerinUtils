@@ -86,15 +86,32 @@ public class KitsModule implements Module, Listener, CommandExecutor, TabComplet
 
         PluginCommand active = Bukkit.getPluginCommand(name);
         if (active != null && active.getPlugin() != plugin) {
-            plugin.getLogger().warning("[Kits] Conflicto de comando: /" + name + " pertenece a "
-                    + active.getPlugin().getName() + ". Usa /" + plugin.getName().toLowerCase() + ":" + name
-                    + " o cambia el alias.");
+            if (active.getPlugin().getName().equalsIgnoreCase(plugin.getName())) {
+                plugin.getLogger().info("[Kits] /" + name + " estaba enlazado a una instancia anterior, se reasignó.");
+            } else {
+                plugin.getLogger().warning("[Kits] Conflicto de comando: /" + name + " pertenece a "
+                        + active.getPlugin().getName() + ". Usa /" + plugin.getName().toLowerCase() + ":" + name
+                        + " o cambia el alias.");
+            }
         }
     }
 
     @Override
     public void disable() {
         HandlerList.unregisterAll(this);
+        unregisterCommand("vukits");
+        unregisterCommand("kits");
+        initialKitNextUseAtMs.clear();
+        lastDeathWorldByPlayer.clear();
+    }
+
+    private void unregisterCommand(String name) {
+        PluginCommand cmd = plugin.getCommand(name);
+        if (cmd == null) {
+            return;
+        }
+        cmd.setExecutor(null);
+        cmd.setTabCompleter(null);
     }
 
     private FileConfiguration getConfig() {

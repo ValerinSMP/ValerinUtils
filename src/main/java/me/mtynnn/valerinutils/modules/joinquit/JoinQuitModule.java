@@ -89,10 +89,7 @@ public class JoinQuitModule implements Module, Listener {
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
 
-        if (plugin.isDebug()) {
-            plugin.getLogger().info("[Debug] Join Event - Metadata keys for " + player.getName() + ": "
-                    + player.getMetadata("vanished").toString());
-        }
+        plugin.debug(getId(), "Join event for " + player.getName() + " world=" + player.getWorld().getName());
 
         if (isWorldDisabled(player.getWorld().getName()))
             return;
@@ -101,8 +98,7 @@ public class JoinQuitModule implements Module, Listener {
         boolean isVanished = player.hasMetadata("vanished") || player.hasMetadata("CMI_Vanish");
 
         if (isVanished) {
-            if (plugin.isDebug())
-                plugin.getLogger().info("Player is vanished (metadata valid), silencing join message.");
+            plugin.debug(getId(), "Player vanished, join broadcast suppressed: " + player.getName());
             event.setJoinMessage(null);
             // Don't return here! We want to process private messages (MOTD, Title)
         } else {
@@ -208,12 +204,11 @@ public class JoinQuitModule implements Module, Listener {
 
                 boolean has = hasGroup(player, groupKey) || player.hasPermission(permNode);
 
-                if (plugin.isDebug()) {
-                    plugin.getLogger().info("[Debug] Checking group: " + groupKey + " | Perm: " + permNode + " | Has: "
-                            + has + " | Priority: " + groups.getInt(groupKey + ".priority"));
-                }
+                plugin.debug(getId(), "Group check " + groupKey + " perm=" + permNode + " has=" + has
+                        + " priority=" + groups.getInt(groupKey + ".priority"));
 
                 if (has) {
+                    plugin.debug(getId(), "Selected group " + groupKey + " for " + player.getName());
                     ConfigurationSection groupSection = groups.getConfigurationSection(groupKey);
 
                     // Broadcast - Only if NOT vanished

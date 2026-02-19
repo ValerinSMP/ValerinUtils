@@ -6,11 +6,11 @@ disabled-worlds:
 first-join:
   enabled: false
   broadcast-message:
-    '&e⭐ ɴᴜᴇᴠᴏ ᴀᴠᴇɴᴛᴜʀᴇʀᴏ &6%player_name% &ese ᴜɴᴇ ᴘᴏʀ ᴘʀɪᴍᴇʀᴀ ᴠᴇᴢ ⭐ &6(#%player_number%)'
+    '<yellow>⭐ ɴᴜᴇᴠᴏ ᴀᴠᴇɴᴛᴜʀᴇʀᴏ <gold>%player_name% <yellow>se ᴜɴᴇ ᴘᴏʀ ᴘʀɪᴍᴇʀᴀ ᴠᴇᴢ ⭐ <gold>(#%player_number%)'
   title:
     enabled: false
     title: <gradient:#46C3D2:white><bold>¡BIENVENIDO!</bold>
-    subtitle: '&7¡Esperamos que te diviertas!'
+    subtitle: '<gray>¡Esperamos que te diviertas!'
     fade-in: 10
     stay: 60
     fade-out: 10
@@ -27,7 +27,7 @@ join:
     owner:
       priority: 100
       messages:
-      - '&6🌊 %luckperms_prefix% <gradient:#e03535:#651520>%player_name% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+      - '<gold>🌊 %luckperms_prefix% <gradient:#e03535:#651520>%player_name% <yellow>sᴇ ʜᴀ ᴜɴɪᴅᴏ <gold>🌊 <dark_gray>(%server_online%)'
       sound:
         enabled: true
         name: BLOCK_NOTE_BLOCK_BELL
@@ -36,7 +36,7 @@ join:
     admin:
       priority: 95
       messages:
-      - '&6🌊 %luckperms_prefix% <gradient:#ff7a40:#b02000>%player_name% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+      - '<gold>🌊 %luckperms_prefix% <gradient:#ff7a40:#b02000>%player_name% <yellow>sᴇ ʜᴀ ᴜɴɪᴅᴏ <gold>🌊 <dark_gray>(%server_online%)'
       sound:
         enabled: true
         name: BLOCK_NOTE_BLOCK_BELL
@@ -45,7 +45,7 @@ join:
     mod:
       priority: 90
       messages:
-      - '&6🌊 %luckperms_prefix% <gradient:#ffaf20:#a03005>%player_name% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+      - '<gold>🌊 %luckperms_prefix% <gradient:#ffaf20:#a03005>%player_name% <yellow>sᴇ ʜᴀ ᴜɴɪᴅᴏ <gold>🌊 <dark_gray>(%server_online%)'
       sound:
         enabled: true
         name: BLOCK_NOTE_BLOCK_BELL
@@ -54,7 +54,7 @@ join:
     helper:
       priority: 85
       messages:
-      - '&6🌊 %luckperms_prefix% <gradient:#50ffc5:#009985>%player_name% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+      - '<gold>🌊 %luckperms_prefix% <gradient:#50ffc5:#009985>%player_name% <yellow>sᴇ ʜᴀ ᴜɴɪᴅᴏ <gold>🌊 <dark_gray>(%server_online%)'
       sound:
         enabled: true
         name: BLOCK_AMETHYST_BLOCK_CHIME
@@ -65,7 +65,7 @@ join:
     leyenda:
       priority: 60
       messages:
-      - '&6🌊 %luckperms_prefix% <gradient:#ffba60:#cf4b15>%player_name% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+      - '<gold>🌊 %luckperms_prefix% <gradient:#ffba60:#cf4b15>%player_name% <yellow>sᴇ ʜᴀ ᴜɴɪᴅᴏ <gold>🌊 <dark_gray>(%server_online%)'
       sound:
         enabled: true
         name: BLOCK_NOTE_BLOCK_BELL
@@ -74,7 +74,7 @@ join:
     elite:
       priority: 50
       messages:
-      - '&6🌊 %luckperms_prefix% <#f6558e>%player_name% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+      - '<gold>🌊 %luckperms_prefix% <#f6558e>%player_name% <yellow>sᴇ ʜᴀ ᴜɴɪᴅᴏ <gold>🌊 <dark_gray>(%server_online%)'
       sound:
         enabled: true
         name: BLOCK_NOTE_BLOCK_BELL
@@ -83,7 +83,7 @@ join:
     arcano:
       priority: 40
       messages:
-      - '&6🌊 %luckperms_prefix% <#d97db3>%player_name% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+      - '<gold>🌊 %luckperms_prefix% <#d97db3>%player_name% <yellow>sᴇ ʜᴀ ᴜɴɪᴅᴏ <gold>🌊 <dark_gray>(%server_online%)'
       sound:
         enabled: true
         name: BLOCK_NOTE_BLOCK_BELL
@@ -92,7 +92,7 @@ join:
     ascendido:
       priority: 30
       messages:
-      - '&6🌊 %luckperms_prefix% <#9ce942>%player_name% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+      - '<gold>🌊 %luckperms_prefix% <#9ce942>%player_name% <yellow>sᴇ ʜᴀ ᴜɴɪᴅᴏ <gold>🌊 <dark_gray>(%server_online%)'
       sound:
         enabled: true
         name: BLOCK_NOTE_BLOCK_BELL
@@ -101,7 +101,7 @@ join:
     guardian:
       priority: 20
       messages:
-      - '&6🌊 %luckperms_prefix% <#50b5e8>%player_name% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+      - '<gold>🌊 %luckperms_prefix% <#50b5e8>%player_name% <yellow>sᴇ ʜᴀ ᴜɴɪᴅᴏ <gold>🌊 <dark_gray>(%server_online%)'
       sound:
         enabled: true
         name: BLOCK_NOTE_BLOCK_BELL
@@ -110,7 +110,7 @@ join:
   
   # Default (Sin rango, sin sonido)
   messages:
-  - '&6🌊 &f%player% &esᴇ ʜᴀ ᴜɴɪᴅᴏ &6🌊 &8(%server_online%)'
+  - '<gold>🌊 <white>%player% <yellow>sᴇ ʜᴀ ᴜɴɪᴅᴏ <gold>🌊 <dark_gray>(%server_online%)'
   
   # Defaults deshabilitados para players normales
   title:
@@ -130,24 +130,24 @@ join:
     clear-chat: true  # Limpia el chat del jugador antes de mostrar el MOTD
     lines:
       - ''
-      - '&6╔══════════════════════════════════════╗'
-      - '&6║  &b&lBIENVENIDO A VALERIN SURVIVAL  &6║'
-      - '&6╠══════════════════════════════════════╣'
-      - '&6║  &7❯ &fJugadores Online: &a%server_online%/%server_max_players%'
-      - '&6║  &7❯ &fTu Rango: &a%luckperms_prefix%'
-      - '&6║  &7❯ &fDinero: &a%vault_eco_balance%'
-      - '&6╠══════════════════════════════════════╣'
-      - '&6║  &e⚠ &7Usa &b/tienda &7para ver la tienda'
-      - '&6║  &e⚠ &7Usa &b/votar &7para votar por el servidor'
-      - '&6╚══════════════════════════════════════╝'
+      - '<gold>╔══════════════════════════════════════╗'
+      - '<gold>║  <aqua><bold>BIENVENIDO A VALERIN SURVIVAL  <gold>║'
+      - '<gold>╠══════════════════════════════════════╣'
+      - '<gold>║  <gray>❯ <white>Jugadores Online: <green>%server_online%/%server_max_players%'
+      - '<gold>║  <gray>❯ <white>Tu Rango: <green>%luckperms_prefix%'
+      - '<gold>║  <gray>❯ <white>Dinero: <green>%vault_eco_balance%'
+      - '<gold>╠══════════════════════════════════════╣'
+      - '<gold>║  <yellow>⚠ <gray>Usa <aqua>/tienda <gray>para ver la tienda'
+      - '<gold>║  <yellow>⚠ <gray>Usa <aqua>/votar <gray>para votar por el servidor'
+      - '<gold>╚══════════════════════════════════════╝'
       - ''
 
 quit:
   enabled: false
   messages:
-  - '&8[&c-&8] &7%player%'
-  - '&8[&c-&8] &f¡Adiós, %player%!'
-  - '&8[&c-&8] &7%player% se ha desvanecido.'
+  - '<dark_gray>[<red>-<dark_gray>] <gray>%player%'
+  - '<dark_gray>[<red>-<dark_gray>] <white>¡Adiós, %player%!'
+  - '<dark_gray>[<red>-<dark_gray>] <gray>%player% se ha desvanecido.'
   sound:
     enabled: false
     name: BLOCK_WOODEN_DOOR_CLOSE

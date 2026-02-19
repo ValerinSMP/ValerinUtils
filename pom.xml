@@ -6,7 +6,7 @@
 
     <groupId>me.mtynnn</groupId>
     <artifactId>ValerinUtils</artifactId>
-    <version>2.0.10</version>
+    <version>2.0.16</version>
     <packaging>jar</packaging>
 
     <name>ValerinUtils</name>

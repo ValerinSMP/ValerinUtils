@@ -7,11 +7,15 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 public class ConfigManager {
+    private static final Pattern LEGACY_HEX_PATTERN = Pattern.compile("(?i)&#([0-9a-f]{6})");
 
     private final ValerinUtils plugin;
     private final Map<String, FileConfiguration> configs = new HashMap<>();
@@ -44,6 +48,7 @@ public class ConfigManager {
         registerConfig("kits", "modules/kits.yml");
         registerConfig("codes", "modules/codes.yml");
         registerConfig("utilities", "modules/utilities.yml");
+        registerConfig("pvpmina", "modules/pvpmina.yml");
         // 2. Check for migration (Will merge legacy values into the just-created
         // defaults)
         migrateLegacyConfig(); // Legacy config.yml -> new structure
@@ -53,6 +58,10 @@ public class ConfigManager {
 
         // 4. Update Module Configs (Add missing keys from new versions)
         updateModuleConfigs();
+        updateDebugConfig();
+
+        // 5. One-way migration: legacy color codes -> MiniMessage in all configs
+        migrateLegacyFormattingToMiniMessage();
     }
 
     private void updateSettingsConfig() {
@@ -64,33 +73,35 @@ public class ConfigManager {
 
         // Verify menuitem messages
         if (!settings.contains("messages.menuitem-cooldown")) {
-            settings.set("messages.menuitem-cooldown", "%prefix%&cDebes esperar &e%time%s &cpara volver a usar esto.");
+            settings.set("messages.menuitem-cooldown",
+                    "%prefix%<red>Debes esperar <yellow>%time%s <red>para volver a usar esto.");
             changed = true;
         }
 
         // Setup missing menuitem keys if needed
         if (!settings.contains("messages.menuitem-usage")) {
-            settings.set("messages.menuitem-usage", "%prefix%&7Uso: &e/menu item <on|off|toggle>");
+            settings.set("messages.menuitem-usage", "%prefix%<gray>Uso: <yellow>/menu item <on|off|toggle>");
             changed = true;
         }
         if (!settings.contains("messages.menuitem-on")) {
-            settings.set("messages.menuitem-on", "%prefix%&aItem de menú activado.");
+            settings.set("messages.menuitem-on", "%prefix%<green>Item de menú activado.");
             changed = true;
         }
         if (!settings.contains("messages.menuitem-off")) {
-            settings.set("messages.menuitem-off", "%prefix%&cItem de menú desactivado.");
+            settings.set("messages.menuitem-off", "%prefix%<red>Item de menú desactivado.");
             changed = true;
         }
         if (!settings.contains("messages.menuitem-toggled-on")) {
-            settings.set("messages.menuitem-toggled-on", "%prefix%&aItem de menú activado.");
+            settings.set("messages.menuitem-toggled-on", "%prefix%<green>Item de menú activado.");
             changed = true;
         }
         if (!settings.contains("messages.menuitem-toggled-off")) {
-            settings.set("messages.menuitem-toggled-off", "%prefix%&cItem de menú desactivado.");
+            settings.set("messages.menuitem-toggled-off", "%prefix%<red>Item de menú desactivado.");
             changed = true;
         }
         if (!settings.contains("messages.menuitem-slot-occupied")) {
-            settings.set("messages.menuitem-slot-occupied", "%prefix%&cEl slot está ocupado, no se puede dar el item.");
+            settings.set("messages.menuitem-slot-occupied",
+                    "%prefix%<red>El slot está ocupado, no se puede dar el item.");
             changed = true;
         }
 
@@ -131,12 +142,12 @@ public class ConfigManager {
         if (!config.contains("join.motd.lines")) {
             config.set("join.motd.lines", java.util.Arrays.asList(
                     "",
-                    "&6╔══════════════════════════════════════╗",
-                    "&6║  &b&lBIENVENIDO A TU SERVIDOR  &6║",
-                    "&6╠══════════════════════════════════════╣",
-                    "&6║  &7❯ &fJugadores Online: &a%server_online%/%server_max_players%",
-                    "&6║  &7❯ &fTu Rango: &a%luckperms_prefix%",
-                    "&6╚══════════════════════════════════════╝",
+                    "<gold>╔══════════════════════════════════════╗",
+                    "<gold>║  <aqua><bold>BIENVENIDO A TU SERVIDOR  <gold>║",
+                    "<gold>╠══════════════════════════════════════╣",
+                    "<gold>║  <gray>❯ <white>Jugadores Online: <green>%server_online%/%server_max_players%",
+                    "<gold>║  <gray>❯ <white>Tu Rango: <green>%luckperms_prefix%",
+                    "<gold>╚══════════════════════════════════════╝",
                     ""));
             changed = true;
         }
@@ -193,7 +204,7 @@ public class ConfigManager {
             changed = true;
         }
         if (!config.contains("messages.disposal-title")) {
-            config.set("messages.disposal-title", "&8Basurero");
+            config.set("messages.disposal-title", "<dark_gray>Basurero");
             changed = true;
         }
         if (!config.contains("sounds.disposal")) {
@@ -256,7 +267,34 @@ public class ConfigManager {
         // Re-run auto-updater after reload to ensure defaults are there
         updateSettingsConfig();
         updateModuleConfigs();
+        updateDebugConfig();
+        migrateLegacyFormattingToMiniMessage();
         plugin.getLogger().info("All configuration files reloaded.");
+    }
+
+    private void updateDebugConfig() {
+        FileConfiguration debug = getConfig("debug");
+        if (debug == null) {
+            return;
+        }
+
+        boolean changed = false;
+        String[] modules = {
+                "menuitem", "externalplaceholders", "joinquit", "vote40", "votetracking",
+                "killrewards", "codes", "deathmessages", "geodes", "kits", "utility", "pvpmina"
+        };
+        for (String moduleId : modules) {
+            String path = "modules." + moduleId + ".enabled";
+            if (!debug.contains(path)) {
+                debug.set(path, false);
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            saveConfig("debug");
+            plugin.getLogger().info("debug.yml updated with module debug keys.");
+        }
     }
 
     public void saveConfig(String name) {
@@ -351,6 +389,123 @@ public class ConfigManager {
         } catch (IOException e) {
             plugin.getLogger().severe("Failed to migrate " + legacyPath);
         }
+    }
+
+    private void migrateLegacyFormattingToMiniMessage() {
+        for (String id : configs.keySet()) {
+            FileConfiguration cfg = configs.get(id);
+            if (cfg == null) {
+                continue;
+            }
+
+            boolean changed = migrateSectionStrings(cfg, cfg);
+            if (changed) {
+                saveConfig(id);
+                plugin.getLogger().info("[" + id + "] migrated legacy formatting to MiniMessage.");
+            }
+        }
+    }
+
+    private boolean migrateSectionStrings(FileConfiguration root, ConfigurationSection section) {
+        boolean changed = false;
+
+        for (String key : section.getKeys(false)) {
+            Object value = section.get(key);
+            if (value instanceof ConfigurationSection child) {
+                if (migrateSectionStrings(root, child)) {
+                    changed = true;
+                }
+                continue;
+            }
+
+            String path = section.getCurrentPath() == null ? key : section.getCurrentPath() + "." + key;
+            if (value instanceof String text) {
+                String converted = legacyToMiniMessage(text);
+                if (!converted.equals(text)) {
+                    root.set(path, converted);
+                    changed = true;
+                }
+                continue;
+            }
+
+            if (value instanceof List<?> list && !list.isEmpty()) {
+                boolean listChanged = false;
+                List<Object> migrated = new ArrayList<>(list.size());
+                for (Object obj : list) {
+                    if (obj instanceof String text) {
+                        String converted = legacyToMiniMessage(text);
+                        migrated.add(converted);
+                        if (!converted.equals(text)) {
+                            listChanged = true;
+                        }
+                    } else {
+                        migrated.add(obj);
+                    }
+                }
+
+                if (listChanged) {
+                    root.set(path, migrated);
+                    changed = true;
+                }
+            }
+        }
+
+        return changed;
+    }
+
+    private String legacyToMiniMessage(String text) {
+        if (text == null || text.isEmpty()) {
+            return text;
+        }
+
+        String input = text.replace('§', '&');
+        if (input.indexOf('&') < 0) {
+            return text;
+        }
+
+        String withHex = LEGACY_HEX_PATTERN.matcher(input).replaceAll("<color:#$1>");
+        StringBuilder output = new StringBuilder(withHex.length() + 16);
+
+        for (int index = 0; index < withHex.length(); index++) {
+            char ch = withHex.charAt(index);
+            if (ch == '&' && index + 1 < withHex.length()) {
+                char code = Character.toLowerCase(withHex.charAt(index + 1));
+                String replacement = switch (code) {
+                    case '0' -> "<black>";
+                    case '1' -> "<dark_blue>";
+                    case '2' -> "<dark_green>";
+                    case '3' -> "<dark_aqua>";
+                    case '4' -> "<dark_red>";
+                    case '5' -> "<dark_purple>";
+                    case '6' -> "<gold>";
+                    case '7' -> "<gray>";
+                    case '8' -> "<dark_gray>";
+                    case '9' -> "<blue>";
+                    case 'a' -> "<green>";
+                    case 'b' -> "<aqua>";
+                    case 'c' -> "<red>";
+                    case 'd' -> "<light_purple>";
+                    case 'e' -> "<yellow>";
+                    case 'f' -> "<white>";
+                    case 'k' -> "<obfuscated>";
+                    case 'l' -> "<bold>";
+                    case 'm' -> "<strikethrough>";
+                    case 'n' -> "<underlined>";
+                    case 'o' -> "<italic>";
+                    case 'r' -> "<reset>";
+                    default -> null;
+                };
+
+                if (replacement != null) {
+                    output.append(replacement);
+                    index++;
+                    continue;
+                }
+            }
+            output.append(ch);
+        }
+
+        return output.toString();
     }
 
 }

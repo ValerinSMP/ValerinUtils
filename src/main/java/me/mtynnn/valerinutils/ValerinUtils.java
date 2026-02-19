@@ -17,10 +17,13 @@ import me.mtynnn.valerinutils.modules.deathmessages.DeathMessagesModule;
 import me.mtynnn.valerinutils.modules.geodes.GeodesModule;
 import me.mtynnn.valerinutils.modules.votetracking.VoteTrackingModule;
 import me.mtynnn.valerinutils.placeholders.ValerinUtilsExpansion;
+import me.mtynnn.valerinutils.modules.pvpmina.PvpMinaModule;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import org.bukkit.command.Command;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -38,6 +41,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -47,6 +51,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class ValerinUtils extends JavaPlugin implements Listener {
+    private static final Pattern LEGACY_HEX_PATTERN = Pattern.compile("(?i)&#([0-9a-f]{6})");
+    private static final Pattern LEGACY_BUNGEE_HEX_AMPERSAND = Pattern.compile("(?i)&x(&[0-9a-f]){6}");
+    private static final Pattern LEGACY_BUNGEE_HEX_SECTION = Pattern.compile("(?i)§x(§[0-9a-f]){6}");
 
     private static ValerinUtils instance;
     private ModuleManager moduleManager;
@@ -63,6 +70,8 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private GeodesModule geodesModule;
     private me.mtynnn.valerinutils.modules.kits.KitsModule kitsModule;
     private UtilityModule utilityModule;
+    private PvpMinaModule pvpMinaModule;
+    private ValerinUtilsExpansion placeholderExpansion;
 
     // Cache
     private final Map<UUID, PlayerData> playerDataCache = new ConcurrentHashMap<>();
@@ -84,28 +93,13 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         }
     }
 
-    // Performance: Pre-compiled patterns and cached values
-    private static final Pattern HEX_PATTERN = Pattern.compile("&#[a-fA-F0-9]{6}");
-    private static final Pattern HEX_TO_MINI_PATTERN = Pattern.compile("&#([0-9a-fA-F]{6})");
+    // Performance: cached values
     private String cachedGlobalPrefix = null;
-
-    // Legacy color code mappings for fast conversion
-    private static final Map<String, String> LEGACY_TO_MINI = Map.ofEntries(
-            Map.entry("&0", "<black>"), Map.entry("&1", "<dark_blue>"),
-            Map.entry("&2", "<dark_green>"), Map.entry("&3", "<dark_aqua>"),
-            Map.entry("&4", "<dark_red>"), Map.entry("&5", "<dark_purple>"),
-            Map.entry("&6", "<gold>"), Map.entry("&7", "<gray>"),
-            Map.entry("&8", "<dark_gray>"), Map.entry("&9", "<blue>"),
-            Map.entry("&a", "<green>"), Map.entry("&b", "<aqua>"),
-            Map.entry("&c", "<red>"), Map.entry("&d", "<light_purple>"),
-            Map.entry("&e", "<yellow>"), Map.entry("&f", "<white>"),
-            Map.entry("&k", "<obfuscated>"), Map.entry("&l", "<bold>"),
-            Map.entry("&m", "<strikethrough>"), Map.entry("&n", "<underlined>"),
-            Map.entry("&o", "<italic>"), Map.entry("&r", "<reset>"));
 
     @Override
     public void onEnable() {
         instance = this;
+        purgeRegisteredCommands(false);
 
         // 1. Initialize Managers
         configManager = new ConfigManager(this);
@@ -163,6 +157,9 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             moduleManager.registerModule(voteTrackingModule);
         }
 
+        pvpMinaModule = new PvpMinaModule(this);
+        moduleManager.registerModule(pvpMinaModule);
+
         killRewardsModule = new KillRewardsModule(this);
         moduleManager.registerModule(killRewardsModule);
 
@@ -183,9 +180,14 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
         moduleManager.enableAll();
 
+        adoptCurrentPluginCommands();
+
         // 5. Hooks & Commands
-        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
-            new ValerinUtilsExpansion(this).register();
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
+
+        {
+            placeholderExpansion = new ValerinUtilsExpansion(this);
+            placeholderExpansion.register();
         }
 
         if (getCommand("valerinutils") != null) {
@@ -263,10 +265,226 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         if (moduleManager != null) {
             moduleManager.disableAll();
         }
+        clearCoreCommandBindings();
+
+        if (placeholderExpansion != null) {
+            try {
+                placeholderExpansion.unregister();
+            } catch (Throwable ignored) {
+            }
+            placeholderExpansion = null;
+        }
+
+        // PlugMan/Hot-reload safety: purge stale command map entries for this plugin.
+        purgeRegisteredCommands(true);
+
         if (databaseManager != null) {
             databaseManager.closeConnection();
         }
         getLogger().info("ValerinUtils disabled");
+    }
+
+    @SuppressWarnings("unchecked")
+    private void purgeRegisteredCommands(boolean currentOnly) {
+        try {
+            Object commandMap = resolveCommandMap();
+            if (commandMap == null) {
+                return;
+            }
+
+            Map<String, Command> knownCommands = getKnownCommands(commandMap);
+            if (knownCommands == null) {
+                return;
+            }
+
+            int removed = 0;
+            Iterator<Map.Entry<String, Command>> it = knownCommands.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<String, Command> entry = it.next();
+                Command command = entry.getValue();
+                if (!(command instanceof PluginCommand pluginCommand) || pluginCommand.getPlugin() == null) {
+                    continue;
+                }
+                if (!pluginCommand.getPlugin().getName().equalsIgnoreCase(getName())) {
+                    continue;
+                }
+
+                boolean shouldRemove = currentOnly
+                        ? pluginCommand.getPlugin() == this
+                        : pluginCommand.getPlugin() != this;
+                if (shouldRemove) {
+                    it.remove();
+                    removed++;
+                }
+            }
+
+            if (removed > 0) {
+                String scope = currentOnly ? "current instance" : "stale instances";
+                getLogger().info("Purged " + removed + " command map entries for " + getName() + " (" + scope + ").");
+                syncCommandsSafe();
+            }
+        } catch (Throwable t) {
+            getLogger().warning(
+                    "Could not purge command map entries: " + t.getClass().getSimpleName() + " - " + t.getMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void adoptCurrentPluginCommands() {
+        try {
+            Object commandMap = resolveCommandMap();
+            if (commandMap == null) {
+                return;
+            }
+
+            Map<String, Command> knownCommands = getKnownCommands(commandMap);
+            if (knownCommands == null) {
+                return;
+            }
+
+            int replaced = 0;
+            for (Map.Entry<String, Command> entry : knownCommands.entrySet()) {
+                Command existing = entry.getValue();
+                if (!(existing instanceof PluginCommand oldCmd) || oldCmd.getPlugin() == null) {
+                    continue;
+                }
+                if (!oldCmd.getPlugin().getName().equalsIgnoreCase(getName()) || oldCmd.getPlugin() == this) {
+                    continue;
+                }
+
+                PluginCommand current = getCommand(oldCmd.getName());
+                if (current == null) {
+                    String key = entry.getKey();
+                    int namespaceSplit = key.indexOf(':');
+                    String raw = namespaceSplit >= 0 && namespaceSplit + 1 < key.length()
+                            ? key.substring(namespaceSplit + 1)
+                            : key;
+                    current = getCommand(raw);
+                }
+                if (current == null) {
+                    continue;
+                }
+
+                entry.setValue(current);
+                replaced++;
+            }
+
+            if (replaced > 0) {
+                getLogger()
+                        .info("Rebound " + replaced + " stale command aliases to current " + getName() + " instance.");
+                syncCommandsSafe();
+            }
+        } catch (Throwable t) {
+            getLogger().warning(
+                    "Could not adopt command map entries: " + t.getClass().getSimpleName() + " - " + t.getMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Command> getKnownCommands(Object commandMap) {
+        try {
+            java.lang.reflect.Field field = findField(commandMap.getClass(), "knownCommands");
+            if (field == null) {
+                for (java.lang.reflect.Field candidate : getAllFields(commandMap.getClass())) {
+                    if (!Map.class.isAssignableFrom(candidate.getType())) {
+                        continue;
+                    }
+                    candidate.setAccessible(true);
+                    Object raw = candidate.get(commandMap);
+                    if (raw instanceof Map<?, ?> rawMap && mapLooksLikeCommandMap(rawMap)) {
+                        return (Map<String, Command>) rawMap;
+                    }
+                }
+                return null;
+            }
+            field.setAccessible(true);
+            Object rawKnown = field.get(commandMap);
+            if (!(rawKnown instanceof Map<?, ?> rawMap)) {
+                return null;
+            }
+            return (Map<String, Command>) rawMap;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    private java.lang.reflect.Field findField(Class<?> type, String fieldName) {
+        Class<?> current = type;
+        while (current != null) {
+            try {
+                return current.getDeclaredField(fieldName);
+            } catch (NoSuchFieldException ignored) {
+                current = current.getSuperclass();
+            }
+        }
+        return null;
+    }
+
+    private List<java.lang.reflect.Field> getAllFields(Class<?> type) {
+        List<java.lang.reflect.Field> fields = new ArrayList<>();
+        Class<?> current = type;
+        while (current != null) {
+            Collections.addAll(fields, current.getDeclaredFields());
+            current = current.getSuperclass();
+        }
+        return fields;
+    }
+
+    private boolean mapLooksLikeCommandMap(Map<?, ?> map) {
+        if (map.isEmpty()) {
+            return false;
+        }
+        int inspected = 0;
+        for (Object value : map.values()) {
+            inspected++;
+            if (value instanceof Command) {
+                return true;
+            }
+            if (inspected >= 20) {
+                break;
+            }
+        }
+        return false;
+    }
+
+    private Object resolveCommandMap() {
+        Object server = Bukkit.getServer();
+        try {
+            return server.getClass().getMethod("getCommandMap").invoke(server);
+        } catch (Throwable ignored) {
+        }
+        try {
+            java.lang.reflect.Field field = findField(server.getClass(), "commandMap");
+            if (field != null) {
+                field.setAccessible(true);
+                return field.get(server);
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
+    private void clearCoreCommandBindings() {
+        clearCommandBinding("valerinutils");
+        clearCommandBinding("menuitem");
+    }
+
+    private void clearCommandBinding(String name) {
+        PluginCommand cmd = getCommand(name);
+        if (cmd == null) {
+            return;
+        }
+        cmd.setExecutor(null);
+        cmd.setTabCompleter(null);
+    }
+
+    private void syncCommandsSafe() {
+        try {
+            Object server = Bukkit.getServer();
+            java.lang.reflect.Method syncCommands = server.getClass().getMethod("syncCommands");
+            syncCommands.invoke(server);
+        } catch (Throwable ignored) {
+        }
     }
 
     public static ValerinUtils getInstance() {
@@ -589,6 +807,13 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         configManager.saveConfig("debug");
     }
 
+    public void debug(String moduleId, String message) {
+        if (!isModuleDebugEnabled(moduleId) || message == null || message.isBlank()) {
+            return;
+        }
+        getLogger().info("[Debug][" + moduleId.toLowerCase() + "] " + message);
+    }
+
     // --- Message Utils (Legacy Compat) ---
     public String getMessage(String key) {
         // Now mostly used by MenuItem or others, but better to use ConfigManager
@@ -599,8 +824,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         if (settings == null)
             return "";
 
-        String prefixRaw = settings.getString("messages.prefix", "&8[&bValerin&fUtils&8]&r ");
-        String prefix = ChatColor.translateAlternateColorCodes('&', prefixRaw);
+        String prefix = settings.getString("messages.prefix", "<dark_gray>[<aqua>Valerin<white>Utils<dark_gray>] ");
 
         if (settings.isList("messages." + key)) {
             List<String> list = settings.getStringList("messages." + key);
@@ -611,7 +835,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
         String raw = settings.getString("messages." + key);
         if (raw == null)
-            return translateColors("&cMensaje faltante: " + key); // Fail gracefully
+            return translateColors("<red>Mensaje faltante: " + key); // Fail gracefully
         return translateColors(raw.replace("%prefix%", prefix));
     }
 
@@ -620,8 +844,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         if (settings == null)
             return Collections.emptyList();
 
-        String prefixRaw = settings.getString("messages.prefix", "&8[&bValerin&fUtils&8]&r ");
-        String prefix = ChatColor.translateAlternateColorCodes('&', prefixRaw);
+        String prefix = settings.getString("messages.prefix", "<dark_gray>[<aqua>Valerin<white>Utils<dark_gray>] ");
 
         if (settings.isList("messages." + key)) {
             List<String> rawList = settings.getStringList("messages." + key);
@@ -638,23 +861,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         if (message == null)
             return "";
 
-        // Global Prefix Support
-        if (message.contains("%prefix%")) {
-            message = message.replace("%prefix%", getGlobalPrefix());
-        }
-
-        // Use pre-compiled pattern
-        Matcher matcher = HEX_PATTERN.matcher(message);
-        while (matcher.find()) {
-            String color = message.substring(matcher.start(), matcher.end());
-            try {
-                message = message.replace(color, net.md_5.bungee.api.ChatColor.of(color.substring(1)).toString());
-            } catch (Exception e) {
-                // Invalid color code, skip
-            }
-            matcher = HEX_PATTERN.matcher(message);
-        }
-        return ChatColor.translateAlternateColorCodes('&', message);
+        return LegacyComponentSerializer.legacySection().serialize(parseComponent(message));
     }
 
     public String getGlobalPrefix() {
@@ -667,8 +874,8 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         FileConfiguration settings = configManager.getConfig("settings");
         if (settings == null)
             return "";
-        String prefix = settings.getString("messages.prefix", "&8[&bValerin&fUtils&8]&r ");
-        cachedGlobalPrefix = ChatColor.translateAlternateColorCodes('&', prefix);
+        String prefix = settings.getString("messages.prefix", "<dark_gray>[<aqua>Valerin<white>Utils<dark_gray>] ");
+        cachedGlobalPrefix = prefix;
         return cachedGlobalPrefix;
     }
 
@@ -676,28 +883,92 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         if (text == null)
             return Component.empty();
 
-        String processed = legacyToMiniMessage(text);
-        return MiniMessage.miniMessage().deserialize(processed);
+        String normalized = normalizeToMiniMessage(text);
+        try {
+            return MiniMessage.miniMessage().deserialize(normalized);
+        } catch (Exception ignored) {
+            return LegacyComponentSerializer.legacyAmpersand().deserialize(normalized.replace('§', '&'));
+        }
     }
 
-    private String legacyToMiniMessage(String text) {
-        if (text == null || text.isEmpty())
+    private String normalizeToMiniMessage(String input) {
+        if (input == null || input.isEmpty()) {
             return "";
-
-        // Convert internal section symbols to ampersands first
-        text = text.replace('§', '&');
-
-        // Use pre-compiled pattern for hex colors
-        text = HEX_TO_MINI_PATTERN.matcher(text).replaceAll("<#$1>");
-
-        // Use StringBuilder for efficient replacements
-        StringBuilder sb = new StringBuilder(text);
-        for (Map.Entry<String, String> entry : LEGACY_TO_MINI.entrySet()) {
-            int index;
-            while ((index = sb.indexOf(entry.getKey())) != -1) {
-                sb.replace(index, index + entry.getKey().length(), entry.getValue());
-            }
         }
+
+        String message = input;
+        if (message.contains("%prefix%")) {
+            message = message.replace("%prefix%", getGlobalPrefix());
+        }
+
+        message = convertBungeeHex(message, LEGACY_BUNGEE_HEX_AMPERSAND, '&');
+        message = convertBungeeHex(message, LEGACY_BUNGEE_HEX_SECTION, '§');
+        message = LEGACY_HEX_PATTERN.matcher(message).replaceAll("<color:#$1>");
+
+        if (message.indexOf('&') < 0 && message.indexOf('§') < 0) {
+            return message;
+        }
+
+        StringBuilder out = new StringBuilder(message.length() + 32);
+        for (int index = 0; index < message.length(); index++) {
+            char ch = message.charAt(index);
+            if ((ch == '&' || ch == '§') && index + 1 < message.length()) {
+                char code = Character.toLowerCase(message.charAt(index + 1));
+                String replacement = switch (code) {
+                    case '0' -> "<black>";
+                    case '1' -> "<dark_blue>";
+                    case '2' -> "<dark_green>";
+                    case '3' -> "<dark_aqua>";
+                    case '4' -> "<dark_red>";
+                    case '5' -> "<dark_purple>";
+                    case '6' -> "<gold>";
+                    case '7' -> "<gray>";
+                    case '8' -> "<dark_gray>";
+                    case '9' -> "<blue>";
+                    case 'a' -> "<green>";
+                    case 'b' -> "<aqua>";
+                    case 'c' -> "<red>";
+                    case 'd' -> "<light_purple>";
+                    case 'e' -> "<yellow>";
+                    case 'f' -> "<white>";
+                    case 'k' -> "<obfuscated>";
+                    case 'l' -> "<bold>";
+                    case 'm' -> "<strikethrough>";
+                    case 'n' -> "<underlined>";
+                    case 'o' -> "<italic>";
+                    case 'r' -> "<reset>";
+                    default -> null;
+                };
+                if (replacement != null) {
+                    out.append(replacement);
+                    index++;
+                    continue;
+                }
+            }
+            out.append(ch);
+        }
+
+        return out.toString();
+    }
+
+    private String convertBungeeHex(String input, Pattern pattern, char marker) {
+        Matcher matcher = pattern.matcher(input);
+        StringBuffer sb = new StringBuffer(input.length());
+        while (matcher.find()) {
+            String sequence = matcher.group();
+            StringBuilder hex = new StringBuilder(6);
+            for (int i = 0; i < sequence.length(); i++) {
+                if (sequence.charAt(i) == marker && i + 1 < sequence.length()) {
+                    char next = sequence.charAt(i + 1);
+                    if (Character.digit(next, 16) >= 0) {
+                        hex.append(next);
+                    }
+                }
+            }
+            String replacement = "<color:#" + hex + ">";
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(sb);
         return sb.toString();
     }
 

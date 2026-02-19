@@ -56,9 +56,8 @@ public class Vote40Module implements Module, Listener {
                     plugin.getLogger().info("Ejecutado /vote40 para " + username);
                 }
             }, delayTicks);
-        } else if (plugin.isDebug()) {
-            plugin.getLogger().info("[Vote40] Ignorado voto de servicio " + serviceName + " (esperado "
-                    + targetService + ")");
+        } else {
+            plugin.debug(getId(), "Ignorado voto de servicio " + serviceName + " (esperado " + targetService + ")");
         }
     }
 }

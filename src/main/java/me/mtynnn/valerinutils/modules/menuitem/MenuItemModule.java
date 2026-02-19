@@ -4,7 +4,6 @@ import me.mtynnn.valerinutils.ValerinUtils;
 import me.mtynnn.valerinutils.core.Module;
 import me.mtynnn.valerinutils.core.PlayerData;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
@@ -29,6 +28,8 @@ import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 
 import java.util.HashSet;
 import java.util.List;
@@ -194,9 +195,12 @@ public class MenuItemModule implements Module, Listener {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
-            lore.replaceAll(line -> ChatColor.translateAlternateColorCodes('&', line));
-            meta.setLore(lore);
+            Component displayName = plugin.parseComponent(name).decoration(TextDecoration.ITALIC, false);
+            meta.displayName(displayName);
+            List<Component> loreComponents = lore.stream()
+                    .map(line -> plugin.parseComponent(line).decoration(TextDecoration.ITALIC, false))
+                    .toList();
+            meta.lore(loreComponents);
 
             if (customModelData >= 0) {
                 meta.setCustomModelData(customModelData);
@@ -238,8 +242,9 @@ public class MenuItemModule implements Module, Listener {
         // 2. Fallback: Check Name & Material (For legacy/glitching items)
         ConfigurationSection section = getSection();
         if (section != null) {
-            String cfgName = ChatColor.translateAlternateColorCodes('&', section.getString("name", ""));
-            if (!cfgName.isEmpty() && meta.hasDisplayName() && meta.getDisplayName().equals(cfgName)) {
+            String cfgName = plugin.translateColors(section.getString("name", ""));
+            String stackName = plugin.translateColors(meta.hasDisplayName() ? meta.getDisplayName() : "");
+            if (!cfgName.isEmpty() && cfgName.equals(stackName)) {
                 String materialName = section.getString("material", "COMPASS");
                 if (stack.getType() == Material.matchMaterial(materialName)) {
                     // Update tag for future efficiency (optional, but lets just identifying it as
@@ -422,12 +427,6 @@ public class MenuItemModule implements Module, Listener {
 
         if (isMenuItem(current) || isMenuItem(cursor)) {
             event.setCancelled(true);
-
-            // Execute command only if clicking the item directly (contextual)
-            if (isMenuItem(current)) {
-                runMenuCommand(player);
-            }
-
             Bukkit.getScheduler().runTask(plugin, player::updateInventory);
         }
     }
@@ -444,7 +443,6 @@ public class MenuItemModule implements Module, Listener {
         if (isMenuItem(oldCursor)) {
             event.setCancelled(true);
             Bukkit.getScheduler().runTask(plugin, player::updateInventory);
-            runMenuCommand(player);
         }
     }
 
@@ -464,10 +462,7 @@ public class MenuItemModule implements Module, Listener {
         }
 
         Action action = event.getAction();
-        if (action == Action.RIGHT_CLICK_AIR ||
-                action == Action.RIGHT_CLICK_BLOCK ||
-                action == Action.LEFT_CLICK_AIR ||
-                action == Action.LEFT_CLICK_BLOCK) {
+        if (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK) {
 
             event.setCancelled(true);
             runMenuCommand(player);

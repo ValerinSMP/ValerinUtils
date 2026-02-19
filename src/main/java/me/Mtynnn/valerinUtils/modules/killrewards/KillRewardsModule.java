@@ -353,8 +353,6 @@ public class KillRewardsModule implements Module, Listener {
     }
 
     private void debug(String msg) {
-        if (plugin.isDebug()) {
-            plugin.getLogger().info("[KillRewards] " + msg);
-        }
+        plugin.debug(getId(), msg);
     }
 }
