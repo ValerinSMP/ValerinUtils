@@ -1,7 +1,7 @@
 package me.mtynnn.valerinutils.modules.codes;
 
 import me.mtynnn.valerinutils.ValerinUtils;
-import me.mtynnn.valerinutils.core.Module;
+import me.mtynnn.valerinutils.core.AbstractModule;
 import me.mtynnn.valerinutils.utils.SignMenuFactory;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -19,13 +19,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class CodesModule implements Module, CommandExecutor, TabCompleter {
-
-    private final ValerinUtils plugin;
+public class CodesModule extends AbstractModule implements CommandExecutor, TabCompleter {
     private SignMenuFactory signMenuFactory;
 
     public CodesModule(ValerinUtils plugin) {
-        this.plugin = plugin;
+        super(plugin);
     }
 
     @Override
@@ -40,6 +38,7 @@ public class CodesModule implements Module, CommandExecutor, TabCompleter {
             return;
 
         this.signMenuFactory = new SignMenuFactory(plugin);
+        plugin.debug(getId(), "Módulo habilitado. Sistema de códigos activo.");
 
         if (plugin.getCommand("code") != null) {
             plugin.getCommand("code").setExecutor(this);
@@ -54,24 +53,26 @@ public class CodesModule implements Module, CommandExecutor, TabCompleter {
             code.setExecutor(null);
             code.setTabCompleter(null);
         }
+        plugin.debug(getId(), "Módulo deshabilitado. Comando /code liberado.");
     }
 
     private FileConfiguration getConfig() {
-        return plugin.getConfigManager().getConfig("codes");
+        return cfg();
     }
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label,
             @NotNull String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage("§cSolo jugadores pueden usar este comando.");
+            sender.sendMessage(plugin.getMessage("only-players"));
             return true;
         }
 
         Player player = (Player) sender;
         FileConfiguration cfg = getConfig();
         if (cfg == null || !cfg.getBoolean("enabled", true)) {
-            player.sendMessage(plugin.translateColors("%prefix%&cEl sistema de códigos está deshabilitado."));
+            player.sendMessage(plugin.messages().module(getId(), "disabled", "%prefix%<red>El sistema de códigos está deshabilitado."));
+            plugin.debug(getId(), "Intento de /code con módulo deshabilitado por " + player.getName());
             return true;
         }
 
@@ -194,15 +195,17 @@ public class CodesModule implements Module, CommandExecutor, TabCompleter {
         ConfigurationSection codeSec = cfg.getConfigurationSection("codes." + upperCode);
 
         if (codeSec == null) {
-            player.sendMessage(plugin.translateColors(cfg.getString("messages.invalid-code", "&cCódigo inválido.")
+            plugin.debug(getId(), "Código inválido '" + upperCode + "' por " + player.getName());
+            player.sendMessage(plugin.messages().legacy(cfg.getString("messages.invalid-code", "<red>Código inválido.")
                     .replace("%code%", code)));
             return;
         }
 
         boolean once = codeSec.getBoolean("once", true);
         if (once && plugin.getDatabaseManager().hasUsedCode(player.getUniqueId().toString(), upperCode)) {
-            player.sendMessage(
-                    plugin.translateColors(cfg.getString("messages.already-used", "&cYa has usado este código.")));
+            plugin.debug(getId(), "Código ya usado '" + upperCode + "' por " + player.getName());
+            player.sendMessage(plugin.messages().legacy(cfg.getString("messages.already-used",
+                    "<red>Ya has usado este código.")));
             return;
         }
 
@@ -211,13 +214,15 @@ public class CodesModule implements Module, CommandExecutor, TabCompleter {
         for (String cmd : commands) {
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd.replace("%player%", player.getName()));
         }
+        plugin.debug(getId(), "Código '" + upperCode + "' reclamado por " + player.getName() + " | comandos="
+                + commands.size());
 
         // Marcar como usado si es de un solo uso
         if (once) {
             plugin.getDatabaseManager().markCodeUsed(player.getUniqueId().toString(), upperCode);
         }
 
-        player.sendMessage(plugin.translateColors(cfg.getString("messages.success", "&a¡Código reclamado!")
+        player.sendMessage(plugin.messages().legacy(cfg.getString("messages.success", "<green>¡Código reclamado!")
                 .replace("%code%", code)));
     }
 }

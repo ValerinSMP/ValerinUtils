@@ -1,8 +1,6 @@
 package me.mtynnn.valerinutils.placeholders;
 
 import me.mtynnn.valerinutils.ValerinUtils;
-import me.mtynnn.valerinutils.modules.externalplaceholders.ExternalPlaceholdersModule;
-import me.mtynnn.valerinutils.modules.externalplaceholders.providers.PlaceholderProvider;
 import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
 import me.mtynnn.valerinutils.modules.joinquit.JoinQuitModule;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
@@ -182,29 +180,6 @@ public class ValerinUtilsExpansion extends PlaceholderExpansion {
                     return String.valueOf(plugin.getDatabaseManager().getVotesBetween(uuid, start, end));
                 } catch (Exception e) {
                     return "0";
-                }
-            }
-        }
-
-        // ========== Placeholders externos ==========
-        // Formato: %valerinutils_<plugin>_<parametro>%
-        // Ejemplo: %valerinutils_royaleconomy_pay_enabled%
-
-        ExternalPlaceholdersModule extModule = plugin.getExternalPlaceholdersModule();
-        if (extModule != null) {
-            // Buscar si el params empieza con algún provider conocido
-            for (var entry : extModule.getProviders().entrySet()) {
-                String providerId = entry.getKey();
-                PlaceholderProvider provider = entry.getValue();
-
-                String prefix = providerId + "_";
-                if (params.toLowerCase().startsWith(prefix)) {
-                    // Extraer la parte después del prefijo del provider
-                    String subParams = params.substring(prefix.length());
-                    String result = provider.onPlaceholderRequest(player, subParams);
-                    if (result != null) {
-                        return result;
-                    }
                 }
             }
         }

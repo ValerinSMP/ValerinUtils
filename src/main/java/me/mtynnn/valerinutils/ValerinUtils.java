@@ -5,14 +5,14 @@ import me.mtynnn.valerinutils.commands.ValerinUtilsCommand;
 import me.mtynnn.valerinutils.core.ConfigManager;
 import me.mtynnn.valerinutils.core.DatabaseManager;
 import me.mtynnn.valerinutils.core.ModuleManager;
+import me.mtynnn.valerinutils.core.MessageService;
 import me.mtynnn.valerinutils.core.PlayerData;
-import me.mtynnn.valerinutils.modules.externalplaceholders.ExternalPlaceholdersModule;
 import me.mtynnn.valerinutils.modules.joinquit.JoinQuitModule;
 import me.mtynnn.valerinutils.modules.killrewards.KillRewardsModule;
 import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
 import me.mtynnn.valerinutils.modules.codes.CodesModule;
 import me.mtynnn.valerinutils.modules.utility.UtilityModule;
-import me.mtynnn.valerinutils.modules.vote40.Vote40Module;
+import me.mtynnn.valerinutils.modules.itemeditor.ItemEditorModule;
 import me.mtynnn.valerinutils.modules.deathmessages.DeathMessagesModule;
 import me.mtynnn.valerinutils.modules.geodes.GeodesModule;
 import me.mtynnn.valerinutils.modules.votetracking.VoteTrackingModule;
@@ -41,9 +41,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -59,9 +60,9 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private ModuleManager moduleManager;
     private ConfigManager configManager;
     private DatabaseManager databaseManager;
+    private MessageService messageService;
 
     private MenuItemModule menuItemModule;
-    private ExternalPlaceholdersModule externalPlaceholdersModule;
     private JoinQuitModule joinQuitModule;
     private KillRewardsModule killRewardsModule;
     private CodesModule codesModule;
@@ -70,6 +71,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private GeodesModule geodesModule;
     private me.mtynnn.valerinutils.modules.kits.KitsModule kitsModule;
     private UtilityModule utilityModule;
+    private ItemEditorModule itemEditorModule;
     private PvpMinaModule pvpMinaModule;
     private ValerinUtilsExpansion placeholderExpansion;
 
@@ -104,6 +106,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         // 1. Initialize Managers
         configManager = new ConfigManager(this);
         configManager.loadAll(); // Detects and migrates configs
+        messageService = new MessageService(this);
 
         databaseManager = new DatabaseManager(this);
         databaseManager.initialize();
@@ -142,17 +145,11 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         menuItemModule = new MenuItemModule(this);
         moduleManager.registerModule(menuItemModule);
 
-        externalPlaceholdersModule = new ExternalPlaceholdersModule(this);
-        moduleManager.registerModule(externalPlaceholdersModule);
-
         joinQuitModule = new JoinQuitModule(this);
         moduleManager.registerModule(joinQuitModule);
 
         if (Bukkit.getPluginManager().getPlugin("Votifier") != null
                 || Bukkit.getPluginManager().getPlugin("VotifierPlus") != null) {
-            Vote40Module voteModule = new Vote40Module(this);
-            moduleManager.registerModule(voteModule);
-
             voteTrackingModule = new VoteTrackingModule(this);
             moduleManager.registerModule(voteTrackingModule);
         }
@@ -177,6 +174,9 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
         utilityModule = new UtilityModule(this);
         moduleManager.registerModule(utilityModule);
+
+        itemEditorModule = new ItemEditorModule(this);
+        moduleManager.registerModule(itemEditorModule);
 
         moduleManager.enableAll();
 
@@ -228,11 +228,13 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         boolean joinQuitEnabled = moduleManager.isModuleEnabled("joinquit");
         boolean killRewardsEnabled = moduleManager.isModuleEnabled("killrewards");
         boolean codesEnabled = moduleManager.isModuleEnabled("codes");
-        boolean vote40Enabled = moduleManager.isModuleEnabled("vote40");
+        FileConfiguration vote40Cfg = configManager.getConfig("vote40");
         boolean voteTrackingEnabled = moduleManager.isModuleEnabled("votetracking");
+        boolean vote40Enabled = voteTrackingEnabled && vote40Cfg != null && vote40Cfg.getBoolean("enabled", true);
         boolean geodesEnabled = moduleManager.isModuleEnabled("geodes");
         boolean kitsEnabled = moduleManager.isModuleEnabled("kits");
         boolean utilityEnabled = moduleManager.isModuleEnabled("utility");
+        boolean itemEditorEnabled = moduleManager.isModuleEnabled("itemeditor");
 
         getLogger().info("");
         getLogger().info("  ValerinUtils v" + version);
@@ -250,7 +252,8 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
                 + " | VoteStats " + (voteTrackingEnabled ? "✔" : "✘")
                 + " | Geodes " + (geodesEnabled ? "✔" : "✘")
                 + " | Kits " + (kitsEnabled ? "✔" : "✘")
-                + " | Utility " + (utilityEnabled ? "✔" : "✘"));
+                + " | Utility " + (utilityEnabled ? "✔" : "✘")
+                + " | ItemEditor " + (itemEditorEnabled ? "✔" : "✘"));
         getLogger().info("");
         getLogger().info("  ValerinUtils has been enabled successfully!");
     }
@@ -298,9 +301,8 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             }
 
             int removed = 0;
-            Iterator<Map.Entry<String, Command>> it = knownCommands.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<String, Command> entry = it.next();
+            Set<String> keysToRemove = new HashSet<>();
+            for (Map.Entry<String, Command> entry : knownCommands.entrySet()) {
                 Command command = entry.getValue();
                 if (!(command instanceof PluginCommand pluginCommand) || pluginCommand.getPlugin() == null) {
                     continue;
@@ -313,7 +315,12 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
                         ? pluginCommand.getPlugin() == this
                         : pluginCommand.getPlugin() != this;
                 if (shouldRemove) {
-                    it.remove();
+                    keysToRemove.add(entry.getKey());
+                }
+            }
+
+            for (String key : keysToRemove) {
+                if (knownCommands.remove(key) != null) {
                     removed++;
                 }
             }
@@ -321,8 +328,10 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             if (removed > 0) {
                 String scope = currentOnly ? "current instance" : "stale instances";
                 getLogger().info("Purged " + removed + " command map entries for " + getName() + " (" + scope + ").");
-                syncCommandsSafe();
             }
+        } catch (UnsupportedOperationException ignored) {
+            // Some Paper builds expose an unmodifiable command map view during reload.
+            // In that case we skip purge safely; command executors are still rebound on enable.
         } catch (Throwable t) {
             getLogger().warning(
                     "Could not purge command map entries: " + t.getClass().getSimpleName() + " - " + t.getMessage());
@@ -372,8 +381,9 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             if (replaced > 0) {
                 getLogger()
                         .info("Rebound " + replaced + " stale command aliases to current " + getName() + " instance.");
-                syncCommandsSafe();
             }
+        } catch (UnsupportedOperationException ignored) {
+            // Unmodifiable command-map views cannot be rewritten directly on this server build.
         } catch (Throwable t) {
             getLogger().warning(
                     "Could not adopt command map entries: " + t.getClass().getSimpleName() + " - " + t.getMessage());
@@ -479,12 +489,9 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     }
 
     private void syncCommandsSafe() {
-        try {
-            Object server = Bukkit.getServer();
-            java.lang.reflect.Method syncCommands = server.getClass().getMethod("syncCommands");
-            syncCommands.invoke(server);
-        } catch (Throwable ignored) {
-        }
+        // Intentionally disabled.
+        // Forcing syncCommands during PlugMan reload can race with Paper's async command
+        // distribution and trigger ConcurrentModificationException in Brigadier trees.
     }
 
     public static ValerinUtils getInstance() {
@@ -493,6 +500,10 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
     public ConfigManager getConfigManager() {
         return configManager;
+    }
+
+    public MessageService messages() {
+        return messageService;
     }
 
     public DatabaseManager getDatabaseManager() {
@@ -543,7 +554,6 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     PlayerData pd = new PlayerData(uuid, rs.getString("name"));
-                    pd.setTikTokClaimed(rs.getBoolean("tiktok_claimed"));
                     pd.setKills(rs.getInt("kills"));
                     pd.setDeaths(rs.getInt("deaths"));
                     pd.setDailyRewardsCount(rs.getInt("daily_kills"));
@@ -564,11 +574,11 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private void savePlayerDataToDB(PlayerData data) {
         if (data == null)
             return;
-        String sql = "INSERT INTO player_data (uuid, name, tiktok_claimed, kills, deaths, daily_kills, last_daily_reset, menu_disabled, royal_pay_disabled, death_messages_disabled, starter_kit_received, nickname) "
+        String sql = "INSERT INTO player_data (uuid, name, kills, deaths, daily_kills, last_daily_reset, menu_disabled, royal_pay_disabled, death_messages_disabled, starter_kit_received, nickname) "
                 +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
                 "ON CONFLICT(uuid) DO UPDATE SET " +
-                "name=excluded.name, tiktok_claimed=excluded.tiktok_claimed, kills=excluded.kills, " +
+                "name=excluded.name, kills=excluded.kills, " +
                 "deaths=excluded.deaths, daily_kills=excluded.daily_kills, last_daily_reset=excluded.last_daily_reset, "
                 +
                 "menu_disabled=excluded.menu_disabled, royal_pay_disabled=excluded.royal_pay_disabled, " +
@@ -579,16 +589,15 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         try (PreparedStatement ps = databaseManager.getConnection().prepareStatement(sql)) {
             ps.setString(1, data.getUuid().toString());
             ps.setString(2, data.getName());
-            ps.setBoolean(3, data.isTikTokClaimed());
-            ps.setInt(4, data.getKills());
-            ps.setInt(5, data.getDeaths());
-            ps.setInt(6, data.getDailyRewardsCount());
-            ps.setLong(7, data.getLastDailyReset());
-            ps.setBoolean(8, data.isMenuDisabled());
-            ps.setBoolean(9, data.isRoyalPayDisabled());
-            ps.setBoolean(10, data.isDeathMessagesDisabled());
-            ps.setBoolean(11, data.isStarterKitReceived());
-            ps.setString(12, data.getNickname());
+            ps.setInt(3, data.getKills());
+            ps.setInt(4, data.getDeaths());
+            ps.setInt(5, data.getDailyRewardsCount());
+            ps.setLong(6, data.getLastDailyReset());
+            ps.setBoolean(7, data.isMenuDisabled());
+            ps.setBoolean(8, data.isRoyalPayDisabled());
+            ps.setBoolean(9, data.isDeathMessagesDisabled());
+            ps.setBoolean(10, data.isStarterKitReceived());
+            ps.setString(11, data.getNickname());
             ps.executeUpdate();
         } catch (SQLException e) {
             getLogger().severe("Could not save data for " + data.getName());
@@ -606,33 +615,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     // --- Migration Logic (Data) ---
 
     private void performDataMigration() {
-        // 1. TikTok Data
-        File tiktokFile = new File(getDataFolder(), "tiktok_data.yml");
-        if (tiktokFile.exists()) {
-            getLogger().info("Migrating tiktok_data.yml to database...");
-            FileConfiguration cfg = YamlConfiguration.loadConfiguration(tiktokFile);
-            List<String> claimed = cfg.getStringList("claimed");
-            int count = 0;
-            for (String uuidStr : claimed) {
-                try {
-                    UUID uuid = UUID.fromString(uuidStr);
-                    // Insert or Update to set tiktok_claimed = true
-                    String sql = "INSERT INTO player_data (uuid, tiktok_claimed) VALUES (?, true) " +
-                            "ON CONFLICT(uuid) DO UPDATE SET tiktok_claimed=true";
-                    try (PreparedStatement ps = databaseManager.getConnection().prepareStatement(sql)) {
-                        ps.setString(1, uuid.toString());
-                        ps.executeUpdate();
-                        count++;
-                    }
-                } catch (Exception e) {
-                    getLogger().warning("Failed to migrate TikTok claim for UUID: " + uuidStr);
-                }
-            }
-            getLogger().info("Migrated " + count + " TikTok records.");
-            tiktokFile.renameTo(new File(getDataFolder(), "tiktok_data.yml.bak"));
-        }
-
-        // 1.5 MenuItem Data (NEW)
+        // 1. MenuItem Data
         File menuFile = new File(getDataFolder(), "menuitem_data.yml");
         if (menuFile.exists()) {
             getLogger().info("Migrating menuitem_data.yml to database...");
@@ -656,7 +639,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             menuFile.renameTo(new File(getDataFolder(), "menuitem_data.yml.bak"));
         }
 
-        // 1.6 RoyaleEconomy Pay Data
+        // 2. RoyaleEconomy Pay Data
         File royalFile = new File(getDataFolder(), "royaleconomy_data.yml");
         if (royalFile.exists()) {
             getLogger().info("Migrating royaleconomy_data.yml to database...");
@@ -755,10 +738,6 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         return menuItemModule;
     }
 
-    public ExternalPlaceholdersModule getExternalPlaceholdersModule() {
-        return externalPlaceholdersModule;
-    }
-
     public JoinQuitModule getJoinQuitModule() {
         return joinQuitModule;
     }
@@ -816,45 +795,17 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
     // --- Message Utils (Legacy Compat) ---
     public String getMessage(String key) {
-        // Now mostly used by MenuItem or others, but better to use ConfigManager
-        // For compatibility, we'll look in settings.yml or fallback
-        // Or specific modules calling this? Modules should check their own config now.
-        // But for global messages...
-        FileConfiguration settings = configManager.getConfig("settings");
-        if (settings == null)
+        if (messageService == null) {
             return "";
-
-        String prefix = settings.getString("messages.prefix", "<dark_gray>[<aqua>Valerin<white>Utils<dark_gray>] ");
-
-        if (settings.isList("messages." + key)) {
-            List<String> list = settings.getStringList("messages." + key);
-            if (list.isEmpty())
-                return "";
-            return translateColors(list.get(0).replace("%prefix%", prefix));
         }
-
-        String raw = settings.getString("messages." + key);
-        if (raw == null)
-            return translateColors("<red>Mensaje faltante: " + key); // Fail gracefully
-        return translateColors(raw.replace("%prefix%", prefix));
+        return messageService.settings(key, "<red>Mensaje faltante: " + key);
     }
 
     public List<String> getMessageList(String key) {
-        FileConfiguration settings = configManager.getConfig("settings");
-        if (settings == null)
+        if (messageService == null) {
             return Collections.emptyList();
-
-        String prefix = settings.getString("messages.prefix", "<dark_gray>[<aqua>Valerin<white>Utils<dark_gray>] ");
-
-        if (settings.isList("messages." + key)) {
-            List<String> rawList = settings.getStringList("messages." + key);
-            List<String> processed = new ArrayList<>();
-            for (String line : rawList) {
-                processed.add(translateColors(line.replace("%prefix%", prefix)));
-            }
-            return processed;
         }
-        return Collections.singletonList(getMessage(key));
+        return messageService.settingsList(key);
     }
 
     public String translateColors(String message) {

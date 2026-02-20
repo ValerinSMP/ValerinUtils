@@ -115,12 +115,6 @@ public class MenuItemCommand implements CommandExecutor, TabCompleter {
     }
 
     private String getMessage(String key, String def) {
-        FileConfiguration cfg = plugin.getConfigManager().getConfig("menuitem");
-        if (cfg == null)
-            return plugin.translateColors(def);
-        String val = cfg.getString("messages." + key);
-        if (val == null)
-            return plugin.translateColors(def);
-        return plugin.translateColors(val);
+        return plugin.messages().module("menuitem", key, def);
     }
 }

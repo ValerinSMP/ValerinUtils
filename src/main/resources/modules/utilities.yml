@@ -5,90 +5,73 @@ commands:
   # Mesas
   craft:
     enabled: true
-    permission: "valerinutils.utility.craft"
   enderchest:
     enabled: true
-    permission: "valerinutils.utility.enderchest"
   anvil:
     enabled: true
-    permission: "valerinutils.utility.anvil"
   smithing:
     enabled: true
-    permission: "valerinutils.utility.smithing"
   cartography:
     enabled: true
-    permission: "valerinutils.utility.cartography"
   grindstone:
     enabled: true
-    permission: "valerinutils.utility.grindstone"
   loom:
     enabled: true
-    permission: "valerinutils.utility.loom"
   stonecutter:
     enabled: true
-    permission: "valerinutils.utility.stonecutter"
   disposal:
     enabled: true
-    permission: "valerinutils.utility.disposal"
 
   # Comandos Existentes
   hat:
     enabled: true
-    permission: "valerinutils.utility.hat"
   condense:
     enabled: true
-    permission: "valerinutils.utility.condense"
   seen:
     enabled: true
-    permission: "valerinutils.utility.seen"
+    others-enabled: true
   gamemode:
     enabled: true
-    permission: "valerinutils.utility.gamemode"
   clear:
     enabled: true
-    permission: "valerinutils.utility.clear"
+    others-enabled: true
   ping:
     enabled: true
-    permission: "valerinutils.utility.ping"
+    others-enabled: true
 
-  # NUEVOS COMANDOS
+  # Comandos de utilidad
   fly:
     enabled: true
-    permission: "valerinutils.utility.fly"
-    permission-others: "valerinutils.utility.fly.others"
+    others-enabled: true
   speed:
     enabled: true
-    permission: "valerinutils.utility.speed"
-    permission-others: "valerinutils.utility.speed.others"
+    others-enabled: true
   broadcast:
     enabled: true
-    permission: "valerinutils.utility.broadcast"
   heal:
     enabled: true
-    permission: "valerinutils.utility.heal"
-    permission-others: "valerinutils.utility.heal.others"
+    others-enabled: true
   feed:
     enabled: true
-    permission: "valerinutils.utility.feed"
-    permission-others: "valerinutils.utility.feed.others"
+    others-enabled: true
   repair:
     enabled: true
-    permission: "valerinutils.utility.repair"
   nick:
     enabled: true
-    permission: "valerinutils.utility.nick"
   skull:
     enabled: true
-    permission: "valerinutils.utility.skull"
   suicide:
     enabled: true
-    permission: "valerinutils.utility.suicide"
   near:
     enabled: true
-    permission: "valerinutils.utility.near"
   top:
     enabled: true
-    permission: "valerinutils.utility.top"
+  ptime:
+    enabled: true
+  pweather:
+    enabled: true
+  sell:
+    enabled: true
 
 # Sonidos estéticos para las acciones
 sounds:
@@ -130,6 +113,7 @@ messages:
   fly-disabled: "%prefix%<gray>Modo vuelo: <red>Desactivado"
   fly-others: "%prefix%<gray>Modo vuelo de <white>%player%<gray>: <yellow>%state%"
   speed-invalid: "%prefix%<red>La velocidad debe estar entre 1 y 10."
+  speed-usage: "%prefix%<gray>Uso: <yellow>/speed <1-10> [jugador]"
   speed-success: "%prefix%<gray>Tu velocidad de <yellow>%type% <gray>ha sido ajustada a <green>%speed%<gray>."
   speed-others: "%prefix%<gray>Velocidad de <yellow>%type% <gray>de <white>%player% <gray>ajustada a <green>%speed%<gray>."
 
@@ -140,17 +124,32 @@ messages:
   feed-others: "%prefix%<green>Has alimentado a <white>%player%<green>."
   
   # Otros
+  broadcast-usage: "%prefix%<gray>Uso: <yellow>/broadcast <mensaje> <gray>o <yellow>/vubroadcast <mensaje>"
   broadcast-format:
     - ""
     - "<dark_gray>[<color:#B6E7B5><bold>ᴀ<color:#ABE29C><bold>ɴ<color:#9FDC82><bold>ᴜ<color:#94D769><bold>ɴ<color:#88D150><bold>ᴄ<color:#7DCC36><bold>ɪ<color:#71C61D><bold>ᴏ<dark_gray>] <reset>%message%"
     - ""
   repair-success: "%prefix%<green>Item reparado con éxito."
+  repair-usage: "%prefix%<gray>Uso: <yellow>/fix hand"
   repair-error: "%prefix%<red>Este item no se puede reparar."
+  nick-usage: "%prefix%<gray>Uso: <yellow>/nick <apodo|off>"
+  nick-format-not-allowed: "%prefix%<red>No puedes usar ese formato en el nick. Nivel: <yellow>%tier%"
   nick-success: "%prefix%<gray>Tu apodo ahora es: <white>%nick%"
   nick-off: "%prefix%<red>Has desactivado tu apodo."
   skull-success: "%prefix%<green>Has recibido la cabeza de <white>%player%<green>."
   suicide-msg: "%prefix%<gray>Has decidido terminar con todo..."
   top-success: "%prefix%<green>Teletransportado a la superficie."
+  ptime-usage: "%prefix%<gray>Uso: <yellow>/ptime <day|night|reset|ticks>"
+  ptime-set: "%prefix%<green>Tiempo personal cambiado a <yellow>%value%<green>."
+  ptime-reset: "%prefix%<green>Tiempo personal reseteado."
+  pweather-usage: "%prefix%<gray>Uso: <yellow>/pweather <clear|rain|reset>"
+  pweather-set: "%prefix%<green>Clima personal cambiado a <yellow>%value%<green>."
+  pweather-reset: "%prefix%<green>Clima personal reseteado."
+  sell-usage: "%prefix%<gray>Uso: <yellow>/sell <hand|inventory>"
+  sell-disabled: "%prefix%<red>El sistema de venta está deshabilitado."
+  sell-economy-missing: "%prefix%<red>No se detectó economía (Vault)."
+  sell-nothing: "%prefix%<gray>No tienes items vendibles."
+  sell-success: "%prefix%<green>Vendiste <white>%items% <green>items por <yellow>$%amount%<green>."
   near-format: "%prefix%<gray>Jugadores cercanos en <yellow>%radius%m<gray>: <white>%players%"
   near-none: "%prefix%<gray>No hay jugadores cerca."
 
@@ -172,3 +171,4 @@ messages:
     - "<gray><strikethrough>----------------------------------------"
   seen-online: "<green>Online"
   seen-offline: "<gray>Offline hace %time%"
+  seen-usage: "%prefix%<gray>Uso: <yellow>/seen <jugador>"

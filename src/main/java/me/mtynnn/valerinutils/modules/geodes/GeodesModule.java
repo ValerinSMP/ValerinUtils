@@ -36,6 +36,7 @@ public class GeodesModule implements Module, CommandExecutor {
         if (plugin.getCommand("geode") != null) {
             plugin.getCommand("geode").setExecutor(this);
         }
+        plugin.debug(getId(), "Módulo habilitado.");
     }
 
     @Override
@@ -43,6 +44,7 @@ public class GeodesModule implements Module, CommandExecutor {
         if (plugin.getCommand("geode") != null) {
             plugin.getCommand("geode").setExecutor(null);
         }
+        plugin.debug(getId(), "Módulo deshabilitado.");
     }
 
     @Override
@@ -50,6 +52,7 @@ public class GeodesModule implements Module, CommandExecutor {
             @NotNull String[] args) {
         if (!sender.hasPermission("valerinutils.geodes.admin")) {
             sender.sendMessage(plugin.getMessage("no-permission"));
+            plugin.debug(getId(), "Comando /geode denegado por permisos para " + sender.getName());
             return true;
         }
 
@@ -64,21 +67,25 @@ public class GeodesModule implements Module, CommandExecutor {
 
         if (target == null) {
             sender.sendMessage("§cPlayer not found.");
+            plugin.debug(getId(), "Comando /geode cancelado: jugador no encontrado (" + args[2] + ")");
             return true;
         }
 
         FileConfiguration cfg = plugin.getConfigManager().getConfig("geodes");
         if (cfg == null || !cfg.getBoolean("enabled", true)) {
             sender.sendMessage("§cGeodes module is disabled.");
+            plugin.debug(getId(), "Comando /geode cancelado: módulo deshabilitado.");
             return true;
         }
 
         ConfigurationSection geodeCfg = cfg.getConfigurationSection("geodes." + type);
         if (geodeCfg == null) {
             sender.sendMessage("§cGeode type '" + type + "' not found in config.");
+            plugin.debug(getId(), "Comando /geode cancelado: tipo inexistente '" + type + "'");
             return true;
         }
 
+        plugin.debug(getId(), "Apertura de geoda '" + type + "' para " + target.getName() + " por " + sender.getName());
         openGeode(target, geodeCfg);
         return true;
     }
@@ -124,6 +131,8 @@ public class GeodesModule implements Module, CommandExecutor {
                 }
 
                 rewarded = true;
+                plugin.debug(getId(), "Geoda recompensa aplicada a " + player.getName() + " | chance=" + chance
+                        + " roll=" + String.format(java.util.Locale.US, "%.2f", roll));
                 break; // Stop at the first hit (sequential logic)
             }
         }
@@ -138,6 +147,8 @@ public class GeodesModule implements Module, CommandExecutor {
             if (rootCfg != null && rootCfg.getBoolean("sounds.fail.enabled", true)) {
                 playSound(player, rootCfg.getConfigurationSection("sounds.fail"));
             }
+            plugin.debug(getId(), "Geoda sin premio para " + player.getName() + " | roll="
+                    + String.format(java.util.Locale.US, "%.2f", roll));
         }
     }
 

@@ -67,6 +67,7 @@ public class MenuItemModule implements Module, Listener {
         invalidateCache();
         // Give/refresh items for all online players
         refreshAllPlayers();
+        debug("Módulo habilitado.");
     }
 
     @Override
@@ -81,6 +82,7 @@ public class MenuItemModule implements Module, Listener {
 
         // Invalidate cache
         invalidateCache();
+        debug("Módulo deshabilitado.");
     }
 
     // ================== Persistencia de desactivados (Ahora via PlayerData)
@@ -101,6 +103,7 @@ public class MenuItemModule implements Module, Listener {
         if (disabled) {
             data.setMenuDisabled(true);
             clearMenuItem(player);
+            debug("MenuItem desactivado para " + player.getName());
             return true;
         } else {
             // Verificar si el slot configurado está ocupado
@@ -112,6 +115,7 @@ public class MenuItemModule implements Module, Listener {
 
             data.setMenuDisabled(false);
             giveMenuItem(player);
+            debug("MenuItem activado para " + player.getName());
             return true;
         }
     }
@@ -287,17 +291,21 @@ public class MenuItemModule implements Module, Listener {
 
         if (changed) {
             player.updateInventory();
+            debug("MenuItem removido del inventario de " + player.getName());
         }
     }
 
     private void giveMenuItem(Player player) {
         if (isDisabled(player)) {
             clearMenuItem(player);
+            debug("No se entrega MenuItem a " + player.getName() + ": desactivado por jugador.");
             return;
         }
 
         if (isDisabledWorld(player.getWorld().getName())) {
             clearMenuItem(player);
+            debug("No se entrega MenuItem a " + player.getName() + ": mundo deshabilitado (" + player.getWorld().getName()
+                    + ").");
             return;
         }
 
@@ -322,6 +330,7 @@ public class MenuItemModule implements Module, Listener {
         ItemStack menuItem = createMenuItem();
         inv.setItem(slot, menuItem);
         player.updateInventory();
+        debug("MenuItem entregado a " + player.getName() + " en slot " + slot);
     }
 
     public void refreshAllPlayers() {
@@ -341,6 +350,7 @@ public class MenuItemModule implements Module, Listener {
             return;
         }
         String cmd = template.replace("%player%", player.getName());
+        debug("Ejecutando comando de menú para " + player.getName() + ": " + cmd);
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
     }
 
@@ -497,5 +507,9 @@ public class MenuItemModule implements Module, Listener {
     @EventHandler
     public void onDeath(PlayerDeathEvent event) {
         event.getDrops().removeIf(this::isMenuItem);
+    }
+
+    private void debug(String message) {
+        plugin.debug(getId(), message);
     }
 }

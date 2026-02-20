@@ -90,6 +90,9 @@ commands:
     description: Envía un anuncio global
     usage: /broadcast <mensaje>
     aliases: [bc, anuncio]
+  vubroadcast:
+    description: Envía un anuncio global (fallback sin conflicto)
+    usage: /vubroadcast <mensaje>
   heal:
     description: Restaura tu vida y hambre
     usage: /heal [jugador]
@@ -98,7 +101,7 @@ commands:
     usage: /feed [jugador]
   repair:
     description: Repara el objeto que tienes en la mano
-    usage: /repair
+    usage: /repair [hand]
     aliases: [fix]
   nick:
     description: Cambia tu nombre en el chat
@@ -112,9 +115,24 @@ commands:
   near:
     description: Muestra jugadores cercanos
     usage: /near [radio]
+  ptime:
+    description: Cambia tu tiempo personal
+    usage: /ptime <day|night|reset|ticks>
+  pweather:
+    description: Cambia tu clima personal
+    usage: /pweather <clear|rain|reset>
+  sell:
+    description: Vende items de la mano o inventario
+    usage: /sell <hand|inventory>
+    aliases: [sellhand, sellinventory]
   vtop:
     description: Te teletransporta al bloque más alto
     usage: /vtop
+  itemedit:
+    description: Edita nombre y lore del item en mano
+    usage: /itemedit <name|lore> ...
+    aliases: [iedit, edititem, itemeditor]
+    permission: valerinutils.itemeditor.use
   geode:
     description: Comando interno para manejar apertura de geodas
     permission: valerinutils.geodes.admin

@@ -10,11 +10,7 @@
 modules:
   menuitem:
     enabled: false
-  externalplaceholders:
-    enabled: false
   joinquit:
-    enabled: false
-  vote40:
     enabled: false
   votetracking:
     enabled: false
@@ -31,4 +27,6 @@ modules:
   kits:
     enabled: false
   utility:
+    enabled: false
+  itemeditor:
     enabled: false

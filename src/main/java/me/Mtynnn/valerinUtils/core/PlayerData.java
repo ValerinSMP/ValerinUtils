@@ -5,7 +5,6 @@ import java.util.UUID;
 public class PlayerData {
     private final UUID uuid;
     private String name;
-    private boolean tiktokClaimed;
     private int kills;
     private int deaths;
     private int dailyKills; // This is actually daily rewards count for KillRewards
@@ -60,15 +59,6 @@ public class PlayerData {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public boolean isTikTokClaimed() {
-        return tiktokClaimed;
-    }
-
-    public void setTikTokClaimed(boolean tiktokClaimed) {
-        this.tiktokClaimed = tiktokClaimed;
-        this.dirty = true;
     }
 
     public int getKills() {

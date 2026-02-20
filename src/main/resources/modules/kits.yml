@@ -12,6 +12,11 @@ settings:
   # Mundos donde NO se dará el kit al reaparecer por muerte.
   # Se compara contra el mundo donde murió el jugador.
   respawn_kit_disabled_worlds: []
+  # Cooldown por defecto para kits reclamables (GUI).
+  default_claim_cooldown_days: 15
+  # Permiso por defecto para kits nuevos creados con /vukits create.
+  # %kit% = nombre del kit en minúsculas
+  default_required_permission_pattern: "kits.%kit%"
 
 # Este kit se entrega al entrar por primera vez y al reaparecer
 auto_kit:
@@ -31,3 +36,123 @@ auto_kit:
 
 # Los kits de Shulker se guardarán aquí automáticamente
 kits: {}
+
+messages:
+  kit-no-permission: "%prefix%&cNo cumples el rango/permiso requerido para este kit."
+  kit-on-cooldown: "%prefix%&cDebes esperar &e%time% &cpara volver a reclamar este kit."
+  kit-claimed: "%prefix%&aHas reclamado el kit: &f%kit%"
+
+sounds:
+  menu-open: "BLOCK_CHEST_OPEN"
+  menu-click: "UI_BUTTON_CLICK"
+  menu-page: "ITEM_BOOK_PAGE_TURN"
+  menu-close: "BLOCK_CHEST_CLOSE"
+  menu-back: "BLOCK_NOTE_BLOCK_BASS"
+  preview-open: "BLOCK_ENDER_CHEST_OPEN"
+  claim-success: "ENTITY_PLAYER_LEVELUP"
+  claim-fail: "BLOCK_NOTE_BLOCK_BASS"
+
+claim-effects:
+  enabled: true
+  particles:
+    enabled: true
+    type: "TOTEM_OF_UNDYING"
+    amount: 25
+    offset: 0.35
+    speed: 0.05
+  title:
+    enabled: true
+    title: "&#77DD77ᴋɪᴛ ʀᴇᴄʟᴀᴍᴀᴅᴏ"
+    subtitle: "&fDisfruta tu recompensa"
+    fade-in: 5
+    stay: 30
+    fade-out: 8
+  actionbar: "&#77DD77+ Kit recibido"
+  extra-sound:
+    enabled: true
+    name: "BLOCK_AMETHYST_BLOCK_CHIME"
+    volume: 0.8
+    pitch: 1.4
+
+menu:
+  title: "&8sᴇʟᴇᴄᴄɪᴏɴᴀ ᴋɪᴛ ᴄᴀsᴜᴀʟ"
+  rows: 6
+  kit-slots:
+    - 10
+    - 11
+    - 12
+    - 13
+    - 14
+    - 15
+    - 16
+    - 19
+    - 20
+    - 21
+    - 22
+    - 23
+    - 24
+    - 25
+    - 28
+    - 29
+    - 30
+    - 31
+    - 32
+    - 33
+    - 34
+  filler-slots:
+    - "0-3"
+    - "5-9"
+    - "17-18"
+    - "26-27"
+    - "35-36"
+    - "44"
+    - "46-47"
+    - "51-53"
+  kit-lore:
+    - "&8• &fItems dentro: &#FFEE8C%items%"
+    - "&8• &fCooldown: &#FFEE8C%days%d"
+    - "&8• &fPermiso: &#FFEE8C%perm%"
+    - "&8• &fEstado: &#FFEE8C%status%"
+    - "&8• &fClick izq: &#77DD77Reclamar"
+    - "&8• &fClick der: &#FFB347Preview"
+  items:
+    filler:
+      material: BLACK_STAINED_GLASS_PANE
+      name: " "
+      lore: []
+    info:
+      slot: 4
+      material: GLOBE_BANNER_PATTERN
+      name: "&#FFEE8Cɪɴғᴏ"
+      lore:
+        - "&fAquí puedes reclamar kits por rango."
+        - "&fCada kit tiene su propio cooldown."
+        - "&fClick izquierdo: &#77DD77Reclamar kit"
+        - "&fClick derecho: &#FFB347Ver contenido"
+        - "&fPágina: &#FFEE8C%page%&7/&#FFEE8C%max_page%"
+    back:
+      slot: 45
+      command-mode: "console"
+      command: "dm open menu %player%"
+      material: ARROW
+      name: "&#FFEE8Cᴀᴛʀᴀs"
+      lore:
+        - "&fVolver al menú principal"
+    previous:
+      slot: 48
+      material: YELLOW_STAINED_GLASS_PANE
+      name: "&#FFB347ᴘᴀɢɪɴᴀ ᴀɴᴛᴇʀɪᴏʀ"
+      lore:
+        - "&fVer página anterior"
+    close:
+      slot: 49
+      material: BARRIER
+      name: "&#FFEE8Cᴄᴇʀʀᴀʀ"
+      lore:
+        - "&fCerrar este menú"
+    next:
+      slot: 50
+      material: LIME_STAINED_GLASS_PANE
+      name: "&#77DD77sɪɢᴜɪᴇɴᴛᴇ"
+      lore:
+        - "&fVer siguiente página"

@@ -49,6 +49,8 @@ public class VoteTrackingModule implements Module, Listener {
         String service = vote.getServiceName();
         long timestamp = System.currentTimeMillis();
 
+        handleVote40(vote);
+
         plugin.getLogger().info("[VoteTracking] Voto recibido de " + username + " (Servicio: " + service + ")");
 
         CompletableFuture.runAsync(() -> {
@@ -88,6 +90,36 @@ public class VoteTrackingModule implements Module, Listener {
     private void recordVoteOffline(UUID uuid, String service, long timestamp) {
         plugin.getDatabaseManager().addVote(uuid.toString(), service, timestamp);
         plugin.debug(getId(), "Vote recorded for " + uuid + " from " + service);
+    }
+
+    private void handleVote40(Vote vote) {
+        FileConfiguration config = plugin.getConfigManager().getConfig("vote40");
+        if (config == null || !config.getBoolean("enabled", true)) {
+            return;
+        }
+
+        String serviceName = vote.getServiceName();
+        String username = vote.getUsername();
+        String targetService = config.getString("service-name", "40Servidores");
+        if (!serviceName.equalsIgnoreCase(targetService)) {
+            plugin.debug(getId(), "Vote40 ignorado de " + serviceName + " (esperado " + targetService + ")");
+            return;
+        }
+
+        long delaySeconds = config.getLong("delay-seconds", 30);
+        long delayTicks = delaySeconds * 20L;
+
+        plugin.getLogger().info(
+                "Voto recibido de " + username + " en " + serviceName + ". Ejecutando /vote40 en " + delaySeconds
+                        + " segundos.");
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            Player player = Bukkit.getPlayerExact(username);
+            if (player != null && player.isOnline()) {
+                player.performCommand("vote40");
+                plugin.getLogger().info("Ejecutado /vote40 para " + username);
+            }
+        }, delayTicks);
     }
 
     private void handleFeedback(Player player) {

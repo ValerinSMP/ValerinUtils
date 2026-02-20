@@ -1,0 +1,23 @@
+enabled: true
+
+settings:
+  max-lore-lines: 20
+
+messages:
+  usage: "%prefix%<gray>Uso: <yellow>/itemedit <name|lore> ..."
+  usage-name: "%prefix%<gray>Uso: <yellow>/itemedit name <texto|off>"
+  usage-lore: "%prefix%<gray>Uso: <yellow>/itemedit lore <add|set|remove|clear> ..."
+  usage-lore-add: "%prefix%<gray>Uso: <yellow>/itemedit lore add <texto>"
+  usage-lore-set: "%prefix%<gray>Uso: <yellow>/itemedit lore set <línea> <texto>"
+  usage-lore-remove: "%prefix%<gray>Uso: <yellow>/itemedit lore remove <línea>"
+  no-permission: "%prefix%<red>No tienes permisos."
+  only-players: "%prefix%<red>Solo jugadores pueden usar este comando."
+  no-item-in-hand: "%prefix%<red>Debes tener un ítem en la mano."
+  name-updated: "%prefix%<green>Nombre del ítem actualizado."
+  name-cleared: "%prefix%<green>Nombre del ítem limpiado."
+  lore-added: "%prefix%<green>Línea de lore agregada."
+  lore-updated: "%prefix%<green>Línea de lore actualizada."
+  lore-removed: "%prefix%<green>Línea de lore eliminada."
+  lore-cleared: "%prefix%<green>Lore del ítem limpiado."
+  lore-max-lines: "%prefix%<red>Tu ítem ya alcanzó el máximo de líneas."
+  line-out-of-range: "%prefix%<red>Línea inválida."

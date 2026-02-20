@@ -42,6 +42,7 @@ public class DeathMessagesModule implements Module, Listener, CommandExecutor, T
     @Override
     public void enable() {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        plugin.debug(getId(), "Módulo habilitado.");
 
         // Registrar comando si está definido en plugin.yml
         if (plugin.getCommand("deathmsg") != null) {
@@ -63,6 +64,7 @@ public class DeathMessagesModule implements Module, Listener, CommandExecutor, T
             plugin.getCommand("vuspawn").setExecutor(null);
             plugin.getCommand("vuspawn").setTabCompleter(null);
         }
+        plugin.debug(getId(), "Módulo deshabilitado.");
     }
 
     private FileConfiguration getConfig() {
@@ -87,6 +89,7 @@ public class DeathMessagesModule implements Module, Listener, CommandExecutor, T
 
         Location loc = parseLocation(section.getString("location"));
         if (loc == null) {
+            plugin.debug(getId(), "FirstJoin spawn omitido: ubicación inválida.");
             return;
         }
 
@@ -94,6 +97,8 @@ public class DeathMessagesModule implements Module, Listener, CommandExecutor, T
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (event.getPlayer().isOnline()) {
                 event.getPlayer().teleport(loc);
+                plugin.debug(getId(), "FirstJoin spawn aplicado a " + event.getPlayer().getName() + " -> "
+                        + loc.getWorld().getName());
             }
         }, delay);
     }
@@ -112,10 +117,12 @@ public class DeathMessagesModule implements Module, Listener, CommandExecutor, T
 
         Location loc = parseLocation(section.getString("location"));
         if (loc == null) {
+            plugin.debug(getId(), "Respawn spawn omitido: ubicación inválida.");
             return;
         }
 
         event.setRespawnLocation(loc);
+        plugin.debug(getId(), "Respawn forzado para " + event.getPlayer().getName() + " -> " + loc.getWorld().getName());
     }
 
     @EventHandler
@@ -134,8 +141,10 @@ public class DeathMessagesModule implements Module, Listener, CommandExecutor, T
         String path = (killer != null && !killer.equals(victim)) ? "messages.killed.module" : "messages.died.module";
         ConfigurationSection section = config.getConfigurationSection(path);
 
-        if (section == null)
+        if (section == null) {
+            plugin.debug(getId(), "Sección de mensajes no encontrada: " + path);
             return;
+        }
 
         // Preparar placeholders
         String victimName = victim.getName();
@@ -147,6 +156,7 @@ public class DeathMessagesModule implements Module, Listener, CommandExecutor, T
                 sendCustomMessage(online, section, victimName, killerName);
             }
         }
+        plugin.debug(getId(), "Death message enviado: victima=" + victimName + " killer=" + killerName);
 
         // Consola siempre recibe
         sendCustomMessageToConsole(section, victimName, killerName);
@@ -303,6 +313,7 @@ public class DeathMessagesModule implements Module, Listener, CommandExecutor, T
         FileConfiguration cfg = getConfig();
         if (cfg == null) {
             sender.sendMessage(plugin.translateColors("%prefix%&cConfig no cargada."));
+            plugin.debug(getId(), "Comando vuspawn cancelado: config nula.");
             return true;
         }
 
@@ -331,6 +342,7 @@ public class DeathMessagesModule implements Module, Listener, CommandExecutor, T
                 }
                 plugin.getConfigManager().saveConfig("deathmessages");
                 sender.sendMessage(plugin.translateColors("%prefix%&aSpawn desactivado para: &e" + target));
+                plugin.debug(getId(), "vuspawn off ejecutado por " + sender.getName() + " target=" + target);
                 return true;
             }
             case "set" -> {
@@ -368,6 +380,8 @@ public class DeathMessagesModule implements Module, Listener, CommandExecutor, T
 
                 plugin.getConfigManager().saveConfig("deathmessages");
                 sender.sendMessage(plugin.translateColors("%prefix%&aSpawn seteado (&e" + target + "&a): &f" + locString));
+                plugin.debug(getId(), "vuspawn set ejecutado por " + sender.getName() + " target=" + target
+                        + " loc=" + locString);
                 return true;
             }
             default -> {

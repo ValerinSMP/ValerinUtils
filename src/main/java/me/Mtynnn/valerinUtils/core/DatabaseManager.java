@@ -80,7 +80,6 @@ public class DatabaseManager {
         String sql = "CREATE TABLE IF NOT EXISTS player_data (" +
                 "uuid TEXT PRIMARY KEY, " +
                 "name TEXT, " +
-                "tiktok_claimed BOOLEAN DEFAULT 0, " +
                 "kills INTEGER DEFAULT 0, " +
                 "deaths INTEGER DEFAULT 0, " +
                 "daily_kills INTEGER DEFAULT 0, " +
@@ -121,6 +120,8 @@ public class DatabaseManager {
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not create tables", e);
         }
+
+        migratePlayerDataDropTikTokColumn();
 
         // Table: player_votes
         // Stores individual vote records for detailed stats
@@ -163,6 +164,73 @@ public class DatabaseManager {
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not create player_codes table", e);
         }
+    }
+
+    private void migratePlayerDataDropTikTokColumn() {
+        try {
+            if (!hasColumn("player_data", "tiktok_claimed")) {
+                return;
+            }
+
+            Connection conn = getConnection();
+            boolean previousAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("""
+                        CREATE TABLE IF NOT EXISTS player_data_new (
+                            uuid TEXT PRIMARY KEY,
+                            name TEXT,
+                            kills INTEGER DEFAULT 0,
+                            deaths INTEGER DEFAULT 0,
+                            daily_kills INTEGER DEFAULT 0,
+                            last_daily_reset BIGINT DEFAULT 0,
+                            menu_disabled BOOLEAN DEFAULT 0,
+                            royal_pay_disabled BOOLEAN DEFAULT 0,
+                            death_messages_disabled BOOLEAN DEFAULT 0,
+                            starter_kit_received BOOLEAN DEFAULT 0,
+                            nickname TEXT
+                        );
+                        """);
+
+                stmt.execute("""
+                        INSERT INTO player_data_new
+                        (uuid, name, kills, deaths, daily_kills, last_daily_reset, menu_disabled, royal_pay_disabled,
+                         death_messages_disabled, starter_kit_received, nickname)
+                        SELECT uuid, name, kills, deaths, daily_kills, last_daily_reset, menu_disabled, royal_pay_disabled,
+                               death_messages_disabled, starter_kit_received, nickname
+                        FROM player_data;
+                        """);
+
+                stmt.execute("DROP TABLE player_data;");
+                stmt.execute("ALTER TABLE player_data_new RENAME TO player_data;");
+            }
+
+            conn.commit();
+            conn.setAutoCommit(previousAutoCommit);
+            plugin.getLogger().info("Database migration: removed legacy column player_data.tiktok_claimed.");
+        } catch (SQLException e) {
+            try {
+                getConnection().rollback();
+            } catch (SQLException ignored) {
+            }
+            plugin.getLogger().log(Level.SEVERE, "Could not migrate player_data to remove tiktok_claimed", e);
+        }
+    }
+
+    private boolean hasColumn(String table, String column) {
+        String sql = "PRAGMA table_info(" + table + ")";
+        try (Statement stmt = getConnection().createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                if (column.equalsIgnoreCase(rs.getString("name"))) {
+                    return true;
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Could not inspect table schema for " + table + ": " + e.getMessage());
+        }
+        return false;
     }
 
     // ================== Reward Codes ==================
