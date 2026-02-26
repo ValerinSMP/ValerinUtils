@@ -12,8 +12,6 @@ modules:
     enabled: false
   joinquit:
     enabled: false
-  votetracking:
-    enabled: false
   killrewards:
     enabled: false
   codes:

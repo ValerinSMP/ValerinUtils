@@ -12,6 +12,7 @@ final class UtilityNickManager {
     private static final Pattern LEGACY_CODE_PATTERN = Pattern.compile("(?i)[&§]([0-9a-fk-or])");
     private static final Pattern LEGACY_HEX_PATTERN = Pattern.compile("(?i)&#[0-9a-f]{6}|&x(?:&[0-9a-f]){6}");
     private static final Pattern MINI_TAG_PATTERN = Pattern.compile("<\\s*/?\\s*([a-zA-Z0-9_:#-]+)[^>]*>");
+    private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s");
 
     private static final Set<String> BASIC_MINI_TAGS = Set.of(
             "black", "dark_blue", "dark_green", "dark_aqua", "dark_red", "dark_purple", "gold", "gray",
@@ -85,5 +86,35 @@ final class UtilityNickManager {
         }
 
         return tier != NickTier.NONE || (!raw.contains("&") && !raw.contains("§") && !raw.contains("<"));
+    }
+
+    boolean containsWhitespace(String raw) {
+        return raw != null && WHITESPACE_PATTERN.matcher(raw).find();
+    }
+
+    String withTrailingReset(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        String trimmed = raw.trim();
+        if (trimmed.endsWith("<reset>") || trimmed.endsWith("&r") || trimmed.endsWith("§r")) {
+            return trimmed;
+        }
+        return trimmed + "<reset>";
+    }
+
+    String sanitizeStoredNickname(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String trimmed = raw.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        String noSpaces = WHITESPACE_PATTERN.matcher(trimmed).replaceAll("");
+        if (noSpaces.isEmpty()) {
+            return null;
+        }
+        return withTrailingReset(noSpaces);
     }
 }

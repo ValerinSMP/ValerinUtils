@@ -1,13 +1,12 @@
 package me.mtynnn.valerinutils.modules.codes;
 
 import me.mtynnn.valerinutils.ValerinUtils;
-import me.mtynnn.valerinutils.core.AbstractModule;
+import me.mtynnn.valerinutils.core.BaseModule;
 import me.mtynnn.valerinutils.utils.SignMenuFactory;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -19,7 +18,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class CodesModule extends AbstractModule implements CommandExecutor, TabCompleter {
+public class CodesModule extends BaseModule implements CommandExecutor, TabCompleter {
     private SignMenuFactory signMenuFactory;
 
     public CodesModule(ValerinUtils plugin) {
@@ -32,7 +31,7 @@ public class CodesModule extends AbstractModule implements CommandExecutor, TabC
     }
 
     @Override
-    public void enable() {
+    protected void onEnableModule() {
         FileConfiguration cfg = getConfig();
         if (cfg == null || !cfg.getBoolean("enabled", true))
             return;
@@ -40,19 +39,11 @@ public class CodesModule extends AbstractModule implements CommandExecutor, TabC
         this.signMenuFactory = new SignMenuFactory(plugin);
         plugin.debug(getId(), "Módulo habilitado. Sistema de códigos activo.");
 
-        if (plugin.getCommand("code") != null) {
-            plugin.getCommand("code").setExecutor(this);
-            plugin.getCommand("code").setTabCompleter(this);
-        }
+        registerCommand("code", this, this);
     }
 
     @Override
-    public void disable() {
-        PluginCommand code = plugin.getCommand("code");
-        if (code != null) {
-            code.setExecutor(null);
-            code.setTabCompleter(null);
-        }
+    protected void onDisableModule() {
         plugin.debug(getId(), "Módulo deshabilitado. Comando /code liberado.");
     }
 

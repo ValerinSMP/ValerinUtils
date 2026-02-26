@@ -9,7 +9,10 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -26,6 +29,7 @@ public class ConfigManager {
     private final ValerinUtils plugin;
     private final Map<String, FileConfiguration> configs = new HashMap<>();
     private final Map<String, File> files = new HashMap<>();
+    private final Map<String, String> configPaths = new HashMap<>();
 
     public ConfigManager(ValerinUtils plugin) {
         this.plugin = plugin;
@@ -39,34 +43,50 @@ public class ConfigManager {
         }
     }
 
+    private void migrateSellPriceConfigLocation() {
+        File legacyFile = new File(plugin.getDataFolder(), "modules/sellprice.yml");
+        File newFile = new File(plugin.getDataFolder(), "sellprice.yml");
+        if (!legacyFile.exists() || newFile.exists()) {
+            return;
+        }
+
+        try {
+            Files.move(legacyFile.toPath(), newFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            plugin.getLogger().info("[SellPrice] Config moved from modules/sellprice.yml to sellprice.yml");
+        } catch (IOException e) {
+            plugin.getLogger().warning("[SellPrice] Could not move legacy config path: " + e.getMessage());
+        }
+    }
+
     public void loadAll() {
         // 1. Initialize all configs (Create defaults from JAR if missing)
         registerConfig("settings", "settings.yml");
         registerConfig("debug", "debug.yml");
         registerConfig("killrewards", "modules/killrewards.yml");
         registerConfig("joinquit", "modules/joinquit.yml");
-        registerConfig("vote40", "modules/vote40.yml");
         registerConfig("menuitem", "modules/menuitem.yml");
         registerConfig("deathmessages", "modules/deathmessages.yml");
         registerConfig("geodes", "modules/geodes.yml");
-        registerConfig("votetracking", "modules/votetracking.yml");
         registerConfig("kits", "modules/kits.yml");
         registerConfig("codes", "modules/codes.yml");
-        registerConfig("utilities", "modules/utilities.yml");
+        registerConfig("utility", "modules/utilities.yml");
         registerConfig("itemeditor", "modules/itemeditor.yml");
         registerConfig("pvpmina", "modules/pvpmina.yml");
-        registerConfig("sellprice", "modules/sellprice.yml");
+        migrateSellPriceConfigLocation();
+        registerConfig("sellprice", "sellprice.yml");
 
         backupConfigsOnVersionChange();
         // 2. Check for migration (Will merge legacy values into the just-created
         // defaults)
         migrateLegacyConfig(); // Legacy config.yml -> new structure
+        mergeMissingKeysFromDefaults();
 
         // 3. Update Settings (Add missing keys for updates)
         updateSettingsConfig();
 
         // 4. Update Module Configs (Add missing keys from new versions)
         updateModuleConfigs();
+        migrateSettingsMessagesToModules();
         updateDebugConfig();
 
         // 5. One-way migration: legacy color codes -> MiniMessage in all configs
@@ -78,47 +98,6 @@ public class ConfigManager {
         FileConfiguration settings = getConfig("settings");
         if (settings == null)
             return;
-
-        boolean changed = false;
-
-        // Verify menuitem messages
-        if (!settings.contains("messages.menuitem-cooldown")) {
-            settings.set("messages.menuitem-cooldown",
-                    "%prefix%<red>Debes esperar <yellow>%time%s <red>para volver a usar esto.");
-            changed = true;
-        }
-
-        // Setup missing menuitem keys if needed
-        if (!settings.contains("messages.menuitem-usage")) {
-            settings.set("messages.menuitem-usage", "%prefix%<gray>Uso: <yellow>/menu item <on|off|toggle>");
-            changed = true;
-        }
-        if (!settings.contains("messages.menuitem-on")) {
-            settings.set("messages.menuitem-on", "%prefix%<green>Item de menú activado.");
-            changed = true;
-        }
-        if (!settings.contains("messages.menuitem-off")) {
-            settings.set("messages.menuitem-off", "%prefix%<red>Item de menú desactivado.");
-            changed = true;
-        }
-        if (!settings.contains("messages.menuitem-toggled-on")) {
-            settings.set("messages.menuitem-toggled-on", "%prefix%<green>Item de menú activado.");
-            changed = true;
-        }
-        if (!settings.contains("messages.menuitem-toggled-off")) {
-            settings.set("messages.menuitem-toggled-off", "%prefix%<red>Item de menú desactivado.");
-            changed = true;
-        }
-        if (!settings.contains("messages.menuitem-slot-occupied")) {
-            settings.set("messages.menuitem-slot-occupied",
-                    "%prefix%<red>El slot está ocupado, no se puede dar el item.");
-            changed = true;
-        }
-
-        if (changed) {
-            saveConfig("settings");
-            plugin.getLogger().info("settings.yml updated with new keys.");
-        }
     }
 
     /**
@@ -130,9 +109,136 @@ public class ConfigManager {
         updateJoinQuitConfig();
         updateKitsConfig();
         updateUtilitiesConfig();
+        updateMenuItemConfig();
+        updateKillRewardsConfig();
         updateItemEditorConfig();
         updateDeathMessagesConfig();
         updateCodesConfig();
+    }
+
+    private void updateMenuItemConfig() {
+        FileConfiguration config = getConfig("menuitem");
+        if (config == null) {
+            return;
+        }
+
+        boolean changed = false;
+        if (!config.contains("messages.usage")) {
+            config.set("messages.usage", "%prefix%<gray>Uso: <yellow>/menuitem <on|off|toggle>");
+            changed = true;
+        }
+        if (!config.contains("messages.on")) {
+            config.set("messages.on", "%prefix%<green>Item de menú activado.");
+            changed = true;
+        }
+        if (!config.contains("messages.off")) {
+            config.set("messages.off", "%prefix%<red>Item de menú desactivado.");
+            changed = true;
+        }
+        if (!config.contains("messages.toggled-on")) {
+            config.set("messages.toggled-on", "%prefix%<green>Item de menú activado.");
+            changed = true;
+        }
+        if (!config.contains("messages.toggled-off")) {
+            config.set("messages.toggled-off", "%prefix%<red>Item de menú desactivado.");
+            changed = true;
+        }
+        if (!config.contains("messages.slot-occupied")) {
+            config.set("messages.slot-occupied", "%prefix%<red>El slot está ocupado, no se puede dar el item.");
+            changed = true;
+        }
+        if (!config.contains("messages.cooldown")) {
+            config.set("messages.cooldown", "%prefix%<red>Debes esperar <yellow>%time%s <red>para volver a usar esto.");
+            changed = true;
+        }
+
+        if (changed) {
+            saveConfig("menuitem");
+            plugin.getLogger().info("[MenuItem] Config updated with new keys.");
+        }
+    }
+
+    private void updateKillRewardsConfig() {
+        FileConfiguration config = getConfig("killrewards");
+        if (config == null) {
+            return;
+        }
+
+        boolean changed = false;
+        if (!config.contains("messages.team-kill-deny")) {
+            config.set("messages.team-kill-deny",
+                    "%prefix%<red>No puedes obtener recompensas matando a miembros de tu equipo.");
+            changed = true;
+        }
+
+        if (changed) {
+            saveConfig("killrewards");
+            plugin.getLogger().info("[KillRewards] Config updated with new keys.");
+        }
+    }
+
+    private void migrateSettingsMessagesToModules() {
+        FileConfiguration settings = getConfig("settings");
+        FileConfiguration menuItem = getConfig("menuitem");
+        FileConfiguration killRewards = getConfig("killrewards");
+        if (settings == null || menuItem == null || killRewards == null) {
+            return;
+        }
+
+        boolean settingsChanged = false;
+        boolean menuChanged = false;
+        boolean killChanged = false;
+
+        Map<String, String> menuMapping = new LinkedHashMap<>();
+        menuMapping.put("menuitem-usage", "usage");
+        menuMapping.put("menuitem-on", "on");
+        menuMapping.put("menuitem-off", "off");
+        menuMapping.put("menuitem-toggled-on", "toggled-on");
+        menuMapping.put("menuitem-toggled-off", "toggled-off");
+        menuMapping.put("menuitem-slot-occupied", "slot-occupied");
+        menuMapping.put("menuitem-cooldown", "cooldown");
+
+        for (Map.Entry<String, String> entry : menuMapping.entrySet()) {
+            String oldPath = "messages." + entry.getKey();
+            String newPath = "messages." + entry.getValue();
+            if (!settings.contains(oldPath)) {
+                continue;
+            }
+            if (!menuItem.contains(newPath)) {
+                Object legacyValue = settings.get(oldPath);
+                if ("menuitem-usage".equals(entry.getKey()) && legacyValue instanceof String legacyString) {
+                    legacyValue = legacyString.replace("/menu item", "/menuitem");
+                }
+                menuItem.set(newPath, legacyValue);
+                menuChanged = true;
+            }
+            settings.set(oldPath, null);
+            settingsChanged = true;
+        }
+
+        String legacyKillPath = "messages.killrewards.team-kill-deny";
+        String killPath = "messages.team-kill-deny";
+        if (settings.contains(legacyKillPath)) {
+            if (!killRewards.contains(killPath)) {
+                killRewards.set(killPath, settings.get(legacyKillPath));
+                killChanged = true;
+            }
+            settings.set(legacyKillPath, null);
+            settingsChanged = true;
+        }
+
+        if (settingsChanged) {
+            saveConfig("settings");
+        }
+        if (menuChanged) {
+            saveConfig("menuitem");
+        }
+        if (killChanged) {
+            saveConfig("killrewards");
+        }
+        if (settingsChanged || menuChanged || killChanged) {
+            plugin.getLogger().info("Migrated legacy settings messages to module configs.");
+        }
     }
 
     private void updateJoinQuitConfig() {
@@ -370,13 +476,13 @@ public class ConfigManager {
     }
 
     private void updateUtilitiesConfig() {
-        FileConfiguration config = getConfig("utilities");
+        FileConfiguration config = getConfig("utility");
         if (config == null)
             return;
 
         boolean changed = applyMissingDefaults(config, UTILITIES_DEFAULTS);
         if (changed) {
-            saveConfig("utilities");
+            saveConfig("utility");
             plugin.getLogger().info("[Utility] Config updated with new keys.");
         }
     }
@@ -446,6 +552,7 @@ public class ConfigManager {
         defaults.put("commands.seen.enabled", true);
         defaults.put("commands.seen.others-enabled", true);
         defaults.put("commands.gamemode.enabled", true);
+        defaults.put("commands.gamemode.others-enabled", true);
         defaults.put("commands.clear.enabled", true);
         defaults.put("commands.clear.others-enabled", true);
         defaults.put("commands.ping.enabled", true);
@@ -455,12 +562,16 @@ public class ConfigManager {
         defaults.put("commands.speed.enabled", true);
         defaults.put("commands.speed.others-enabled", true);
         defaults.put("commands.broadcast.enabled", true);
+        defaults.put("commands.helpop.enabled", true);
+        defaults.put("commands.helpop.cooldown-seconds", 20);
+        defaults.put("commands.helpop.send-to-console", true);
         defaults.put("commands.heal.enabled", true);
         defaults.put("commands.heal.others-enabled", true);
         defaults.put("commands.feed.enabled", true);
         defaults.put("commands.feed.others-enabled", true);
         defaults.put("commands.repair.enabled", true);
         defaults.put("commands.nick.enabled", true);
+        defaults.put("commands.nick.others-enabled", true);
         defaults.put("commands.skull.enabled", true);
         defaults.put("commands.suicide.enabled", true);
         defaults.put("commands.near.enabled", true);
@@ -484,6 +595,8 @@ public class ConfigManager {
         defaults.put("sounds.gamemode-change", "BLOCK_NOTE_BLOCK_CHIME");
         defaults.put("sounds.heal", "ENTITY_PLAYER_LEVELUP");
         defaults.put("sounds.broadcast", "BLOCK_NOTE_BLOCK_PLING");
+        defaults.put("sounds.helpop-send", "UI_BUTTON_CLICK");
+        defaults.put("sounds.helpop-receive", "BLOCK_NOTE_BLOCK_CHIME");
 
         defaults.put("messages.no-permission", "%prefix%<red>No tienes permiso para usar este comando.");
         defaults.put("messages.only-players", "%prefix%<red>Solo jugadores pueden usar este comando.");
@@ -496,6 +609,7 @@ public class ConfigManager {
         defaults.put("messages.condense-success", "%prefix%<green>Se han condensado <white>%count% <green>items en bloques.");
         defaults.put("messages.condense-nothing", "%prefix%<gray>No hay nada que condensar en tu inventario.");
         defaults.put("messages.gamemode-success", "%prefix%<green>Modo de juego cambiado a <yellow>%mode%<green>.");
+        defaults.put("messages.gamemode-success-others", "%prefix%<green>Modo de juego de <white>%player% <green>cambiado a <yellow>%mode%<green>.");
         defaults.put("messages.ping-self", "%prefix%<gray>Tu ping es de: <yellow>%ping%ms");
         defaults.put("messages.ping-other", "%prefix%<gray>El ping de <white>%player% <gray>es de: <yellow>%ping%ms");
         defaults.put("messages.fly-enabled", "%prefix%<gray>Modo vuelo: <green>Activado");
@@ -514,13 +628,22 @@ public class ConfigManager {
                 "",
                 "<dark_gray>[<color:#B6E7B5><bold>ᴀ<color:#ABE29C><bold>ɴ<color:#9FDC82><bold>ᴜ<color:#94D769><bold>ɴ<color:#88D150><bold>ᴄ<color:#7DCC36><bold>ɪ<color:#71C61D><bold>ᴏ<dark_gray>] <reset>%message%",
                 ""));
+        defaults.put("messages.helpop-usage", "%prefix%<gray>Uso: <yellow>/helpop <mensaje>");
+        defaults.put("messages.helpop-sent", "%prefix%<green>Tu reporte fue enviado al staff <gray>(<white>%staff%<gray>).");
+        defaults.put("messages.helpop-no-staff", "%prefix%<yellow>No hay staff conectado ahora. Tu mensaje fue enviado a consola.");
+        defaults.put("messages.helpop-cooldown", "%prefix%<red>Espera <yellow>%time%s <red>antes de volver a usar /helpop.");
+        defaults.put("messages.helpop-received", "<dark_gray>[<red>ʜᴇʟᴘᴏᴘ<dark_gray>] <white>%player% <gray>» <white>%message%");
         defaults.put("messages.repair-success", "%prefix%<green>Item reparado con éxito.");
         defaults.put("messages.repair-usage", "%prefix%<gray>Uso: <yellow>/fix hand");
         defaults.put("messages.repair-error", "%prefix%<red>Este item no se puede reparar.");
         defaults.put("messages.nick-usage", "%prefix%<gray>Uso: <yellow>/nick <apodo|off>");
+        defaults.put("messages.nick-usage-others", "%prefix%<gray>Uso: <yellow>/nick <jugador> <apodo|off>");
         defaults.put("messages.nick-format-not-allowed", "%prefix%<red>No puedes usar ese formato en el nick. Nivel: <yellow>%tier%");
+        defaults.put("messages.nick-no-spaces", "%prefix%<red>El nick no puede contener espacios.");
         defaults.put("messages.nick-success", "%prefix%<gray>Tu apodo ahora es: <white>%nick%");
+        defaults.put("messages.nick-success-others", "%prefix%<gray>Apodo de <white>%player% <gray>actualizado a: <white>%nick%");
         defaults.put("messages.nick-off", "%prefix%<red>Has desactivado tu apodo.");
+        defaults.put("messages.nick-off-others", "%prefix%<gray>Has quitado el apodo de <white>%player%<gray>.");
         defaults.put("messages.skull-success", "%prefix%<green>Has recibido la cabeza de <white>%player%<green>.");
         defaults.put("messages.suicide-msg", "%prefix%<gray>Has decidido terminar con todo...");
         defaults.put("messages.top-success", "%prefix%<green>Teletransportado a la superficie.");
@@ -654,9 +777,11 @@ public class ConfigManager {
                 configs.put(id, YamlConfiguration.loadConfiguration(file));
             }
         }
+        mergeMissingKeysFromDefaults();
         // Re-run auto-updater after reload to ensure defaults are there
         updateSettingsConfig();
         updateModuleConfigs();
+        migrateSettingsMessagesToModules();
         updateDebugConfig();
         migrateLegacyFormattingToMiniMessage();
         applyAestheticThemeToAllMessages();
@@ -774,7 +899,7 @@ public class ConfigManager {
 
         boolean changed = false;
         String[] modules = {
-                "menuitem", "joinquit", "votetracking",
+                "menuitem", "joinquit",
                 "killrewards", "codes", "deathmessages", "geodes", "kits", "utility", "pvpmina", "itemeditor"
         };
         for (String moduleId : modules) {
@@ -817,7 +942,75 @@ public class ConfigManager {
         }
 
         files.put(id, file);
+        configPaths.put(id, path);
         configs.put(id, YamlConfiguration.loadConfiguration(file));
+    }
+
+    private void mergeMissingKeysFromDefaults() {
+        for (Map.Entry<String, String> entry : configPaths.entrySet()) {
+            String id = entry.getKey();
+            String path = entry.getValue();
+            FileConfiguration target = configs.get(id);
+            if (target == null) {
+                continue;
+            }
+
+            try (InputStream in = plugin.getResource(path)) {
+                if (in == null) {
+                    continue;
+                }
+
+                FileConfiguration defaults = YamlConfiguration
+                        .loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
+                boolean changed = mergeSectionMissing(target, defaults, "");
+                if (changed) {
+                    saveConfig(id);
+                    plugin.getLogger().info("[" + id + "] Config updated with missing keys from defaults.");
+                }
+            } catch (IOException e) {
+                plugin.getLogger().warning("Could not merge defaults for config '" + id + "': " + e.getMessage());
+            }
+        }
+    }
+
+    private boolean mergeSectionMissing(FileConfiguration target, ConfigurationSection defaults, String basePath) {
+        boolean changed = false;
+
+        for (String key : defaults.getKeys(false)) {
+            String currentPath = basePath.isEmpty() ? key : basePath + "." + key;
+            Object value = defaults.get(key);
+
+            if (value instanceof ConfigurationSection defaultChild) {
+                if (!target.contains(currentPath)) {
+                    target.createSection(currentPath);
+                    changed = true;
+                } else if (!target.isConfigurationSection(currentPath)) {
+                    continue;
+                }
+
+                if (mergeSectionMissing(target, defaultChild, currentPath)) {
+                    changed = true;
+                }
+                continue;
+            }
+
+            if (!target.contains(currentPath)) {
+                target.set(currentPath, cloneConfigValue(value));
+                changed = true;
+            }
+        }
+
+        return changed;
+    }
+
+    private Object cloneConfigValue(Object value) {
+        if (value instanceof List<?> list) {
+            return new ArrayList<>(list);
+        }
+        if (value instanceof Map<?, ?> map) {
+            return new LinkedHashMap<>(map);
+        }
+        return value;
     }
 
     private void migrateLegacyConfig() {
@@ -842,13 +1035,10 @@ public class ConfigManager {
 
         // Migrate Modules
         migrateModule(legacy, "modules.killrewards", "modules/killrewards.yml", "killrewards");
-        migrateModule(legacy, "modules.vote40", "modules/vote40.yml", "vote40");
         migrateModule(legacy, "modules.joinquit", "modules/joinquit.yml", "joinquit");
         migrateModule(legacy, "joinquit", "modules/joinquit.yml", "joinquit");
         migrateModule(legacy, "modules.menuitem", "modules/menuitem.yml", "menuitem");
         migrateModule(legacy, "menuitem", "modules/menuitem.yml", "menuitem");
-        migrateModule(legacy, "votetracking", "modules/votetracking.yml", "votetracking");
-        migrateModule(legacy, "modules.votetracking", "modules/votetracking.yml", "votetracking");
 
         // Rename old config
         File backup = new File(plugin.getDataFolder(), "config.yml.old");

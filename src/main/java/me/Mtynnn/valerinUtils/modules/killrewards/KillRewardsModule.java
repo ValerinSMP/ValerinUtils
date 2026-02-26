@@ -1,7 +1,7 @@
 package me.mtynnn.valerinutils.modules.killrewards;
 
 import me.mtynnn.valerinutils.ValerinUtils;
-import me.mtynnn.valerinutils.core.Module;
+import me.mtynnn.valerinutils.core.BaseModule;
 import me.mtynnn.valerinutils.core.PlayerData;
 import org.bukkit.Bukkit;
 import org.bukkit.Statistic;
@@ -19,7 +19,7 @@ import net.milkbowl.vault.economy.Economy;
 import org.bukkit.event.EventPriority;
 import org.bukkit.plugin.RegisteredServiceProvider;
 
-public class KillRewardsModule implements Module, Listener {
+public class KillRewardsModule extends BaseModule implements Listener {
 
     private final ValerinUtils plugin;
     private Economy economy = null;
@@ -28,6 +28,7 @@ public class KillRewardsModule implements Module, Listener {
     private final Map<UUID, Map<UUID, Long>> cooldowns = new HashMap<>();
 
     public KillRewardsModule(ValerinUtils plugin) {
+        super(plugin);
         this.plugin = plugin;
     }
 
@@ -37,9 +38,9 @@ public class KillRewardsModule implements Module, Listener {
     }
 
     @Override
-    public void enable() {
+    protected void onEnableModule() {
         setupEconomy();
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        registerListener(this);
     }
 
     private boolean setupEconomy() {
@@ -55,7 +56,7 @@ public class KillRewardsModule implements Module, Listener {
     }
 
     @Override
-    public void disable() {
+    protected void onDisableModule() {
         HandlerList.unregisterAll(this);
         cooldowns.clear();
     }
@@ -266,10 +267,11 @@ public class KillRewardsModule implements Module, Listener {
                         debug("Same team detected (" + killerTeam + "): " + killer.getName() + " -> "
                                 + victim.getName());
                         // Send message
-                        String msg = plugin.getConfigManager().getConfig("settings").getString(
-                                "messages.killrewards.team-kill-deny", "&cNo puedes abusar matando a tu equipo.");
-                        if (msg != null && !msg.isEmpty()) {
-                            killer.sendMessage(plugin.translateColors(msg));
+                        String msg = plugin.messages().module("killrewards",
+                                "team-kill-deny",
+                                "%prefix%<red>No puedes abusar matando a tu equipo.");
+                        if (!msg.isEmpty()) {
+                            killer.sendMessage(msg);
                         }
                         return false;
                     }
@@ -352,7 +354,4 @@ public class KillRewardsModule implements Module, Listener {
         return null;
     }
 
-    private void debug(String msg) {
-        plugin.debug(getId(), msg);
-    }
 }

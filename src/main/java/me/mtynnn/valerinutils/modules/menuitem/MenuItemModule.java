@@ -1,7 +1,7 @@
 package me.mtynnn.valerinutils.modules.menuitem;
 
 import me.mtynnn.valerinutils.ValerinUtils;
-import me.mtynnn.valerinutils.core.Module;
+import me.mtynnn.valerinutils.core.BaseModule;
 import me.mtynnn.valerinutils.core.PlayerData;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -39,7 +39,7 @@ import org.bukkit.Sound;
 import java.util.Locale;
 
 @SuppressWarnings("deprecation") // Legacy ItemMeta API still required for older server compatibility
-public class MenuItemModule implements Module, Listener {
+public class MenuItemModule extends BaseModule implements Listener {
 
     private final ValerinUtils plugin;
     private final NamespacedKey menuItemKey;
@@ -50,6 +50,7 @@ public class MenuItemModule implements Module, Listener {
     private int cachedSlot = -1;
 
     public MenuItemModule(ValerinUtils plugin) {
+        super(plugin);
         this.plugin = plugin;
         this.menuItemKey = new NamespacedKey(plugin, "menuitem");
         loadConfigSettings();
@@ -61,8 +62,8 @@ public class MenuItemModule implements Module, Listener {
     }
 
     @Override
-    public void enable() {
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+    protected void onEnableModule() {
+        registerListener(this);
         // Invalidate cache so fresh config values are used
         invalidateCache();
         // Give/refresh items for all online players
@@ -71,7 +72,7 @@ public class MenuItemModule implements Module, Listener {
     }
 
     @Override
-    public void disable() {
+    protected void onDisableModule() {
         // Unregister all event handlers
         org.bukkit.event.HandlerList.unregisterAll(this);
 
@@ -509,7 +510,4 @@ public class MenuItemModule implements Module, Listener {
         event.getDrops().removeIf(this::isMenuItem);
     }
 
-    private void debug(String message) {
-        plugin.debug(getId(), message);
-    }
 }

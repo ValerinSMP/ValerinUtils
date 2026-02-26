@@ -1,7 +1,7 @@
 package me.mtynnn.valerinutils.modules.deathmessages;
 
 import me.mtynnn.valerinutils.ValerinUtils;
-import me.mtynnn.valerinutils.core.Module;
+import me.mtynnn.valerinutils.core.BaseModule;
 import me.mtynnn.valerinutils.core.PlayerData;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -26,11 +26,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class DeathMessagesModule implements Module, Listener, CommandExecutor, TabCompleter {
+public class DeathMessagesModule extends BaseModule implements Listener, CommandExecutor, TabCompleter {
 
     private final ValerinUtils plugin;
 
     public DeathMessagesModule(ValerinUtils plugin) {
+        super(plugin);
         this.plugin = plugin;
     }
 
@@ -40,30 +41,18 @@ public class DeathMessagesModule implements Module, Listener, CommandExecutor, T
     }
 
     @Override
-    public void enable() {
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+    protected void onEnableModule() {
+        registerListener(this);
         plugin.debug(getId(), "Módulo habilitado.");
 
         // Registrar comando si está definido en plugin.yml
-        if (plugin.getCommand("deathmsg") != null) {
-            plugin.getCommand("deathmsg").setExecutor(this);
-        }
-        if (plugin.getCommand("vuspawn") != null) {
-            plugin.getCommand("vuspawn").setExecutor(this);
-            plugin.getCommand("vuspawn").setTabCompleter(this);
-        }
+        registerCommand("deathmsg", this);
+        registerCommand("vuspawn", this, this);
     }
 
     @Override
-    public void disable() {
+    protected void onDisableModule() {
         org.bukkit.event.HandlerList.unregisterAll(this);
-        if (plugin.getCommand("deathmsg") != null) {
-            plugin.getCommand("deathmsg").setExecutor(null);
-        }
-        if (plugin.getCommand("vuspawn") != null) {
-            plugin.getCommand("vuspawn").setExecutor(null);
-            plugin.getCommand("vuspawn").setTabCompleter(null);
-        }
         plugin.debug(getId(), "Módulo deshabilitado.");
     }
 

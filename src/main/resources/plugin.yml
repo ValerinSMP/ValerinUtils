@@ -4,7 +4,7 @@ main: me.mtynnn.valerinutils.ValerinUtils
 api-version: "1.21"
 author: Mtynnn
 description: Utilidades varias para ValerinSMP
-softdepend: [PlaceholderAPI, Votifier, VotifierPlus, RoyaleEconomy, Vault, LuckPerms]
+softdepend: [PlaceholderAPI, RoyaleEconomy, Vault, LuckPerms]
 
 commands:
   valerinutils:
@@ -93,6 +93,10 @@ commands:
   vubroadcast:
     description: Envía un anuncio global (fallback sin conflicto)
     usage: /vubroadcast <mensaje>
+  helpop:
+    description: Envía un reporte al staff conectado
+    usage: /helpop <mensaje>
+    aliases: [ayudaop]
   heal:
     description: Restaura tu vida y hambre
     usage: /heal [jugador]

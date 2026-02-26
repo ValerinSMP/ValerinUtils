@@ -1,10 +1,10 @@
 name: ValerinUtils
-version: "2.0.0"
+version: "2.0.16"
 main: me.mtynnn.valerinutils.ValerinUtils
 api-version: "1.21"
 author: Mtynnn
 description: Utilidades varias para ValerinSMP
-softdepend: [PlaceholderAPI, Votifier, VotifierPlus, RoyaleEconomy, Vault, LuckPerms]
+softdepend: [PlaceholderAPI, RoyaleEconomy, Vault, LuckPerms]
 
 commands:
   valerinutils:
@@ -21,10 +21,15 @@ commands:
   deathmsg:
     description: Configura tus mensajes de muerte
     aliases: [dmsg]
+  vuspawn:
+    description: Configura el spawn (firstjoin/death)
+    usage: "/vuspawn <set|off|info> ..."
+    permission: valerinutils.admin
+    aliases: [setspawn]
 
   code:
     description: Reclamar recompensas con códigos
-    usage: /code
+    usage: /code [código]
   craft:
     description: Abre una mesa de trabajo
     aliases: [wv, workbench]
@@ -45,6 +50,9 @@ commands:
     description: Abre un telar
   stonecutter:
     description: Abre un cortapiedras
+  disposal:
+    description: Abre un basurero (disposal)
+    aliases: [trash, basurero, diposal]
   gmc:
     description: Cambia a modo creativo
     usage: /gmc
@@ -82,6 +90,13 @@ commands:
     description: Envía un anuncio global
     usage: /broadcast <mensaje>
     aliases: [bc, anuncio]
+  vubroadcast:
+    description: Envía un anuncio global (fallback sin conflicto)
+    usage: /vubroadcast <mensaje>
+  helpop:
+    description: Envía un reporte al staff conectado
+    usage: /helpop <mensaje>
+    aliases: [ayudaop]
   heal:
     description: Restaura tu vida y hambre
     usage: /heal [jugador]
@@ -90,7 +105,7 @@ commands:
     usage: /feed [jugador]
   repair:
     description: Repara el objeto que tienes en la mano
-    usage: /repair
+    usage: /repair [hand]
     aliases: [fix]
   nick:
     description: Cambia tu nombre en el chat
@@ -104,12 +119,36 @@ commands:
   near:
     description: Muestra jugadores cercanos
     usage: /near [radio]
-  top:
+  ptime:
+    description: Cambia tu tiempo personal
+    usage: /ptime <day|night|reset|ticks>
+  pweather:
+    description: Cambia tu clima personal
+    usage: /pweather <clear|rain|reset>
+  sell:
+    description: Vende items de la mano o inventario
+    usage: /sell <hand|inventory>
+    aliases: [sellhand, sellinventory]
+  vtop:
     description: Te teletransporta al bloque más alto
-    usage: /top
+    usage: /vtop
+  itemedit:
+    description: Edita nombre y lore del item en mano
+    usage: /itemedit <name|lore> ...
+    aliases: [iedit, edititem, itemeditor]
+    permission: valerinutils.itemeditor.use
   geode:
     description: Comando interno para manejar apertura de geodas
     permission: valerinutils.geodes.admin
 
   vukits:
     description: Sistema de kits basados en Shulker Boxes
+  kits:
+    description: Alias del sistema de kits (/vukits)
+    usage: "/kits <subcomando>"
+    aliases: [kit]
+
+  pvpmina:
+    description: Comandos del sistema de Mina PvP
+    aliases: [minapvp]
+    permission: valerinutils.pvpmina.use

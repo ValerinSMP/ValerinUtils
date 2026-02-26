@@ -44,15 +44,17 @@ final class PvpMinaRuntime {
 
     void enable() {
         reloadConfigCache();
-        if (currentMode == null) {
+        if (!restoreRuntimeState()) {
             rotateMode(true);
         } else {
             loadModeSettings(currentMode);
         }
         startTask();
+        updateBossBar();
     }
 
     void disable() {
+        persistRuntimeState();
         if (rotationTask != null && !rotationTask.isCancelled()) {
             rotationTask.cancel();
         }
@@ -125,6 +127,7 @@ final class PvpMinaRuntime {
 
         loadModeSettings(newMode);
         dispatchConsoleCommands(modesSec.getStringList(newMode + ".commands-on-start"));
+        persistRuntimeState();
 
         if (!firstRun) {
             List<String> messages = cfg.getStringList("messages.mode-change");
@@ -168,6 +171,7 @@ final class PvpMinaRuntime {
         nextRotationTime = Instant.now().plus(Duration.ofMinutes(intervalMinutes));
         loadModeSettings(currentMode);
         dispatchConsoleCommands(cfg.getStringList("modes." + currentMode + ".commands-on-start"));
+        persistRuntimeState();
         updateBossBar();
         return true;
     }
@@ -286,5 +290,49 @@ final class PvpMinaRuntime {
                 plugin.getLogger().warning("[PvpMina] Invalid material in blocked-items: " + name);
             }
         }
+    }
+
+    private boolean restoreRuntimeState() {
+        FileConfiguration cfg = getConfig();
+        if (cfg == null) {
+            return false;
+        }
+
+        String savedMode = cfg.getString("runtime-state.current-mode", "");
+        if (savedMode == null || savedMode.isBlank()) {
+            return false;
+        }
+
+        if (cfg.getConfigurationSection("modes." + savedMode) == null) {
+            plugin.getLogger().warning("[PvpMina] Saved mode '" + savedMode + "' no longer exists. Selecting a new mode.");
+            return false;
+        }
+
+        currentMode = savedMode;
+        long nextEpoch = cfg.getLong("runtime-state.next-rotation-epoch", -1L);
+        if (nextEpoch > 0L) {
+            nextRotationTime = Instant.ofEpochMilli(nextEpoch);
+        } else {
+            nextRotationTime = Instant.now().plus(Duration.ofMinutes(intervalMinutes));
+        }
+
+        if (nextRotationTime.isBefore(Instant.now())) {
+            nextRotationTime = Instant.now().plus(Duration.ofMinutes(intervalMinutes));
+        }
+
+        plugin.debug("pvpmina", "Estado restaurado: modo=" + currentMode + ", siguiente rotación=" + nextRotationTime);
+        return true;
+    }
+
+    private void persistRuntimeState() {
+        FileConfiguration cfg = getConfig();
+        if (cfg == null || currentMode == null || currentMode.isBlank()) {
+            return;
+        }
+
+        cfg.set("runtime-state.current-mode", currentMode);
+        cfg.set("runtime-state.next-rotation-epoch",
+                nextRotationTime != null ? nextRotationTime.toEpochMilli() : -1L);
+        plugin.getConfigManager().saveConfig("pvpmina");
     }
 }

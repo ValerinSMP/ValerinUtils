@@ -48,6 +48,10 @@ commands:
     others-enabled: true
   broadcast:
     enabled: true
+  helpop:
+    enabled: true
+    cooldown-seconds: 20
+    send-to-console: true
   heal:
     enabled: true
     others-enabled: true
@@ -90,6 +94,8 @@ sounds:
   gamemode-change: "BLOCK_NOTE_BLOCK_CHIME"
   heal: "ENTITY_PLAYER_LEVELUP"
   broadcast: "BLOCK_NOTE_BLOCK_PLING"
+  helpop-send: "UI_BUTTON_CLICK"
+  helpop-receive: "BLOCK_NOTE_BLOCK_CHIME"
 
 messages:
   no-permission: "%prefix%<red>No tienes permiso para usar este comando."
@@ -129,6 +135,11 @@ messages:
     - ""
     - "<dark_gray>[<color:#B6E7B5><bold>ᴀ<color:#ABE29C><bold>ɴ<color:#9FDC82><bold>ᴜ<color:#94D769><bold>ɴ<color:#88D150><bold>ᴄ<color:#7DCC36><bold>ɪ<color:#71C61D><bold>ᴏ<dark_gray>] <reset>%message%"
     - ""
+  helpop-usage: "%prefix%<gray>Uso: <yellow>/helpop <mensaje>"
+  helpop-sent: "%prefix%<green>Tu reporte fue enviado al staff <gray>(<white>%staff%<gray>)."
+  helpop-no-staff: "%prefix%<yellow>No hay staff conectado ahora. Tu mensaje fue enviado a consola."
+  helpop-cooldown: "%prefix%<red>Espera <yellow>%time%s <red>antes de volver a usar /helpop."
+  helpop-received: "<dark_gray>[<red>ʜᴇʟᴘᴏᴘ<dark_gray>] <white>%player% <gray>» <white>%message%"
   repair-success: "%prefix%<green>Item reparado con éxito."
   repair-usage: "%prefix%<gray>Uso: <yellow>/fix hand"
   repair-error: "%prefix%<red>Este item no se puede reparar."

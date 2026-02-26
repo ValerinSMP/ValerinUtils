@@ -1,7 +1,7 @@
 package me.mtynnn.valerinutils.modules.joinquit;
 
 import me.mtynnn.valerinutils.ValerinUtils;
-import me.mtynnn.valerinutils.core.Module;
+import me.mtynnn.valerinutils.core.BaseModule;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 import java.util.Comparator;
 
 @SuppressWarnings("deprecation") // Legacy Bukkit API (setJoinMessage, Sound.valueOf) required for compatibility
-public class JoinQuitModule implements Module, Listener {
+public class JoinQuitModule extends BaseModule implements Listener {
 
     private final ValerinUtils plugin;
     private int uniquePlayerCount;
@@ -32,6 +32,7 @@ public class JoinQuitModule implements Module, Listener {
     private static final String UNIQUE_PLAYERS_KEY = "unique_players";
 
     public JoinQuitModule(ValerinUtils plugin) {
+        super(plugin);
         this.plugin = plugin;
         loadData();
     }
@@ -46,10 +47,10 @@ public class JoinQuitModule implements Module, Listener {
     }
 
     @Override
-    public void enable() {
+    protected void onEnableModule() {
         // Solo registrar eventos si LuckPerms está disponible
         if (Bukkit.getPluginManager().getPlugin("LuckPerms") != null) {
-            plugin.getServer().getPluginManager().registerEvents(this, plugin);
+            registerListener(this);
             plugin.getLogger().info("[JoinQuit] LuckPerms hooked, events enabled");
         } else {
             plugin.getLogger().warning("[JoinQuit] LuckPerms not found, module will not work properly");
@@ -384,7 +385,7 @@ public class JoinQuitModule implements Module, Listener {
     }
 
     @Override
-    public void disable() {
+    protected void onDisableModule() {
         org.bukkit.event.HandlerList.unregisterAll(this);
         // unique-players data logic remains in flat file joinquit_data.yml for now
         // as migrating it to global player DB implies tracking every single offline

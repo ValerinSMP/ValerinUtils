@@ -333,7 +333,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         else target.getInventory().addItem(give);
         if (!sender.getName().equalsIgnoreCase(target.getName())) sender.sendMessage(plugin.translateColors("%prefix%&aHas dado el kit &e" + kitName + " &aa &f" + target.getName()));
         if (!silentTarget) target.sendMessage(plugin.translateColors(cfg.getString("messages.kit-claimed", "%prefix%&aHas reclamado el kit: &f%kit%").replace("%kit%", cfg.getString(path + ".display_name", kitName))));
-        module.debug("Kit entregado: " + kitName + " -> " + target.getName() + " (sender=" + sender.getName() + ")");
+        module.logDebug("Kit entregado: " + kitName + " -> " + target.getName() + " (sender=" + sender.getName() + ")");
         return true;
     }
 

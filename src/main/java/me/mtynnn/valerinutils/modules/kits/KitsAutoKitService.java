@@ -53,7 +53,7 @@ final class KitsAutoKitService {
         giveAutoKit(player, false);
         initialKitNextUseAtMs.put(player.getUniqueId(), now + INITIAL_KIT_COOLDOWN_MS);
         player.sendMessage(plugin.translateColors("%prefix%&aHas recibido el &eKit Inicial&a."));
-        module.debug("Kit inicial manual entregado a " + player.getName());
+        module.logDebug("Kit inicial manual entregado a " + player.getName());
     }
 
     void onJoin(PlayerJoinEvent event) {
@@ -72,7 +72,7 @@ final class KitsAutoKitService {
             if (!data.isStarterKitReceived()) {
                 giveAutoKit(player, false);
                 data.setStarterKitReceived(true);
-                module.debug("Starter kit auto entregado en join a " + player.getName());
+                module.logDebug("Starter kit auto entregado en join a " + player.getName());
             }
         }, 10L);
     }
@@ -101,7 +101,7 @@ final class KitsAutoKitService {
             List<String> disabledWorlds = cfg.getStringList("settings.respawn_kit_disabled_worlds");
             for (String world : disabledWorlds) {
                 if (world != null && deathWorld.equalsIgnoreCase(world.trim())) {
-                    module.debug("Respawn kit omitido para " + event.getPlayer().getName()
+                    module.logDebug("Respawn kit omitido para " + event.getPlayer().getName()
                             + ": mundo deshabilitado (" + deathWorld + ").");
                     return;
                 }
@@ -112,7 +112,7 @@ final class KitsAutoKitService {
         if (onlyOnDeath) {
             try {
                 if (event.getRespawnReason() != PlayerRespawnEvent.RespawnReason.DEATH) {
-                    module.debug("Respawn kit omitido para " + event.getPlayer().getName()
+                    module.logDebug("Respawn kit omitido para " + event.getPlayer().getName()
                             + ": razón de respawn no es DEATH.");
                     return;
                 }
@@ -124,7 +124,7 @@ final class KitsAutoKitService {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (event.getPlayer().isOnline()) {
                 giveAutoKit(event.getPlayer(), overwrite);
-                module.debug("Respawn kit entregado a " + event.getPlayer().getName() + " overwrite=" + overwrite);
+                module.logDebug("Respawn kit entregado a " + event.getPlayer().getName() + " overwrite=" + overwrite);
             }
         }, 5L);
     }

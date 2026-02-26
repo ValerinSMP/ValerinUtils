@@ -1,6 +1,8 @@
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\commands\MenuItemCommand.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\commands\ValerinUtilsCommand.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\core\AbstractModule.java
+C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\core\BaseModule.java
+C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\core\CommandRegistry.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\core\ConfigManager.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\core\DatabaseManager.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\core\MessageService.java
@@ -26,6 +28,7 @@ C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutil
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\pvpmina\PvpMinaRuntime.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\utility\UtilityBroadcastCommand.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\utility\UtilityDisposalHolder.java
+C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\utility\UtilityHelpOpCommand.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\utility\UtilityModule.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\utility\UtilityNickCommand.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\utility\UtilityNickManager.java
@@ -33,7 +36,6 @@ C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutil
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\utility\UtilitySeenCommand.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\utility\UtilitySellCommand.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\utility\UtilityWorkbenchCommands.java
-C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\votetracking\VoteTrackingModule.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\placeholders\ValerinUtilsExpansion.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\utils\SignMenuFactory.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\ValerinUtils.java

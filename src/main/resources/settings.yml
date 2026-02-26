@@ -5,20 +5,8 @@ messages:
   no-permission: '%prefix%<red>No tienes permiso para usar este comando.'
   only-players: '%prefix%<red>Solo jugadores pueden usar este comando.'
   valerinutils-usage: '%prefix%<gray>Uso: <yellow>/valerinutils reload'
-  valerinutils-reload-ok: '%prefix%<green>Configuración recargada y <white>menuitem <green>actualizado.'
+  valerinutils-reload-ok: '%prefix%<green>Configuración y módulos recargados correctamente.'
   
-  # MenuItem Messages
-  menuitem-usage: '%prefix%<gray>Uso: <yellow>/menu item <on|off|toggle>'
-  menuitem-on: '%prefix%<green>Item de menú activado.'
-  menuitem-off: '%prefix%<red>Item de menú desactivado.'
-  menuitem-toggled-on: '%prefix%<green>Item de menú activado.'
-  menuitem-toggled-off: '%prefix%<red>Item de menú desactivado.'
-  menuitem-slot-occupied: '%prefix%<red>El slot está ocupado, no se puede dar el item.'
-  menuitem-cooldown: '%prefix%<red>Debes esperar <yellow>%time%s <red>para volver a usar esto.'
-  
-  killrewards:
-    team-kill-deny: '%prefix%<red>No puedes obtener recompensas matando a miembros de tu equipo.'
-
 database:
   # sqlite is the only optimized option for now
   type: sqlite

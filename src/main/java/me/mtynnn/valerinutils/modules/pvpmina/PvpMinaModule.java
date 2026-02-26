@@ -1,12 +1,11 @@
 package me.mtynnn.valerinutils.modules.pvpmina;
 
 import me.mtynnn.valerinutils.ValerinUtils;
-import me.mtynnn.valerinutils.core.Module;
+import me.mtynnn.valerinutils.core.BaseModule;
 import org.bukkit.Bukkit;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 
-public class PvpMinaModule implements Module {
+public class PvpMinaModule extends BaseModule {
 
     private final ValerinUtils plugin;
     private final PvpMinaRuntime runtime;
@@ -14,6 +13,7 @@ public class PvpMinaModule implements Module {
     private final PvpMinaCommandHandler commandHandler;
 
     public PvpMinaModule(ValerinUtils plugin) {
+        super(plugin);
         this.plugin = plugin;
         this.runtime = new PvpMinaRuntime(plugin);
         this.rulesListener = new PvpMinaRulesListener(plugin, runtime);
@@ -26,29 +26,19 @@ public class PvpMinaModule implements Module {
     }
 
     @Override
-    public void enable() {
+    protected void onEnableModule() {
         FileConfiguration cfg = plugin.getConfigManager().getConfig("pvpmina");
         if (cfg == null || !cfg.getBoolean("enabled", true)) {
             return;
         }
 
         runtime.enable();
-        Bukkit.getPluginManager().registerEvents(rulesListener, plugin);
-
-        PluginCommand cmd = plugin.getCommand("pvpmina");
-        if (cmd != null) {
-            cmd.setExecutor(commandHandler);
-        }
+        registerListener(rulesListener);
+        registerCommand("pvpmina", commandHandler);
     }
 
     @Override
-    public void disable() {
+    protected void onDisableModule() {
         runtime.disable();
-        org.bukkit.event.HandlerList.unregisterAll(rulesListener);
-
-        PluginCommand cmd = plugin.getCommand("pvpmina");
-        if (cmd != null) {
-            cmd.setExecutor(null);
-        }
     }
 }

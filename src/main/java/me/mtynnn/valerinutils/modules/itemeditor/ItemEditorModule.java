@@ -1,14 +1,13 @@
 package me.mtynnn.valerinutils.modules.itemeditor;
 
 import me.mtynnn.valerinutils.ValerinUtils;
-import me.mtynnn.valerinutils.core.AbstractModule;
+import me.mtynnn.valerinutils.core.BaseModule;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -22,7 +21,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-public final class ItemEditorModule extends AbstractModule implements CommandExecutor, TabCompleter {
+public final class ItemEditorModule extends BaseModule implements CommandExecutor, TabCompleter {
 
     private static final List<String> ROOT_SUBS = List.of("name", "lore");
     private static final List<String> LORE_SUBS = List.of("add", "set", "remove", "clear");
@@ -37,24 +36,13 @@ public final class ItemEditorModule extends AbstractModule implements CommandExe
     }
 
     @Override
-    public void enable() {
-        PluginCommand command = plugin.getCommand("itemedit");
-        if (command == null) {
-            return;
-        }
-        command.setExecutor(this);
-        command.setTabCompleter(this);
+    protected void onEnableModule() {
+        registerCommand("itemedit", this, this);
         debug("Módulo habilitado.");
     }
 
     @Override
-    public void disable() {
-        PluginCommand command = plugin.getCommand("itemedit");
-        if (command == null) {
-            return;
-        }
-        command.setExecutor(null);
-        command.setTabCompleter(null);
+    protected void onDisableModule() {
         debug("Módulo deshabilitado.");
     }
 

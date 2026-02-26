@@ -2,6 +2,7 @@ package me.mtynnn.valerinutils;
 
 import me.mtynnn.valerinutils.commands.MenuItemCommand;
 import me.mtynnn.valerinutils.commands.ValerinUtilsCommand;
+import me.mtynnn.valerinutils.core.CommandRegistry;
 import me.mtynnn.valerinutils.core.ConfigManager;
 import me.mtynnn.valerinutils.core.DatabaseManager;
 import me.mtynnn.valerinutils.core.ModuleManager;
@@ -15,7 +16,6 @@ import me.mtynnn.valerinutils.modules.utility.UtilityModule;
 import me.mtynnn.valerinutils.modules.itemeditor.ItemEditorModule;
 import me.mtynnn.valerinutils.modules.deathmessages.DeathMessagesModule;
 import me.mtynnn.valerinutils.modules.geodes.GeodesModule;
-import me.mtynnn.valerinutils.modules.votetracking.VoteTrackingModule;
 import me.mtynnn.valerinutils.placeholders.ValerinUtilsExpansion;
 import me.mtynnn.valerinutils.modules.pvpmina.PvpMinaModule;
 import net.kyori.adventure.text.Component;
@@ -58,6 +58,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
     private static ValerinUtils instance;
     private ModuleManager moduleManager;
+    private CommandRegistry commandRegistry;
     private ConfigManager configManager;
     private DatabaseManager databaseManager;
     private MessageService messageService;
@@ -66,7 +67,6 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private JoinQuitModule joinQuitModule;
     private KillRewardsModule killRewardsModule;
     private CodesModule codesModule;
-    private VoteTrackingModule voteTrackingModule;
     private DeathMessagesModule deathMessagesModule;
     private GeodesModule geodesModule;
     private me.mtynnn.valerinutils.modules.kits.KitsModule kitsModule;
@@ -101,12 +101,12 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     @Override
     public void onEnable() {
         instance = this;
-        purgeRegisteredCommands(false);
 
         // 1. Initialize Managers
         configManager = new ConfigManager(this);
         configManager.loadAll(); // Detects and migrates configs
         messageService = new MessageService(this);
+        commandRegistry = new CommandRegistry(this);
 
         databaseManager = new DatabaseManager(this);
         databaseManager.initialize();
@@ -148,12 +148,6 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         joinQuitModule = new JoinQuitModule(this);
         moduleManager.registerModule(joinQuitModule);
 
-        if (Bukkit.getPluginManager().getPlugin("Votifier") != null
-                || Bukkit.getPluginManager().getPlugin("VotifierPlus") != null) {
-            voteTrackingModule = new VoteTrackingModule(this);
-            moduleManager.registerModule(voteTrackingModule);
-        }
-
         pvpMinaModule = new PvpMinaModule(this);
         moduleManager.registerModule(pvpMinaModule);
 
@@ -180,7 +174,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
         moduleManager.enableAll();
 
-        adoptCurrentPluginCommands();
+        scheduleCommandHousekeeping();
 
         // 5. Hooks & Commands
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
@@ -220,17 +214,12 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         boolean papiHooked = Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null;
         boolean luckPermsHooked = Bukkit.getPluginManager().getPlugin("LuckPerms") != null;
         boolean vaultHooked = Bukkit.getPluginManager().getPlugin("Vault") != null;
-        boolean votifierHooked = Bukkit.getPluginManager().getPlugin("Votifier") != null
-                || Bukkit.getPluginManager().getPlugin("VotifierPlus") != null;
 
         // Check enabled modules
         boolean menuItemEnabled = moduleManager.isModuleEnabled("menuitem");
         boolean joinQuitEnabled = moduleManager.isModuleEnabled("joinquit");
         boolean killRewardsEnabled = moduleManager.isModuleEnabled("killrewards");
         boolean codesEnabled = moduleManager.isModuleEnabled("codes");
-        FileConfiguration vote40Cfg = configManager.getConfig("vote40");
-        boolean voteTrackingEnabled = moduleManager.isModuleEnabled("votetracking");
-        boolean vote40Enabled = voteTrackingEnabled && vote40Cfg != null && vote40Cfg.getBoolean("enabled", true);
         boolean geodesEnabled = moduleManager.isModuleEnabled("geodes");
         boolean kitsEnabled = moduleManager.isModuleEnabled("kits");
         boolean utilityEnabled = moduleManager.isModuleEnabled("utility");
@@ -242,14 +231,11 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         getLogger().info("");
         getLogger().info("  Hooks: PAPI " + (papiHooked ? "✔" : "✘")
                 + " | LuckPerms " + (luckPermsHooked ? "✔" : "✘")
-                + " | Vault " + (vaultHooked ? "✔" : "✘")
-                + " | Votifier " + (votifierHooked ? "✔" : "✘"));
+                + " | Vault " + (vaultHooked ? "✔" : "✘"));
         getLogger().info("  Modules: MenuItem " + (menuItemEnabled ? "✔" : "✘")
                 + " | JoinQuit " + (joinQuitEnabled ? "✔" : "✘")
                 + " | KillRewards " + (killRewardsEnabled ? "✔" : "✘")
                 + " | Codes " + (codesEnabled ? "✔" : "✘")
-                + " | Vote40 " + (vote40Enabled ? "✔" : "✘")
-                + " | VoteStats " + (voteTrackingEnabled ? "✔" : "✘")
                 + " | Geodes " + (geodesEnabled ? "✔" : "✘")
                 + " | Kits " + (kitsEnabled ? "✔" : "✘")
                 + " | Utility " + (utilityEnabled ? "✔" : "✘")
@@ -277,9 +263,6 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             }
             placeholderExpansion = null;
         }
-
-        // PlugMan/Hot-reload safety: purge stale command map entries for this plugin.
-        purgeRegisteredCommands(true);
 
         if (databaseManager != null) {
             databaseManager.closeConnection();
@@ -489,9 +472,61 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     }
 
     private void syncCommandsSafe() {
-        // Intentionally disabled.
-        // Forcing syncCommands during PlugMan reload can race with Paper's async command
-        // distribution and trigger ConcurrentModificationException in Brigadier trees.
+        try {
+            Object server = getServer();
+            server.getClass().getMethod("syncCommands").invoke(server);
+        } catch (NoSuchMethodException ignored) {
+            // Not supported on this server implementation.
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
+        }
+    }
+
+    private void scheduleCommandHousekeeping() {
+        // Delay housekeeping to avoid races with Paper's async command build on reload.
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            try {
+                purgeRegisteredCommands(false);
+                adoptCurrentPluginCommands();
+                logCommandRegistrationState();
+            } catch (Throwable t) {
+                getLogger().warning("Command housekeeping failed: " + t.getClass().getSimpleName() + " - " + t.getMessage());
+            }
+        }, 20L);
+
+        // Sync dispatcher a bit after housekeeping, with a retry to reduce race risk.
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            try {
+                syncCommandsSafe();
+                getLogger().info("Command dispatcher synced.");
+            } catch (Throwable t) {
+                getLogger().warning("Command dispatcher sync failed: " + t.getClass().getSimpleName() + " - " + t.getMessage());
+                Bukkit.getScheduler().runTaskLater(this, () -> {
+                    try {
+                        syncCommandsSafe();
+                        getLogger().info("Command dispatcher synced (retry).");
+                    } catch (Throwable retry) {
+                        getLogger().warning("Command dispatcher sync retry failed: " + retry.getClass().getSimpleName() + " - " + retry.getMessage());
+                    }
+                }, 20L);
+            }
+        }, 40L);
+    }
+
+    private void logCommandRegistrationState() {
+        if (getDescription() == null || getDescription().getCommands() == null) {
+            return;
+        }
+        int missing = 0;
+        for (String name : getDescription().getCommands().keySet()) {
+            if (getCommand(name) == null) {
+                getLogger().warning("Command not registered: /" + name);
+                missing++;
+            }
+        }
+        if (missing == 0) {
+            getLogger().info("Command registration check: OK (" + getDescription().getCommands().size() + " commands).");
+        }
     }
 
     public static ValerinUtils getInstance() {
@@ -734,6 +769,10 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         return moduleManager;
     }
 
+    public CommandRegistry getCommandRegistry() {
+        return commandRegistry;
+    }
+
     public MenuItemModule getMenuItemModule() {
         return menuItemModule;
     }
@@ -752,10 +791,6 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
     public DeathMessagesModule getDeathMessagesModule() {
         return deathMessagesModule;
-    }
-
-    public VoteTrackingModule getVoteTrackingModule() {
-        return voteTrackingModule;
     }
 
     public GeodesModule getGeodesModule() {

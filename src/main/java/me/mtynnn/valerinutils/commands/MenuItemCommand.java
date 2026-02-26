@@ -28,7 +28,7 @@ public class MenuItemCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 0) {
-            sender.sendMessage(getMessage("usage", "&7Uso: &e/menu item <on|off|toggle>"));
+            sender.sendMessage(getMessage("usage", "&7Uso: &e/menuitem <on|off|toggle>"));
             return true;
         }
 
@@ -63,7 +63,7 @@ public class MenuItemCommand implements CommandExecutor, TabCompleter {
                     sender.sendMessage(getMessage("slot-occupied", "&cSlot ocupado."));
                 }
             }
-            default -> sender.sendMessage(getMessage("usage", "&7Uso: &e/menu item <on|off|toggle>"));
+            default -> sender.sendMessage(getMessage("usage", "&7Uso: &e/menuitem <on|off|toggle>"));
         }
 
         return true;

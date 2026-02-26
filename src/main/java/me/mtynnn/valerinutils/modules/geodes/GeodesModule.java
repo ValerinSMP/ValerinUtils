@@ -1,7 +1,7 @@
 package me.mtynnn.valerinutils.modules.geodes;
 
 import me.mtynnn.valerinutils.ValerinUtils;
-import me.mtynnn.valerinutils.core.Module;
+import me.mtynnn.valerinutils.core.BaseModule;
 import org.bukkit.Bukkit;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -17,12 +17,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-public class GeodesModule implements Module, CommandExecutor {
+public class GeodesModule extends BaseModule implements CommandExecutor {
 
     private final ValerinUtils plugin;
     private final Random random = new Random();
 
     public GeodesModule(ValerinUtils plugin) {
+        super(plugin);
         this.plugin = plugin;
     }
 
@@ -32,18 +33,13 @@ public class GeodesModule implements Module, CommandExecutor {
     }
 
     @Override
-    public void enable() {
-        if (plugin.getCommand("geode") != null) {
-            plugin.getCommand("geode").setExecutor(this);
-        }
+    protected void onEnableModule() {
+        registerCommand("geode", this);
         plugin.debug(getId(), "Módulo habilitado.");
     }
 
     @Override
-    public void disable() {
-        if (plugin.getCommand("geode") != null) {
-            plugin.getCommand("geode").setExecutor(null);
-        }
+    protected void onDisableModule() {
         plugin.debug(getId(), "Módulo deshabilitado.");
     }
 

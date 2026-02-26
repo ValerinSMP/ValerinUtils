@@ -54,19 +54,25 @@ public class ModuleManager {
                 vPlugin.getLogger().info("Modulo desactivado en la config: " + module.getId());
                 // Force disable to cleanup any residual state (like items from previous
                 // session)
-                module.disable();
+                safeDisable(vPlugin, module, "config-disable");
                 continue;
             }
-            module.enable();
-            enabledModules.add(module.getId());
-            vPlugin.getLogger().info("Modulo activado: " + module.getId());
+            if (safeEnable(vPlugin, module, "startup")) {
+                enabledModules.add(module.getId());
+                vPlugin.getLogger().info("Modulo activado: " + module.getId());
+            }
         }
     }
 
     public void disableAll() {
+        me.mtynnn.valerinutils.ValerinUtils vPlugin = plugin instanceof me.mtynnn.valerinutils.ValerinUtils vp ? vp : null;
         for (Module module : modules.values()) {
             if (enabledModules.contains(module.getId())) {
-                module.disable();
+                if (vPlugin != null) {
+                    safeDisable(vPlugin, module, "shutdown");
+                } else {
+                    module.disable();
+                }
             }
         }
         enabledModules.clear();
@@ -85,7 +91,7 @@ public class ModuleManager {
         // First, disable all currently enabled modules
         for (Module module : modules.values()) {
             if (enabledModules.contains(module.getId())) {
-                module.disable();
+                safeDisable(vPlugin, module, "reload-disable");
                 alreadyDisabled.add(module.getId());
                 vPlugin.getLogger().info("Modulo desactivado previo reload: " + module.getId());
             }
@@ -108,13 +114,34 @@ public class ModuleManager {
                 // Force disable ONLY if not already disabled during this run
                 if (!alreadyDisabled.contains(module.getId())) {
                     vPlugin.getLogger().info("Modulo desactivado en la config: " + module.getId());
-                    module.disable();
+                    safeDisable(vPlugin, module, "reload-config-disable");
                 }
                 continue;
             }
+            if (safeEnable(vPlugin, module, "reload-enable")) {
+                enabledModules.add(module.getId());
+                vPlugin.getLogger().info("Modulo reactivado: " + module.getId());
+            }
+        }
+    }
+
+    private boolean safeEnable(me.mtynnn.valerinutils.ValerinUtils plugin, Module module, String phase) {
+        try {
             module.enable();
-            enabledModules.add(module.getId());
-            vPlugin.getLogger().info("Modulo reactivado: " + module.getId());
+            return true;
+        } catch (Throwable t) {
+            plugin.getLogger().severe("No se pudo habilitar el modulo '" + module.getId() + "' (" + phase + "): "
+                    + t.getClass().getSimpleName() + " - " + t.getMessage());
+            return false;
+        }
+    }
+
+    private void safeDisable(me.mtynnn.valerinutils.ValerinUtils plugin, Module module, String phase) {
+        try {
+            module.disable();
+        } catch (Throwable t) {
+            plugin.getLogger().severe("No se pudo deshabilitar el modulo '" + module.getId() + "' (" + phase + "): "
+                    + t.getClass().getSimpleName() + " - " + t.getMessage());
         }
     }
 }

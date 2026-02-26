@@ -1,7 +1,7 @@
 package me.mtynnn.valerinutils.modules.utility;
 
 import me.mtynnn.valerinutils.ValerinUtils;
-import me.mtynnn.valerinutils.core.Module;
+import me.mtynnn.valerinutils.core.BaseModule;
 import me.mtynnn.valerinutils.core.PlayerData;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -12,7 +12,6 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -25,30 +24,35 @@ import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class UtilityModule implements Module, CommandExecutor, Listener {
+public class UtilityModule extends BaseModule implements CommandExecutor, Listener {
 
-    private final ValerinUtils plugin;
+    private final UtilityNickManager nickManager;
     private final UtilityWorkbenchCommands workbenchCommands;
     private final UtilityBroadcastCommand broadcastCommand;
+    private final UtilityHelpOpCommand helpOpCommand;
     private final UtilitySeenCommand seenCommand;
     private final UtilityNickCommand nickCommand;
     private final UtilitySellCommand sellCommand;
     private final UtilityPersonalWorldCommands personalWorldCommands;
 
     private final Map<Material, Material> condenseMap = new HashMap<>();
+    private Method nexoIdFromItemMethod;
+    private boolean nexoLookupInitialized;
 
     private static final String[] REGISTERED_COMMANDS = {
             "craft", "enderchest", "anvil", "smithingtable",
             "cartographytable", "grindstone", "loom", "stonecutter",
             "disposal",
             "hat", "condense", "seen", "clear", "gmc", "gms", "gmsp", "gma", "ping",
-            "fly", "speed", "broadcast", "vubroadcast", "heal", "feed", "repair", "nick", "skull", "suicide",
+            "fly", "speed", "broadcast", "vubroadcast", "helpop", "heal", "feed", "repair", "nick", "skull", "suicide",
             "near", "vtop",
             "ptime", "pweather", "sell"
     };
@@ -73,10 +77,15 @@ public class UtilityModule implements Module, CommandExecutor, Listener {
             Map.entry("speed-success", "%prefix%<gray>Tu velocidad de <yellow>%type% <gray>ha sido ajustada a <green>%speed%<gray>."),
             Map.entry("speed-others", "%prefix%<gray>Velocidad de <yellow>%type% <gray>de <white>%player% <gray>ajustada a <green>%speed%<gray>."),
             Map.entry("nick-usage", "%prefix%<gray>Uso: <yellow>/nick <apodo|off>"),
+            Map.entry("nick-usage-others", "%prefix%<gray>Uso: <yellow>/nick <jugador> <apodo|off>"),
             Map.entry("nick-success", "%prefix%<gray>Tu apodo ahora es: <white>%nick%"),
+            Map.entry("nick-success-others", "%prefix%<gray>Apodo de <white>%player% <gray>actualizado a: <white>%nick%"),
             Map.entry("nick-off", "%prefix%<red>Has desactivado tu apodo."),
+            Map.entry("nick-off-others", "%prefix%<gray>Has quitado el apodo de <white>%player%<gray>."),
+            Map.entry("nick-no-spaces", "%prefix%<red>El nick no puede contener espacios."),
             Map.entry("nick-format-not-allowed", "%prefix%<red>No puedes usar ese formato en el nick. Nivel: <yellow>%tier%"),
             Map.entry("gamemode-success", "%prefix%<green>Modo de juego cambiado a <yellow>%mode%<green>."),
+            Map.entry("gamemode-success-others", "%prefix%<green>Modo de juego de <white>%player% <green>cambiado a <yellow>%mode%<green>."),
             Map.entry("hat-success", "%prefix%<green>¡Nuevo sombrero equipado!"),
             Map.entry("condense-success", "%prefix%<green>Se han condensado <white>%count% <green>items en bloques."),
             Map.entry("condense-nothing", "%prefix%<gray>No hay nada que condensar en tu inventario."),
@@ -103,12 +112,18 @@ public class UtilityModule implements Module, CommandExecutor, Listener {
             Map.entry("sell-economy-missing", "%prefix%<red>No se detectó economía (Vault)."),
             Map.entry("sell-nothing", "%prefix%<gray>No tienes items vendibles."),
             Map.entry("sell-success", "%prefix%<green>Vendiste <white>%items% <green>items por <yellow>$%amount%<green>."),
-            Map.entry("broadcast-usage", "%prefix%<gray>Uso: <yellow>/broadcast <mensaje> <gray>o <yellow>/vubroadcast <mensaje>"));
+            Map.entry("broadcast-usage", "%prefix%<gray>Uso: <yellow>/broadcast <mensaje> <gray>o <yellow>/vubroadcast <mensaje>"),
+            Map.entry("helpop-usage", "%prefix%<gray>Uso: <yellow>/helpop <mensaje>"),
+            Map.entry("helpop-sent", "%prefix%<green>Tu reporte fue enviado al staff <gray>(<white>%staff%<gray>)."),
+            Map.entry("helpop-no-staff", "%prefix%<yellow>No hay staff conectado ahora. Tu mensaje fue enviado a consola."),
+            Map.entry("helpop-cooldown", "%prefix%<red>Espera <yellow>%time%s <red>antes de volver a usar /helpop."));
 
     public UtilityModule(ValerinUtils plugin) {
-        this.plugin = plugin;
+        super(plugin);
+        this.nickManager = new UtilityNickManager();
         this.workbenchCommands = new UtilityWorkbenchCommands(this);
         this.broadcastCommand = new UtilityBroadcastCommand(this);
+        this.helpOpCommand = new UtilityHelpOpCommand(this);
         this.seenCommand = new UtilitySeenCommand(this);
         this.nickCommand = new UtilityNickCommand(this);
         this.sellCommand = new UtilitySellCommand(this);
@@ -122,34 +137,25 @@ public class UtilityModule implements Module, CommandExecutor, Listener {
     }
 
     @Override
-    public void enable() {
+    protected void onEnableModule() {
         FileConfiguration cfg = getConfig();
         if (cfg == null || !cfg.getBoolean("enabled", true))
             return;
 
         for (String command : REGISTERED_COMMANDS) {
-            registerCommand(command);
+            registerCommand(command, this);
         }
 
-        Bukkit.getPluginManager().registerEvents(this, plugin);
+        registerListener(this);
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            applyStoredNickname(player);
+        }
     }
 
     @Override
-    public void disable() {
+    protected void onDisableModule() {
         HandlerList.unregisterAll(this);
-        for (String cmdName : REGISTERED_COMMANDS) {
-            PluginCommand cmd = plugin.getCommand(cmdName);
-            if (cmd != null) {
-                cmd.setExecutor(null);
-            }
-        }
-    }
-
-    private void registerCommand(String name) {
-        PluginCommand command = plugin.getCommand(name);
-        if (command != null) {
-            command.setExecutor(this);
-        }
     }
 
     @Override
@@ -162,6 +168,10 @@ public class UtilityModule implements Module, CommandExecutor, Listener {
                 seenCommand.execute(sender, args[0]);
             } else if (cmdName.equals("broadcast") || cmdName.equals("vubroadcast")) {
                 broadcastCommand.execute(sender, args);
+            } else if (cmdName.startsWith("gm")) {
+                handleGameMode(sender, null, cmdName, args);
+            } else if (cmdName.equals("nick")) {
+                nickCommand.execute(sender, args);
             } else {
                 sender.sendMessage(getMessage("only-players"));
             }
@@ -169,7 +179,7 @@ public class UtilityModule implements Module, CommandExecutor, Listener {
         }
 
         if (cmdName.startsWith("gm")) {
-            handleGameMode(player, cmdName);
+            handleGameMode(player, player, cmdName, args);
             return true;
         }
 
@@ -197,6 +207,7 @@ public class UtilityModule implements Module, CommandExecutor, Listener {
             case "fly" -> handleFly(player, args);
             case "speed" -> handleSpeed(player, args);
             case "broadcast", "vubroadcast" -> broadcastCommand.execute(player, args);
+            case "helpop" -> helpOpCommand.execute(player, args);
             case "heal" -> handleHeal(player, args);
             case "feed" -> handleFeed(player, args);
             case "repair" -> handleRepair(player, args);
@@ -223,13 +234,30 @@ public class UtilityModule implements Module, CommandExecutor, Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        Player player = event.getPlayer();
+        applyStoredNickname(event.getPlayer());
+    }
+
+    private void applyStoredNickname(Player player) {
         PlayerData playerData = plugin.getPlayerData(player.getUniqueId());
-        if (playerData != null && playerData.getNickname() != null) {
-            Component nickComp = plugin.parseComponent(playerData.getNickname());
-            player.displayName(nickComp);
-            player.playerListName(nickComp);
+        if (playerData == null || playerData.getNickname() == null) {
+            return;
         }
+
+        String sanitized = nickManager.sanitizeStoredNickname(playerData.getNickname());
+        if (sanitized == null) {
+            playerData.setNickname(null);
+            player.displayName(Component.text(player.getName()));
+            player.playerListName(Component.text(player.getName()));
+            return;
+        }
+
+        if (!sanitized.equals(playerData.getNickname())) {
+            playerData.setNickname(sanitized);
+        }
+
+        Component nickComp = plugin.parseComponent(sanitized);
+        player.displayName(nickComp);
+        player.playerListName(nickComp);
     }
 
     private void handlePing(Player player, String[] args) {
@@ -467,9 +495,7 @@ public class UtilityModule implements Module, CommandExecutor, Listener {
         player.sendMessage(getMessage("top-success"));
     }
 
-    private void handleGameMode(Player player, String cmd) {
-        if (!checkStatus(player, "gamemode"))
-            return;
+    private void handleGameMode(CommandSender sender, Player selfPlayer, String cmd, String[] args) {
         GameMode mode = switch (cmd) {
             case "gmc" -> GameMode.CREATIVE;
             case "gms" -> GameMode.SURVIVAL;
@@ -477,10 +503,44 @@ public class UtilityModule implements Module, CommandExecutor, Listener {
             case "gma" -> GameMode.ADVENTURE;
             default -> null;
         };
-        if (mode != null) {
-            player.setGameMode(mode);
-            playSound(player, "gamemode-change");
-            player.sendMessage(getMessage("gamemode-success").replace("%mode%", mode.name()));
+        if (mode == null) {
+            return;
+        }
+
+        Player target = selfPlayer;
+        boolean others = args.length > 0;
+        if (selfPlayer == null && !others) {
+            sender.sendMessage(getMessage("player-not-found"));
+            return;
+        }
+        if (others) {
+            target = Bukkit.getPlayer(args[0]);
+            if (target == null) {
+                sender.sendMessage(getMessage("player-not-found"));
+                return;
+            }
+        }
+
+        if (selfPlayer != null && (!others || target == selfPlayer)) {
+            if (!checkStatus(selfPlayer, "gamemode")) {
+                return;
+            }
+        } else {
+            if (!checkStatusSender(sender, "gamemode", true)) {
+                return;
+            }
+        }
+
+        target.setGameMode(mode);
+        playSound(target, "gamemode-change");
+
+        if (selfPlayer != null && target == selfPlayer) {
+            selfPlayer.sendMessage(getMessage("gamemode-success").replace("%mode%", mode.name()));
+        } else {
+            sender.sendMessage(getMessage("gamemode-success-others")
+                    .replace("%player%", target.getName())
+                    .replace("%mode%", mode.name()));
+            target.sendMessage(getMessage("gamemode-success").replace("%mode%", mode.name()));
         }
     }
 
@@ -506,23 +566,45 @@ public class UtilityModule implements Module, CommandExecutor, Listener {
         int condensedCount = 0;
 
         for (Material source : condenseMap.keySet()) {
-            int amount = 0;
-            for (ItemStack is : inventory.getContents()) {
-                if (is != null && is.getType() == source) {
-                    amount += is.getAmount();
+            int eligibleAmount = 0;
+            List<Integer> eligibleSlots = new ArrayList<>();
+            ItemStack[] contents = inventory.getContents();
+
+            for (int slot = 0; slot < contents.length; slot++) {
+                ItemStack stack = contents[slot];
+                if (stack != null && stack.getType() == source && !isNexoCustomItem(stack)) {
+                    eligibleAmount += stack.getAmount();
+                    eligibleSlots.add(slot);
                 }
             }
 
-            if (amount >= 9) {
-                int toCondense = (amount / 9) * 9;
-                int resultAmount = amount / 9;
+            if (eligibleAmount >= 9) {
+                int toCondense = (eligibleAmount / 9) * 9;
+                int resultAmount = toCondense / 9;
                 Material resultMat = condenseMap.get(source);
+                int remainingToConsume = toCondense;
 
-                inventory.remove(source);
-                int left = amount - toCondense;
-                if (left > 0) {
-                    inventory.addItem(new ItemStack(source, left));
+                for (int slot : eligibleSlots) {
+                    if (remainingToConsume <= 0) {
+                        break;
+                    }
+
+                    ItemStack stack = contents[slot];
+                    if (stack == null) {
+                        continue;
+                    }
+
+                    int stackAmount = stack.getAmount();
+                    if (stackAmount <= remainingToConsume) {
+                        contents[slot] = null;
+                        remainingToConsume -= stackAmount;
+                    } else {
+                        stack.setAmount(stackAmount - remainingToConsume);
+                        remainingToConsume = 0;
+                    }
                 }
+
+                inventory.setContents(contents);
                 inventory.addItem(new ItemStack(resultMat, resultAmount));
                 condensedCount += toCondense;
             }
@@ -533,6 +615,44 @@ public class UtilityModule implements Module, CommandExecutor, Listener {
             player.sendMessage(getMessage("condense-success").replace("%count%", String.valueOf(condensedCount)));
         } else {
             player.sendMessage(getMessage("condense-nothing"));
+        }
+    }
+
+    private boolean isNexoCustomItem(ItemStack stack) {
+        if (stack == null || stack.getType().isAir()) {
+            return false;
+        }
+
+        initializeNexoLookup();
+        if (nexoIdFromItemMethod == null) {
+            return false;
+        }
+
+        try {
+            Object id = nexoIdFromItemMethod.invoke(null, stack);
+            return id instanceof String stringId && !stringId.isBlank();
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    private void initializeNexoLookup() {
+        if (nexoLookupInitialized) {
+            return;
+        }
+        nexoLookupInitialized = true;
+
+        if (!Bukkit.getPluginManager().isPluginEnabled("Nexo")) {
+            return;
+        }
+
+        try {
+            Class<?> nexoItems = Class.forName("com.nexomc.nexo.api.NexoItems");
+            nexoIdFromItemMethod = nexoItems.getMethod("idFromItem", ItemStack.class);
+            debug("Nexo hook detectado para proteger items custom en /condense.");
+        } catch (Throwable throwable) {
+            nexoIdFromItemMethod = null;
+            debug("No se pudo inicializar hook de Nexo para /condense: " + throwable.getMessage());
         }
     }
 
@@ -565,7 +685,7 @@ public class UtilityModule implements Module, CommandExecutor, Listener {
     }
 
     FileConfiguration getConfig() {
-        return plugin.getConfigManager().getConfig("utilities");
+        return plugin.getConfigManager().getConfig(getId());
     }
 
     boolean isBroadcastEnabled() {
@@ -594,12 +714,50 @@ public class UtilityModule implements Module, CommandExecutor, Listener {
             return false;
         }
 
-        String perm = others ? "valerinutils.utility." + baseKey + ".others" : "valerinutils.utility." + baseKey;
-        if (!player.hasPermission(perm)) {
+        if (!hasUtilityPermission(player, baseKey, others)) {
             player.sendMessage(getMessage("no-permission"));
+            debug("Permiso denegado para " + player.getName() + " en " + baseKey
+                    + " (others=" + others + ").");
             return false;
         }
         return true;
+    }
+
+    boolean checkStatusSender(CommandSender sender, String key, boolean others) {
+        FileConfiguration cfg = getConfig();
+        if (cfg == null || !cfg.getBoolean("enabled", true)) {
+            return false;
+        }
+
+        if (!cfg.getBoolean("commands." + key + ".enabled", true)) {
+            sender.sendMessage(getMessage("module-disabled"));
+            return false;
+        }
+        if (others && !cfg.getBoolean("commands." + key + ".others-enabled", true)) {
+            sender.sendMessage(getMessage("module-disabled"));
+            return false;
+        }
+
+        if (!hasUtilityPermission(sender, key, others)) {
+            sender.sendMessage(getMessage("no-permission"));
+            return false;
+        }
+        return true;
+    }
+
+    private boolean hasUtilityPermission(CommandSender sender, String key, boolean others) {
+        String suffix = others ? ".others" : "";
+        String primary = "valerinutils.utility." + key + suffix;
+        String legacyPlural = "valerinutils.utilities." + key + suffix;
+        if (sender.hasPermission(primary) || sender.hasPermission(legacyPlural)) {
+            return true;
+        }
+
+        if (!others && "repair".equals(key)) {
+            return sender.hasPermission("valerinutils.utility.fix")
+                    || sender.hasPermission("valerinutils.utilities.fix");
+        }
+        return false;
     }
 
     void playSound(Player player, String key) {
