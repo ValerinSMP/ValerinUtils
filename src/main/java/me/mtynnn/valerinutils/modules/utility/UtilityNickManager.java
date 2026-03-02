@@ -111,6 +111,9 @@ final class UtilityNickManager {
         if (trimmed.isEmpty()) {
             return null;
         }
+        if (trimmed.startsWith("{")) {
+            return null;
+        }
         String noSpaces = WHITESPACE_PATTERN.matcher(trimmed).replaceAll("");
         if (noSpaces.isEmpty()) {
             return null;
