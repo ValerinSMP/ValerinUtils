@@ -154,10 +154,14 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
         for (String command : REGISTERED_COMMANDS) {
             // Skip disabled commands
             if (!isCommandEnabled(command)) {
+                plugin.getLogger().info("[Utility] Skipped disabled command: " + command);
                 continue;
             }
             registerCommand(command, this);
         }
+
+        // Remove disabled commands from the command map (they're auto-registered from plugin.yml)
+        removeDisabledCommandsFromMap();
 
         registerListener(this);
 
@@ -833,6 +837,47 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
         FileConfiguration cfg = getConfig();
         if (cfg == null) return true;
         return cfg.getBoolean("commands." + commandName + ".enabled", true);
+    }
+
+    private void removeDisabledCommandsFromMap() {
+        try {
+            org.bukkit.command.CommandMap cmdMap = Bukkit.getServer().getCommandMap();
+            if (cmdMap == null) return;
+
+            java.lang.reflect.Field field = null;
+            for (java.lang.reflect.Field f : cmdMap.getClass().getDeclaredFields()) {
+                if (Map.class.isAssignableFrom(f.getType())) {
+                    f.setAccessible(true);
+                    Object val = f.get(cmdMap);
+                    if (val instanceof Map<?, ?> m && !m.isEmpty()) {
+                        Object first = m.values().iterator().next();
+                        if (first instanceof org.bukkit.command.Command) {
+                            field = f;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (field == null) return;
+
+            @SuppressWarnings("unchecked")
+            Map<String, org.bukkit.command.Command> knownCommands =
+                    (Map<String, org.bukkit.command.Command>) field.get(cmdMap);
+
+            if (knownCommands == null) return;
+
+            for (String command : REGISTERED_COMMANDS) {
+                if (!isCommandEnabled(command)) {
+                    String lower = command.toLowerCase(Locale.ROOT);
+                    if (knownCommands.remove(lower) != null) {
+                        plugin.getLogger().info("[Utility] Removed disabled command from map: " + command);
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            plugin.getLogger().warning("[Utility] Failed to remove disabled commands: " + t.getMessage());
+        }
     }
 
     private void setupCondenseMap() {
