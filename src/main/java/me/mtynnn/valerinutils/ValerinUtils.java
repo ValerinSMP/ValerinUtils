@@ -600,137 +600,39 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
     private void repairBrigadierDispatcher() {
         try {
-            Object dispatcher = findBrigadierDispatcher();
-            if (dispatcher == null) {
-                getLogger().warning("[BrigadierRepair] Brigadier CommandDispatcher not found.");
-                return;
-            }
+            // On universe-1.21.10, Brigadier nodes cache stale PluginCommand instances.
+            // Since we can't patch the fields directly (they're not exposed), we patch
+            // the command map so that getCommand() returns fresh instances.
+            Object commandMap = resolveCommandMap();
+            if (commandMap == null) return;
 
-            Object root = dispatcher.getClass().getMethod("getRoot").invoke(dispatcher);
-            if (root == null) {
-                getLogger().warning("[BrigadierRepair] Brigadier root node is null.");
-                return;
-            }
+            Map<String, Command> knownCommands = getKnownCommands(commandMap);
+            if (knownCommands == null) return;
 
-            sun.misc.Unsafe unsafe = getUnsafe();
-            if (unsafe == null) {
-                getLogger().warning("[BrigadierRepair] sun.misc.Unsafe unavailable.");
-                return;
+            int patched = 0;
+            for (String cmdName : getDescription().getCommands().keySet()) {
+                String lower = cmdName.toLowerCase(Locale.ROOT);
+                PluginCommand fresh = getCommand(lower);
+                if (fresh != null) {
+                    Command existing = knownCommands.get(lower);
+                    if (existing instanceof PluginCommand pc && isStaleValerinCommand(pc)) {
+                        knownCommands.put(lower, fresh);
+                        knownCommands.put(getName().toLowerCase(Locale.ROOT) + ":" + lower, fresh);
+                        patched++;
+                    }
+                }
             }
-
-            int[] count = {0};
-            walkNodeTree(root, unsafe, new java.util.IdentityHashMap<>(), count);
-            getLogger().info("[BrigadierRepair] Patched " + count[0] + " stale PluginCommand reference(s) in Brigadier tree.");
+            if (patched > 0) {
+                getLogger().info("[BrigadierRepair] Patched " + patched + " stale command map entries.");
+            }
         } catch (Throwable t) {
             getLogger().warning("[BrigadierRepair] " + t.getClass().getSimpleName() + ": " + t.getMessage());
         }
     }
 
-    private void walkNodeTree(Object node, sun.misc.Unsafe unsafe,
-            java.util.IdentityHashMap<Object, Boolean> visited, int[] count) {
-        if (node == null || visited.containsKey(node)) return;
-        visited.put(node, Boolean.TRUE);
-
-        // Attempt to patch the node itself (check for executor/command field)
-        patchNodeCommand(node, unsafe, visited, count);
-
-        // Recurse into child nodes
-        try {
-            Object children = node.getClass().getMethod("getChildren").invoke(node);
-            if (children instanceof java.util.Collection<?> coll) {
-                for (Object child : coll) walkNodeTree(child, unsafe, visited, count);
-            }
-        } catch (Throwable ignored) {}
-    }
-
-    private void patchNodeCommand(Object node, sun.misc.Unsafe unsafe,
-            java.util.IdentityHashMap<Object, Boolean> visited, int[] count) {
-        try {
-            String nodeName = node.getClass().getSimpleName();
-            // Log node class info once per type
-            if (!visited.containsKey("logged:" + nodeName)) {
-                visited.put("logged:" + nodeName, Boolean.TRUE);
-                List<String> fields = new ArrayList<>();
-                for (java.lang.reflect.Field f : getAllFields(node.getClass())) {
-                    fields.add(f.getType().getSimpleName() + " " + f.getName());
-                }
-                if (!fields.isEmpty()) {
-                    getLogger().info("[BrigadierRepair] Node type: " + nodeName + " | Fields: " + String.join(", ", fields.subList(0, Math.min(5, fields.size()))));
-                }
-            }
-
-            // For BukkitCommandNode: look for "command" field (the PluginCommand)
-            java.lang.reflect.Field cmdField = findField(node.getClass(), "command");
-            if (cmdField == null) {
-                // Try "executor" field (generic CommandNode)
-                cmdField = findField(node.getClass(), "executor");
-            }
-            if (cmdField != null) {
-                cmdField.setAccessible(true);
-                Object val = cmdField.get(node);
-                if (val instanceof PluginCommand pc && isStaleValerinCommand(pc)) {
-                    // Try to replace with current command
-                    PluginCommand current = getCommand(pc.getName());
-                    if (current != null) {
-                        cmdField.set(node, current);
-                        count[0]++;
-                    }
-                }
-            }
-        } catch (Throwable ignored) {}
-    }
-
     private boolean isStaleValerinCommand(PluginCommand pc) {
         Plugin owner = pc.getPlugin();
         return owner != null && owner.getName().equalsIgnoreCase(getName()) && owner != this;
-    }
-
-    private Object findBrigadierDispatcher() {
-        Object server = Bukkit.getServer();
-        java.util.IdentityHashMap<Object, Boolean> seen = new java.util.IdentityHashMap<>();
-        return scanForDispatcher(server, seen, 3);
-    }
-
-    private Object scanForDispatcher(Object obj, java.util.IdentityHashMap<Object, Boolean> seen, int depth) {
-        if (obj == null || depth < 0 || seen.containsKey(obj)) return null;
-        seen.put(obj, Boolean.TRUE);
-        // First pass: look for a field whose type name ends with CommandDispatcher
-        for (java.lang.reflect.Field f : getAllFields(obj.getClass())) {
-            if (f.getType().getName().endsWith("CommandDispatcher")) {
-                f.setAccessible(true);
-                try {
-                    Object v = f.get(obj);
-                    if (v != null) return v;
-                } catch (Throwable ignored) {}
-            }
-        }
-        // Second pass: recurse into relevant framework objects
-        if (depth > 0) {
-            for (java.lang.reflect.Field f : getAllFields(obj.getClass())) {
-                Class<?> ft = f.getType();
-                if (ft.isPrimitive() || ft.isArray() || ft == String.class) continue;
-                String pkg = ft.getPackageName();
-                if (!pkg.startsWith("net.minecraft") && !pkg.startsWith("com.mojang")
-                        && !pkg.startsWith("org.bukkit") && !pkg.startsWith("io.papermc")
-                        && !pkg.startsWith("ca.spottedleaf")) continue;
-                f.setAccessible(true);
-                Object val;
-                try { val = f.get(obj); } catch (Throwable ignored) { continue; }
-                Object found = scanForDispatcher(val, seen, depth - 1);
-                if (found != null) return found;
-            }
-        }
-        return null;
-    }
-
-    private sun.misc.Unsafe getUnsafe() {
-        try {
-            java.lang.reflect.Field f = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
-            f.setAccessible(true);
-            return (sun.misc.Unsafe) f.get(null);
-        } catch (Throwable t) {
-            return null;
-        }
     }
 
     private void logCommandRegistrationState() {

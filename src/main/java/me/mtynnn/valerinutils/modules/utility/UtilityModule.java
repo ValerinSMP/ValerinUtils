@@ -152,6 +152,10 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
             return;
 
         for (String command : REGISTERED_COMMANDS) {
+            // Skip disabled commands
+            if (!isCommandEnabled(command)) {
+                continue;
+            }
             registerCommand(command, this);
         }
 
