@@ -53,13 +53,15 @@ commands:
     cooldown-seconds: 20
     send-to-console: true
   heal:
-    enabled: true
+    enabled: true  # Cambiar a false para deshabilitar completamente /heal
     others-enabled: true
+    cooldown-seconds: 60
   feed:
     enabled: true
     others-enabled: true
   repair:
-    enabled: true
+    enabled: true  # Cambiar a false para deshabilitar completamente /fix
+    cooldown-seconds: 60
   nick:
     enabled: true
   skull:
@@ -75,7 +77,7 @@ commands:
   pweather:
     enabled: true
   sell:
-    enabled: true
+    enabled: true  # Cambiar a false para deshabilitar completamente /sell (si tienes tu propio sistema)
 
 # Sonidos estéticos para las acciones
 sounds:
@@ -143,6 +145,8 @@ messages:
   repair-success: "%prefix%<green>Item reparado con éxito."
   repair-usage: "%prefix%<gray>Uso: <yellow>/fix hand"
   repair-error: "%prefix%<red>Este item no se puede reparar."
+  heal-cooldown: "%prefix%<red>Espera <yellow>%time%s <red>antes de volver a usar /heal."
+  repair-cooldown: "%prefix%<red>Espera <yellow>%time%s <red>antes de volver a usar /fix."
   nick-usage: "%prefix%<gray>Uso: <yellow>/nick <apodo|off>"
   nick-format-not-allowed: "%prefix%<red>No puedes usar ese formato en el nick. Nivel: <yellow>%tier%"
   nick-success: "%prefix%<gray>Tu apodo ahora es: <white>%nick%"

@@ -33,9 +33,11 @@ import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.util.Locale;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -172,7 +174,15 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         itemEditorModule = new ItemEditorModule(this);
         moduleManager.registerModule(itemEditorModule);
 
+        reinstatePluginCommands();
         moduleManager.enableAll();
+
+        // Sync the Brigadier dispatcher immediately so stale BukkitCommandNodes
+        // are rebuilt before any player can issue a command after a PlugManX reload.
+        try {
+            syncCommandsSafe();
+        } catch (Throwable ignored) {
+        }
 
         scheduleCommandHousekeeping();
 
@@ -395,10 +405,31 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             if (!(rawKnown instanceof Map<?, ?> rawMap)) {
                 return null;
             }
-            return (Map<String, Command>) rawMap;
+            return unwrapIfUnmodifiable((Map<String, Command>) rawMap);
         } catch (Throwable t) {
             return null;
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Command> unwrapIfUnmodifiable(Map<String, Command> map) {
+        if (map == null || !map.getClass().getName().contains("nmodifiable")) {
+            return map;
+        }
+        for (java.lang.reflect.Field f : getAllFields(map.getClass())) {
+            if (!Map.class.isAssignableFrom(f.getType())) {
+                continue;
+            }
+            try {
+                f.setAccessible(true);
+                Object inner = f.get(map);
+                if (inner instanceof Map<?, ?> innerMap && innerMap != map) {
+                    return (Map<String, Command>) innerMap;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        return map;
     }
 
     private java.lang.reflect.Field findField(Class<?> type, String fieldName) {
@@ -457,6 +488,48 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         return null;
     }
 
+    @SuppressWarnings("unchecked")
+    private void reinstatePluginCommands() {
+        if (getDescription() == null || getDescription().getCommands() == null
+                || getDescription().getCommands().isEmpty()) {
+            return;
+        }
+        try {
+            Object commandMap = resolveCommandMap();
+            if (commandMap == null) {
+                return;
+            }
+            Map<String, Command> knownCommands = getKnownCommands(commandMap);
+            if (knownCommands == null) {
+                return;
+            }
+            java.lang.reflect.Constructor<PluginCommand> ctor =
+                    PluginCommand.class.getDeclaredConstructor(String.class, Plugin.class);
+            ctor.setAccessible(true);
+            String namespace = getName().toLowerCase(Locale.ROOT);
+            int reinstated = 0;
+            for (String cmdName : getDescription().getCommands().keySet()) {
+                String lower = cmdName.toLowerCase(Locale.ROOT);
+                Command existing = knownCommands.get(lower);
+                if (existing instanceof PluginCommand pc && pc.getPlugin() == this) {
+                    continue;
+                }
+                PluginCommand fresh = ctor.newInstance(lower, this);
+                knownCommands.put(lower, fresh);
+                knownCommands.put(namespace + ":" + lower, fresh);
+                reinstated++;
+            }
+            if (reinstated > 0) {
+                getLogger().info("Reinstated " + reinstated + " stale command entries for reload.");
+            }
+        } catch (UnsupportedOperationException ignored) {
+            // Map still immutable after unwrap attempt
+        } catch (Throwable t) {
+            getLogger().warning("Could not reinstate command entries: " + t.getClass().getSimpleName()
+                    + " - " + t.getMessage());
+        }
+    }
+
     private void clearCoreCommandBindings() {
         clearCommandBinding("valerinutils");
         clearCommandBinding("menuitem");
@@ -488,6 +561,8 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             try {
                 purgeRegisteredCommands(false);
                 adoptCurrentPluginCommands();
+                // Patch stale PluginCommand.owningPlugin refs in the Brigadier tree (PlugManX compat).
+                repairBrigadierDispatcher();
                 logCommandRegistrationState();
             } catch (Throwable t) {
                 getLogger().warning("Command housekeeping failed: " + t.getClass().getSimpleName() + " - " + t.getMessage());
@@ -511,6 +586,151 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
                 }, 20L);
             }
         }, 40L);
+    }
+
+    // -------------------------------------------------------------------------
+    // Brigadier dispatcher repair (PlugManX hot-reload compat)
+    //
+    // universe-1.21.10 does not rebuild BukkitCommandNode objects during
+    // syncCommands(), so the Brigadier tree retains stale PluginCommand
+    // instances whose owningPlugin points to the old (disabled) plugin
+    // instance.  We walk the tree and patch every such reference using
+    // sun.misc.Unsafe, which can overwrite final fields at runtime.
+    // -------------------------------------------------------------------------
+
+    private void repairBrigadierDispatcher() {
+        try {
+            Object dispatcher = findBrigadierDispatcher();
+            if (dispatcher == null) {
+                getLogger().warning("[BrigadierRepair] Brigadier CommandDispatcher not found.");
+                return;
+            }
+
+            Object root = dispatcher.getClass().getMethod("getRoot").invoke(dispatcher);
+            if (root == null) {
+                getLogger().warning("[BrigadierRepair] Brigadier root node is null.");
+                return;
+            }
+
+            sun.misc.Unsafe unsafe = getUnsafe();
+            if (unsafe == null) {
+                getLogger().warning("[BrigadierRepair] sun.misc.Unsafe unavailable.");
+                return;
+            }
+
+            int[] count = {0};
+            walkNodeTree(root, unsafe, new java.util.IdentityHashMap<>(), count);
+            getLogger().info("[BrigadierRepair] Patched " + count[0] + " stale PluginCommand reference(s) in Brigadier tree.");
+        } catch (Throwable t) {
+            getLogger().warning("[BrigadierRepair] " + t.getClass().getSimpleName() + ": " + t.getMessage());
+        }
+    }
+
+    private void walkNodeTree(Object node, sun.misc.Unsafe unsafe,
+            java.util.IdentityHashMap<Object, Boolean> visited, int[] count) {
+        if (node == null || visited.containsKey(node)) return;
+        visited.put(node, Boolean.TRUE);
+
+        // Attempt to patch the node itself (check for executor/command field)
+        patchNodeCommand(node, unsafe, visited, count);
+
+        // Recurse into child nodes
+        try {
+            Object children = node.getClass().getMethod("getChildren").invoke(node);
+            if (children instanceof java.util.Collection<?> coll) {
+                for (Object child : coll) walkNodeTree(child, unsafe, visited, count);
+            }
+        } catch (Throwable ignored) {}
+    }
+
+    private void patchNodeCommand(Object node, sun.misc.Unsafe unsafe,
+            java.util.IdentityHashMap<Object, Boolean> visited, int[] count) {
+        try {
+            String nodeName = node.getClass().getSimpleName();
+            // Log node class info once per type
+            if (!visited.containsKey("logged:" + nodeName)) {
+                visited.put("logged:" + nodeName, Boolean.TRUE);
+                List<String> fields = new ArrayList<>();
+                for (java.lang.reflect.Field f : getAllFields(node.getClass())) {
+                    fields.add(f.getType().getSimpleName() + " " + f.getName());
+                }
+                if (!fields.isEmpty()) {
+                    getLogger().info("[BrigadierRepair] Node type: " + nodeName + " | Fields: " + String.join(", ", fields.subList(0, Math.min(5, fields.size()))));
+                }
+            }
+
+            // For BukkitCommandNode: look for "command" field (the PluginCommand)
+            java.lang.reflect.Field cmdField = findField(node.getClass(), "command");
+            if (cmdField == null) {
+                // Try "executor" field (generic CommandNode)
+                cmdField = findField(node.getClass(), "executor");
+            }
+            if (cmdField != null) {
+                cmdField.setAccessible(true);
+                Object val = cmdField.get(node);
+                if (val instanceof PluginCommand pc && isStaleValerinCommand(pc)) {
+                    // Try to replace with current command
+                    PluginCommand current = getCommand(pc.getName());
+                    if (current != null) {
+                        cmdField.set(node, current);
+                        count[0]++;
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+    }
+
+    private boolean isStaleValerinCommand(PluginCommand pc) {
+        Plugin owner = pc.getPlugin();
+        return owner != null && owner.getName().equalsIgnoreCase(getName()) && owner != this;
+    }
+
+    private Object findBrigadierDispatcher() {
+        Object server = Bukkit.getServer();
+        java.util.IdentityHashMap<Object, Boolean> seen = new java.util.IdentityHashMap<>();
+        return scanForDispatcher(server, seen, 3);
+    }
+
+    private Object scanForDispatcher(Object obj, java.util.IdentityHashMap<Object, Boolean> seen, int depth) {
+        if (obj == null || depth < 0 || seen.containsKey(obj)) return null;
+        seen.put(obj, Boolean.TRUE);
+        // First pass: look for a field whose type name ends with CommandDispatcher
+        for (java.lang.reflect.Field f : getAllFields(obj.getClass())) {
+            if (f.getType().getName().endsWith("CommandDispatcher")) {
+                f.setAccessible(true);
+                try {
+                    Object v = f.get(obj);
+                    if (v != null) return v;
+                } catch (Throwable ignored) {}
+            }
+        }
+        // Second pass: recurse into relevant framework objects
+        if (depth > 0) {
+            for (java.lang.reflect.Field f : getAllFields(obj.getClass())) {
+                Class<?> ft = f.getType();
+                if (ft.isPrimitive() || ft.isArray() || ft == String.class) continue;
+                String pkg = ft.getPackageName();
+                if (!pkg.startsWith("net.minecraft") && !pkg.startsWith("com.mojang")
+                        && !pkg.startsWith("org.bukkit") && !pkg.startsWith("io.papermc")
+                        && !pkg.startsWith("ca.spottedleaf")) continue;
+                f.setAccessible(true);
+                Object val;
+                try { val = f.get(obj); } catch (Throwable ignored) { continue; }
+                Object found = scanForDispatcher(val, seen, depth - 1);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    private sun.misc.Unsafe getUnsafe() {
+        try {
+            java.lang.reflect.Field f = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+            f.setAccessible(true);
+            return (sun.misc.Unsafe) f.get(null);
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     private void logCommandRegistrationState() {

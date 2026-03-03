@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class UtilityModule extends BaseModule implements CommandExecutor, Listener {
@@ -46,6 +47,12 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
     private final Map<Material, Material> condenseMap = new HashMap<>();
     private Method nexoIdFromItemMethod;
     private boolean nexoLookupInitialized;
+
+    private final Map<UUID, Long> healCooldowns = new HashMap<>();
+    private final Map<UUID, Long> repairCooldowns = new HashMap<>();
+
+    private static final String BYPASS_HEAL_COOLDOWN = "valerinutils.utility.heal.bypasscooldown";
+    private static final String BYPASS_REPAIR_COOLDOWN = "valerinutils.utility.repair.bypasscooldown";
 
     private static final String[] REGISTERED_COMMANDS = {
             "craft", "enderchest", "anvil", "smithingtable",
@@ -116,7 +123,9 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
             Map.entry("helpop-usage", "%prefix%<gray>Uso: <yellow>/helpop <mensaje>"),
             Map.entry("helpop-sent", "%prefix%<green>Tu reporte fue enviado al staff <gray>(<white>%staff%<gray>)."),
             Map.entry("helpop-no-staff", "%prefix%<yellow>No hay staff conectado ahora. Tu mensaje fue enviado a consola."),
-            Map.entry("helpop-cooldown", "%prefix%<red>Espera <yellow>%time%s <red>antes de volver a usar /helpop."));
+            Map.entry("helpop-cooldown", "%prefix%<red>Espera <yellow>%time%s <red>antes de volver a usar /helpop."),
+            Map.entry("heal-cooldown", "%prefix%<red>Espera <yellow>%time%s <red>antes de volver a usar /heal."),
+            Map.entry("repair-cooldown", "%prefix%<red>Espera <yellow>%time%s <red>antes de volver a usar /fix."));
 
     public UtilityModule(ValerinUtils plugin) {
         super(plugin);
@@ -364,6 +373,11 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
     }
 
     private void handleHeal(Player player, String[] args) {
+        if (!isCommandEnabled("heal")) {
+            player.sendMessage(getMessage("module-disabled"));
+            return;
+        }
+
         Player target = player;
         if (args.length > 0) {
             if (!checkStatus(player, "heal.others"))
@@ -376,6 +390,17 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
         } else {
             if (!checkStatus(player, "heal"))
                 return;
+            int cd = Math.max(0, getConfig().getInt("commands.heal.cooldown-seconds", 0));
+            if (cd > 0 && !player.hasPermission(BYPASS_HEAL_COOLDOWN)) {
+                long now = System.currentTimeMillis();
+                Long nextUse = healCooldowns.get(player.getUniqueId());
+                if (nextUse != null && nextUse > now) {
+                    long left = Math.max(1L, (nextUse - now + 999L) / 1000L);
+                    player.sendMessage(getMessage("heal-cooldown").replace("%time%", String.valueOf(left)));
+                    return;
+                }
+                healCooldowns.put(player.getUniqueId(), now + (cd * 1000L));
+            }
         }
 
         target.setHealth(target.getAttribute(Attribute.MAX_HEALTH).getValue());
@@ -420,11 +445,27 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
     }
 
     private void handleRepair(Player player, String[] args) {
+        if (!isCommandEnabled("repair")) {
+            player.sendMessage(getMessage("module-disabled"));
+            return;
+        }
+
         if (!checkStatus(player, "repair"))
             return;
         if (args.length > 0 && !args[0].equalsIgnoreCase("hand")) {
             player.sendMessage(getMessage("repair-usage"));
             return;
+        }
+        int cd = Math.max(0, getConfig().getInt("commands.repair.cooldown-seconds", 0));
+        if (cd > 0 && !player.hasPermission(BYPASS_REPAIR_COOLDOWN)) {
+            long now = System.currentTimeMillis();
+            Long nextUse = repairCooldowns.get(player.getUniqueId());
+            if (nextUse != null && nextUse > now) {
+                long left = Math.max(1L, (nextUse - now + 999L) / 1000L);
+                player.sendMessage(getMessage("repair-cooldown").replace("%time%", String.valueOf(left)));
+                return;
+            }
+            repairCooldowns.put(player.getUniqueId(), now + (cd * 1000L));
         }
         ItemStack item = player.getInventory().getItemInMainHand();
         if (item.getType().isAir() || item.getType().getMaxDurability() <= 0) {
@@ -782,6 +823,12 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
             return plugin.translateColors(fallback);
         }
         return resolved;
+    }
+
+    private boolean isCommandEnabled(String commandName) {
+        FileConfiguration cfg = getConfig();
+        if (cfg == null) return true;
+        return cfg.getBoolean("commands." + commandName + ".enabled", true);
     }
 
     private void setupCondenseMap() {
