@@ -382,7 +382,7 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
 
     private void handleHeal(Player player, String[] args) {
         if (!isCommandEnabled("heal")) {
-            player.sendMessage(getMessage("module-disabled"));
+            // Silently ignore disabled command - let other plugins handle it
             return;
         }
 
@@ -454,7 +454,7 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
 
     private void handleRepair(Player player, String[] args) {
         if (!isCommandEnabled("repair")) {
-            player.sendMessage(getMessage("module-disabled"));
+            // Silently ignore disabled command - let other plugins handle it
             return;
         }
 
@@ -841,37 +841,76 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
 
     private void removeDisabledCommandsFromMap() {
         try {
-            org.bukkit.command.CommandMap cmdMap = Bukkit.getServer().getCommandMap();
-            if (cmdMap == null) return;
+            org.bukkit.command.CommandMap cmdMapAPI = Bukkit.getServer().getCommandMap();
+            if (cmdMapAPI == null) return;
 
-            java.lang.reflect.Field field = null;
-            for (java.lang.reflect.Field f : cmdMap.getClass().getDeclaredFields()) {
-                if (Map.class.isAssignableFrom(f.getType())) {
+            // Walk all fields (including superclass) to find the knownCommands map
+            Map<String, org.bukkit.command.Command> knownCommands = null;
+            Class<?> cls = cmdMapAPI.getClass();
+            while (cls != null && knownCommands == null) {
+                for (java.lang.reflect.Field f : cls.getDeclaredFields()) {
+                    if (!Map.class.isAssignableFrom(f.getType())) continue;
                     f.setAccessible(true);
-                    Object val = f.get(cmdMap);
+                    Object val = f.get(cmdMapAPI);
                     if (val instanceof Map<?, ?> m && !m.isEmpty()) {
                         Object first = m.values().iterator().next();
                         if (first instanceof org.bukkit.command.Command) {
-                            field = f;
+                            @SuppressWarnings("unchecked")
+                            Map<String, org.bukkit.command.Command> typed =
+                                    (Map<String, org.bukkit.command.Command>) m;
+                            // Unwrap unmodifiable if needed
+                            if (typed.getClass().getName().contains("nmodifiable")) {
+                                for (java.lang.reflect.Field inner : typed.getClass().getDeclaredFields()) {
+                                    if (Map.class.isAssignableFrom(inner.getType())) {
+                                        inner.setAccessible(true);
+                                        Object innerVal = inner.get(typed);
+                                        if (innerVal instanceof Map<?,?> im && im != typed) {
+                                            @SuppressWarnings("unchecked")
+                                            Map<String, org.bukkit.command.Command> unwrapped =
+                                                    (Map<String, org.bukkit.command.Command>) innerVal;
+                                            knownCommands = unwrapped;
+                                            break;
+                                        }
+                                    }
+                                }
+                            } else {
+                                knownCommands = typed;
+                            }
                             break;
                         }
                     }
                 }
+                cls = cls.getSuperclass();
             }
 
-            if (field == null) return;
+            if (knownCommands == null) {
+                plugin.getLogger().warning("[Utility] Could not access CommandMap knownCommands");
+                return;
+            }
 
-            @SuppressWarnings("unchecked")
-            Map<String, org.bukkit.command.Command> knownCommands =
-                    (Map<String, org.bukkit.command.Command>) field.get(cmdMap);
-
-            if (knownCommands == null) return;
+            String pluginNamespace = plugin.getName().toLowerCase(Locale.ROOT);
 
             for (String command : REGISTERED_COMMANDS) {
                 if (!isCommandEnabled(command)) {
-                    String lower = command.toLowerCase(Locale.ROOT);
-                    if (knownCommands.remove(lower) != null) {
-                        plugin.getLogger().info("[Utility] Removed disabled command from map: " + command);
+                    org.bukkit.command.PluginCommand pluginCmd = plugin.getCommand(command);
+                    List<String> toRemove = new java.util.ArrayList<>();
+                    if (pluginCmd != null) {
+                        toRemove.add(pluginCmd.getName().toLowerCase(Locale.ROOT));
+                        for (String alias : pluginCmd.getAliases()) {
+                            toRemove.add(alias.toLowerCase(Locale.ROOT));
+                        }
+                    } else {
+                        toRemove.add(command.toLowerCase(Locale.ROOT));
+                    }
+                    // Add namespaced variants
+                    int size = toRemove.size();
+                    for (int i = 0; i < size; i++) {
+                        toRemove.add(pluginNamespace + ":" + toRemove.get(i));
+                    }
+                    for (String key : toRemove) {
+                        if (knownCommands.remove(key) != null) {
+                            plugin.getLogger().info("[Utility] Removed from CommandMap: " + key);
+                        }
                     }
                 }
             }
