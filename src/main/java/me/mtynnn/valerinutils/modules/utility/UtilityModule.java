@@ -908,7 +908,9 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
                         toRemove.add(pluginNamespace + ":" + toRemove.get(i));
                     }
                     for (String key : toRemove) {
-                        if (knownCommands.remove(key) != null) {
+                        // Only remove if the entry points to OUR PluginCommand, not another plugin's
+                        if (pluginCmd != null && knownCommands.get(key) == pluginCmd) {
+                            knownCommands.remove(key);
                             plugin.getLogger().info("[Utility] Removed from CommandMap: " + key);
                         }
                     }
