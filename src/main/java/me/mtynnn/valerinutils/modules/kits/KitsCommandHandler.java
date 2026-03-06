@@ -287,14 +287,53 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         return item;
     }
 
+    private List<ItemStack> loadKitItems(FileConfiguration cfg, String path) {
+        if (cfg.contains(path + ".shulker_items")) {
+            @SuppressWarnings("unchecked")
+            List<ItemStack> list = (List<ItemStack>) cfg.getList(path + ".shulker_items");
+            if (list != null && !list.isEmpty()) return list;
+        }
+        ItemStack single = cfg.getItemStack(path + ".shulker_item");
+        return single != null ? List.of(single) : Collections.emptyList();
+    }
+
+    private List<ItemStack> packIntoShulkers(List<ItemStack> items) {
+        List<ItemStack> result = new ArrayList<>();
+        if (items.isEmpty()) return result;
+        ItemStack shulkerItem = new ItemStack(Material.SHULKER_BOX);
+        BlockStateMeta bsm = (BlockStateMeta) shulkerItem.getItemMeta();
+        ShulkerBox box = (ShulkerBox) bsm.getBlockState();
+        int slot = 0;
+        for (ItemStack item : items) {
+            if (item == null || item.getType().isAir()) continue;
+            if (slot >= 27) {
+                bsm.setBlockState(box);
+                shulkerItem.setItemMeta(bsm);
+                result.add(shulkerItem.clone());
+                shulkerItem = new ItemStack(Material.SHULKER_BOX);
+                bsm = (BlockStateMeta) shulkerItem.getItemMeta();
+                box = (ShulkerBox) bsm.getBlockState();
+                slot = 0;
+            }
+            box.getInventory().setItem(slot++, item.clone());
+        }
+        if (slot > 0) {
+            bsm.setBlockState(box);
+            shulkerItem.setItemMeta(bsm);
+            result.add(shulkerItem.clone());
+        }
+        return result;
+    }
+
     private ItemStack kitIcon(Player player, FileConfiguration cfg, String kitName) {
         String path = "kits." + kitName;
-        ItemStack base = cfg.getItemStack(path + ".shulker_item"); if (base == null) base = new ItemStack(Material.SHULKER_BOX);
+        List<ItemStack> kitItems = loadKitItems(cfg, path);
+        ItemStack base = kitItems.isEmpty() ? new ItemStack(Material.SHULKER_BOX) : kitItems.get(0);
         ItemStack icon = base.clone();
         ItemMeta meta = icon.getItemMeta();
         meta.displayName(plugin.parseComponent(cfg.getString(path + ".display_name", kitName))
                 .decoration(TextDecoration.ITALIC, false));
-        int items = shulkerAmount(icon);
+        int items = kitItems.stream().mapToInt(this::shulkerAmount).sum();
         int days = Math.max(0, cfg.getInt(path + ".cooldown-days", cfg.getInt("settings.default_claim_cooldown_days", 15)));
         String perm = cfg.getString(path + ".required-permission", "").trim();
         boolean allowed = perm.isEmpty() || player.hasPermission(perm);
@@ -321,16 +360,25 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         String perm = cfg.getString(path + ".required-permission", "").trim();
         if (!perm.isEmpty() && !target.hasPermission(perm)) { target.sendMessage(plugin.translateColors(cfg.getString("messages.kit-no-permission", "%prefix%&cNo cumples el permiso requerido.").replace("%permission%", perm))); return false; }
         int days = Math.max(0, cfg.getInt(path + ".cooldown-days", cfg.getInt("settings.default_claim_cooldown_days", 15)));
-        if (respectCooldown && days > 0) {
+        boolean bypassCooldown = target.isOp() || target.hasPermission("valerinutils.kits.cooldown.bypass");
+        if (!bypassCooldown && respectCooldown && days > 0) {
             long now = System.currentTimeMillis(), next = nextClaim(target.getUniqueId(), kitName);
             if (next > now) { target.sendMessage(plugin.translateColors(cfg.getString("messages.kit-on-cooldown", "%prefix%&cDebes esperar &e%time% &cpara este kit.").replace("%time%", duration(next - now)))); return false; }
             setNextClaim(target.getUniqueId(), kitName, now + days * 24L * 60L * 60L * 1000L);
         }
-        ItemStack shulker = cfg.getItemStack(path + ".shulker_item");
-        if (shulker == null) { sender.sendMessage(plugin.translateColors("%prefix%&cError al cargar el item del kit.")); return false; }
-        ItemStack give = shulker.clone();
-        if (target.getInventory().firstEmpty() == -1) { target.getWorld().dropItemNaturally(target.getLocation(), give); target.sendMessage(plugin.translateColors("%prefix%&eTu inventario estaba lleno, el kit se soltó al suelo.")); }
-        else target.getInventory().addItem(give);
+        List<ItemStack> kitItems = loadKitItems(cfg, path);
+        if (kitItems.isEmpty()) { sender.sendMessage(plugin.translateColors("%prefix%&cError al cargar el item del kit.")); return false; }
+        boolean droppedAny = false;
+        for (ItemStack shulker : kitItems) {
+            ItemStack give = shulker.clone();
+            if (target.getInventory().firstEmpty() == -1) {
+                target.getWorld().dropItemNaturally(target.getLocation(), give);
+                droppedAny = true;
+            } else {
+                target.getInventory().addItem(give);
+            }
+        }
+        if (droppedAny) target.sendMessage(plugin.translateColors("%prefix%&eTu inventario estaba lleno, parte del kit se soltó al suelo."));
         if (!sender.getName().equalsIgnoreCase(target.getName())) sender.sendMessage(plugin.translateColors("%prefix%&aHas dado el kit &e" + kitName + " &aa &f" + target.getName()));
         if (!silentTarget) target.sendMessage(plugin.translateColors(cfg.getString("messages.kit-claimed", "%prefix%&aHas reclamado el kit: &f%kit%").replace("%kit%", cfg.getString(path + ".display_name", kitName))));
         module.logDebug("Kit entregado: " + kitName + " -> " + target.getName() + " (sender=" + sender.getName() + ")");
@@ -339,21 +387,37 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
 
     private void createKit(Player player, String[] args) {
         String name = args[1];
-        ItemStack item = player.getInventory().getItemInMainHand();
-        if (item.getType() == Material.AIR || !item.getType().name().contains("SHULKER_BOX")) { player.sendMessage(plugin.translateColors("%prefix%&cDebes sostener una Shulker Box en la mano.")); return; }
-        ItemMeta meta = item.getItemMeta();
         FileConfiguration cfg = module.getConfig();
-        String displayName = "&8Shulker de " + name;
-        if (meta != null) {
-            Component display = meta.displayName();
-            if (display != null) {
-                displayName = LegacyComponentSerializer.legacyAmpersand().serialize(display);
-            } else if (meta.hasDisplayName()) {
-                displayName = meta.getDisplayName().replace('§', '&');
+
+        // Scan inventory slots 0-35 (main inventory, no armor/offhand)
+        List<ItemStack> shulkers = new ArrayList<>();
+        List<ItemStack> regularItems = new ArrayList<>();
+        for (int slot = 0; slot < 36; slot++) {
+            ItemStack item = player.getInventory().getItem(slot);
+            if (item == null || item.getType().isAir()) continue;
+            if (item.getType().name().contains("SHULKER_BOX")) {
+                shulkers.add(item.clone());
+            } else {
+                regularItems.add(item.clone());
             }
         }
+        if (shulkers.isEmpty() && regularItems.isEmpty()) {
+            player.sendMessage(plugin.translateColors("%prefix%&cTu inventario está vacío. Llenalo con los items del kit."));
+            return;
+        }
+
+        // Pack regular items into shulkers (27 per shulker)
+        List<ItemStack> packedShulkers = packIntoShulkers(regularItems);
+
+        // Final kit item list: explicit shulkers first, then packed shulkers
+        List<ItemStack> kitItems = new ArrayList<>(shulkers);
+        kitItems.addAll(packedShulkers);
+
+        String displayName = "&8Kit " + name;
         cfg.set("kits." + name + ".display_name", displayName);
-        cfg.set("kits." + name + ".shulker_item", item);
+        cfg.set("kits." + name + ".shulker_items", kitItems);
+        cfg.set("kits." + name + ".shulker_item", null); // remove legacy key if present
+
         String defaultPermPattern = cfg.getString("settings.default_required_permission_pattern", "kits.%kit%");
         String defaultPerm = defaultPermPattern == null ? "" : defaultPermPattern.replace("%kit%", name.toLowerCase(Locale.ROOT));
         String finalPerm = args.length >= 3 ? args[2] : defaultPerm;
@@ -367,18 +431,37 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         cfg.set("kits." + name + ".required-permission", finalPerm == null ? "" : finalPerm);
         cfg.set("kits." + name + ".cooldown-days", finalCooldown);
         plugin.getConfigManager().saveConfig("kits");
-        player.sendMessage(plugin.translateColors("%prefix%&aKit &e" + name + " &acreado correctamente. &7Perm: &f"
+        int totalShulkers = kitItems.size();
+        player.sendMessage(plugin.translateColors("%prefix%&aKit &e" + name + " &acreado con &f" + totalShulkers + " &ashulker(s). &7Perm: &f"
                 + (finalPerm == null || finalPerm.isBlank() ? "ninguno" : finalPerm) + " &8| &7CD: &f" + finalCooldown + "d"));
     }
 
     private void previewKit(Player player, String name) {
         FileConfiguration cfg = module.getConfig();
         if (!cfg.contains("kits." + name)) { player.sendMessage(plugin.translateColors("%prefix%&cEl kit &e" + name + " &cno existe.")); return; }
-        ItemStack shulker = cfg.getItemStack("kits." + name + ".shulker_item");
-        if (shulker == null || !(shulker.getItemMeta() instanceof BlockStateMeta bsm) || !(bsm.getBlockState() instanceof ShulkerBox box)) { player.sendMessage(plugin.translateColors("%prefix%&cError al cargar el contenido del kit.")); return; }
-        Inventory preview = Bukkit.createInventory(new KitsPreviewHolder(), 27, plugin.translateColors(cfg.getString("kits." + name + ".display_name", "&8Preview: " + name)));
-        preview.setContents(box.getInventory().getContents());
-        player.openInventory(preview);
+        List<ItemStack> kitItems = loadKitItems(cfg, "kits." + name);
+        if (kitItems.isEmpty()) { player.sendMessage(plugin.translateColors("%prefix%&cError al cargar el contenido del kit.")); return; }
+        String displayName = cfg.getString("kits." + name + ".display_name", "&8Preview: " + name);
+        if (kitItems.size() == 1) {
+            // Single shulker: show its contents
+            ItemStack shulker = kitItems.get(0);
+            if (shulker.getItemMeta() instanceof BlockStateMeta bsm && bsm.getBlockState() instanceof ShulkerBox box) {
+                Inventory preview = Bukkit.createInventory(new KitsPreviewHolder(), 27, plugin.translateColors(displayName));
+                preview.setContents(box.getInventory().getContents());
+                player.openInventory(preview);
+            } else {
+                player.sendMessage(plugin.translateColors("%prefix%&cError al cargar el contenido del kit."));
+            }
+        } else {
+            // Multiple shulkers: show the shulker items themselves
+            int rows = Math.min(6, (int) Math.ceil(kitItems.size() / 9.0));
+            int size = Math.max(9, rows * 9);
+            Inventory preview = Bukkit.createInventory(new KitsPreviewHolder(), size, plugin.translateColors(displayName));
+            for (int i = 0; i < kitItems.size() && i < size; i++) {
+                preview.setItem(i, kitItems.get(i).clone());
+            }
+            player.openInventory(preview);
+        }
     }
 
     private void deleteKit(CommandSender sender, String name) { FileConfiguration cfg = module.getConfig(); if (!cfg.contains("kits." + name)) { sender.sendMessage(plugin.translateColors("%prefix%&cEl kit &e" + name + " &cno existe.")); return; } cfg.set("kits." + name, null); plugin.getConfigManager().saveConfig("kits"); sender.sendMessage(plugin.translateColors("%prefix%&cKit &e" + name + " &celiminado.")); }

@@ -21,7 +21,7 @@ final class UtilitySellCommand {
     void execute(Player player, String[] args) {
         FileConfiguration cfg = module.getConfig();
         if (cfg != null && !cfg.getBoolean("commands.sell.enabled", true)) {
-            player.sendMessage(module.getMessage("module-disabled"));
+            // Silently ignore disabled command - let other plugins handle it
             return;
         }
 

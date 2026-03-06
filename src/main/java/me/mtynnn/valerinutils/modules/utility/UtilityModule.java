@@ -914,6 +914,19 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
                             plugin.getLogger().info("[Utility] Removed from CommandMap: " + key);
                         }
                     }
+                    // After removing our entries, if the plain key is now gone, promote
+                    // another plugin's namespaced command (e.g. donutsell:sell → sell)
+                    String plainKey = command.toLowerCase(Locale.ROOT);
+                    if (!knownCommands.containsKey(plainKey)) {
+                        for (Map.Entry<String, org.bukkit.command.Command> entry : knownCommands.entrySet()) {
+                            String k = entry.getKey();
+                            if (k.endsWith(":" + plainKey) && !k.startsWith(pluginNamespace + ":")) {
+                                knownCommands.put(plainKey, entry.getValue());
+                                plugin.getLogger().info("[Utility] Promoted " + k + " to /" + plainKey);
+                                break;
+                            }
+                        }
+                    }
                 }
             }
         } catch (Throwable t) {
