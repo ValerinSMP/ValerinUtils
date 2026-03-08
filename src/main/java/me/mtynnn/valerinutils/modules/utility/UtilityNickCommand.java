@@ -24,9 +24,24 @@ final class UtilityNickCommand {
         }
 
         Player senderPlayer = sender instanceof Player player ? player : null;
-        boolean othersMode = args.length >= 2;
+        boolean offMode = args[0].equalsIgnoreCase("off");
 
-        if (othersMode) {
+        // Explicit admin flow requested: /nick off <jugador>
+        if (offMode && args.length >= 2) {
+            if (!hasOthersAccess(sender)) {
+                return;
+            }
+            Player target = Bukkit.getPlayer(args[1]);
+            if (target == null) {
+                sender.sendMessage(module.getMessage("player-not-found"));
+                return;
+            }
+            clearNick(sender, target);
+            return;
+        }
+
+        // Existing admin flow: /nick <jugador> <apodo>
+        if (!offMode && args.length >= 2) {
             if (!hasOthersAccess(sender)) {
                 return;
             }
@@ -58,44 +73,47 @@ final class UtilityNickCommand {
         }
 
         if (args[startIndex].equalsIgnoreCase("off")) {
-            playerData.setNickname(null);
-            target.displayName(Component.text(target.getName()));
-            target.playerListName(Component.text(target.getName()));
-            if (sender.getName().equalsIgnoreCase(target.getName())) {
-                target.sendMessage(module.getMessage("nick-off"));
-            } else {
-                sender.sendMessage(module.getMessage("nick-off-others").replace("%player%", target.getName()));
-                target.sendMessage(module.getMessage("nick-off"));
-            }
+            clearNick(sender, target);
             return;
         }
 
         String nickRaw = String.join(" ", java.util.Arrays.copyOfRange(args, startIndex, args.length));
-        if (nickManager.containsWhitespace(nickRaw)) {
-            sender.sendMessage(module.getMessage("nick-no-spaces"));
+        if (!nickManager.isMinecraftStyleNickname(nickRaw)) {
+            sender.sendMessage(module.getMessage("nick-format-not-allowed"));
             return;
         }
 
-        UtilityNickManager.NickTier tier = nickManager.resolveTier(target);
-        if (!nickManager.isFormatAllowed(nickRaw, tier)) {
-            sender.sendMessage(module.getMessage("nick-format-not-allowed")
-                    .replace("%tier%", tier.asConfigValue()));
-            return;
-        }
-
-        String nickFinal = nickManager.withTrailingReset(nickRaw);
+        String nickFinal = nickRaw.trim();
         playerData.setNickname(nickFinal);
-        Component nickComponent = module.plugin().parseComponent(nickFinal);
+        Component nickComponent = Component.text(nickFinal);
         target.displayName(nickComponent);
         target.playerListName(nickComponent);
 
         if (sender.getName().equalsIgnoreCase(target.getName())) {
-            target.sendMessage(module.getMessage("nick-success").replace("%nick%", module.plugin().translateColors(nickFinal)));
+            target.sendMessage(module.getMessage("nick-success").replace("%nick%", nickFinal));
         } else {
             sender.sendMessage(module.getMessage("nick-success-others")
                     .replace("%player%", target.getName())
-                    .replace("%nick%", module.plugin().translateColors(nickFinal)));
-            target.sendMessage(module.getMessage("nick-success").replace("%nick%", module.plugin().translateColors(nickFinal)));
+                    .replace("%nick%", nickFinal));
+            target.sendMessage(module.getMessage("nick-success").replace("%nick%", nickFinal));
+        }
+    }
+
+    private void clearNick(CommandSender sender, Player target) {
+        PlayerData playerData = module.plugin().getPlayerData(target.getUniqueId());
+        if (playerData == null) {
+            sender.sendMessage(module.getMessage("player-not-found"));
+            return;
+        }
+
+        playerData.setNickname(null);
+        target.displayName(Component.text(target.getName()));
+        target.playerListName(Component.text(target.getName()));
+        if (sender.getName().equalsIgnoreCase(target.getName())) {
+            target.sendMessage(module.getMessage("nick-off"));
+        } else {
+            sender.sendMessage(module.getMessage("nick-off-others").replace("%player%", target.getName()));
+            target.sendMessage(module.getMessage("nick-off"));
         }
     }
 

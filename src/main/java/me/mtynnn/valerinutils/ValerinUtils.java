@@ -57,6 +57,8 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private static final Pattern LEGACY_HEX_PATTERN = Pattern.compile("(?i)&#([0-9a-f]{6})");
     private static final Pattern LEGACY_BUNGEE_HEX_AMPERSAND = Pattern.compile("(?i)&x(&[0-9a-f]){6}");
     private static final Pattern LEGACY_BUNGEE_HEX_SECTION = Pattern.compile("(?i)§x(§[0-9a-f]){6}");
+        private static final Pattern URL_PATTERN = Pattern.compile(
+            "(?i)\\b((?:https?://)?(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,}(?:/[\\p{Alnum}\\-._~:/?#\\[\\]@!$&'()*+,;=%]*)?)(?<![.,;:!?])");
 
     private static ValerinUtils instance;
     private ModuleManager moduleManager;
@@ -1014,7 +1016,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         message = LEGACY_HEX_PATTERN.matcher(message).replaceAll("<color:#$1>");
 
         if (message.indexOf('&') < 0 && message.indexOf('§') < 0) {
-            return message;
+            return autoLinkUrlsOutsideMiniTags(message);
         }
 
         StringBuilder out = new StringBuilder(message.length() + 32);
@@ -1056,7 +1058,91 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             out.append(ch);
         }
 
-        return out.toString();
+        return autoLinkUrlsOutsideMiniTags(out.toString());
+    }
+
+    private String autoLinkUrlsOutsideMiniTags(String input) {
+        if (input == null || input.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder result = new StringBuilder(input.length() + 32);
+        StringBuilder plainSegment = new StringBuilder();
+        boolean inMiniTag = false;
+
+        for (int i = 0; i < input.length(); i++) {
+            char ch = input.charAt(i);
+            if (ch == '<') {
+                if (!inMiniTag) {
+                    appendAutoLinkedPlainSegment(result, plainSegment);
+                    plainSegment.setLength(0);
+                    inMiniTag = true;
+                }
+                result.append(ch);
+                continue;
+            }
+            if (ch == '>') {
+                result.append(ch);
+                if (inMiniTag) {
+                    inMiniTag = false;
+                }
+                continue;
+            }
+
+            if (inMiniTag) {
+                result.append(ch);
+            } else {
+                plainSegment.append(ch);
+            }
+        }
+
+        appendAutoLinkedPlainSegment(result, plainSegment);
+        return result.toString();
+    }
+
+    private void appendAutoLinkedPlainSegment(StringBuilder result, StringBuilder plainSegment) {
+        if (plainSegment == null || plainSegment.length() == 0) {
+            return;
+        }
+
+        String plain = plainSegment.toString();
+        Matcher matcher = URL_PATTERN.matcher(plain);
+        int cursor = 0;
+
+        while (matcher.find()) {
+            result.append(plain, cursor, matcher.start());
+            String displayUrl = matcher.group(1);
+            String openUrl = normalizeOpenUrl(displayUrl);
+            result.append("<click:open_url:'")
+                .append(escapeMiniMessageClickValue(openUrl))
+                .append("'>")
+                .append(displayUrl)
+                    .append("</click>");
+            cursor = matcher.end();
+        }
+
+        if (cursor < plain.length()) {
+            result.append(plain, cursor, plain.length());
+        }
+    }
+
+    private String normalizeOpenUrl(String rawUrl) {
+        if (rawUrl == null || rawUrl.isBlank()) {
+            return "";
+        }
+        String trimmed = rawUrl.trim();
+        if (trimmed.regionMatches(true, 0, "http://", 0, 7)
+                || trimmed.regionMatches(true, 0, "https://", 0, 8)) {
+            return trimmed;
+        }
+        return "https://" + trimmed;
+    }
+
+    private String escapeMiniMessageClickValue(String value) {
+        if (value == null || value.isEmpty()) {
+            return "";
+        }
+        return value.replace("\\", "\\\\").replace("'", "\\'");
     }
 
     private String convertBungeeHex(String input, Pattern pattern, char marker) {

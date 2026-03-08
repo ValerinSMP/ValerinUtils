@@ -84,13 +84,13 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
             Map.entry("speed-success", "%prefix%<gray>Tu velocidad de <yellow>%type% <gray>ha sido ajustada a <green>%speed%<gray>."),
             Map.entry("speed-others", "%prefix%<gray>Velocidad de <yellow>%type% <gray>de <white>%player% <gray>ajustada a <green>%speed%<gray>."),
             Map.entry("nick-usage", "%prefix%<gray>Uso: <yellow>/nick <apodo|off>"),
-            Map.entry("nick-usage-others", "%prefix%<gray>Uso: <yellow>/nick <jugador> <apodo|off>"),
+            Map.entry("nick-usage-others", "%prefix%<gray>Uso: <yellow>/nick <jugador> <apodo> <gray>o <yellow>/nick off <jugador>"),
             Map.entry("nick-success", "%prefix%<gray>Tu apodo ahora es: <white>%nick%"),
             Map.entry("nick-success-others", "%prefix%<gray>Apodo de <white>%player% <gray>actualizado a: <white>%nick%"),
             Map.entry("nick-off", "%prefix%<red>Has desactivado tu apodo."),
             Map.entry("nick-off-others", "%prefix%<gray>Has quitado el apodo de <white>%player%<gray>."),
             Map.entry("nick-no-spaces", "%prefix%<red>El nick no puede contener espacios."),
-            Map.entry("nick-format-not-allowed", "%prefix%<red>No puedes usar ese formato en el nick. Nivel: <yellow>%tier%"),
+            Map.entry("nick-format-not-allowed", "%prefix%<red>No puedes hacer esto. <gray>Usa solo <yellow>letras, numeros y _ <gray>(3-16). Ejemplos validos: <yellow>Steve <gray>o <yellow>Alex_123<gray>."),
             Map.entry("gamemode-success", "%prefix%<green>Modo de juego cambiado a <yellow>%mode%<green>."),
             Map.entry("gamemode-success-others", "%prefix%<green>Modo de juego de <white>%player% <green>cambiado a <yellow>%mode%<green>."),
             Map.entry("hat-success", "%prefix%<green>¡Nuevo sombrero equipado!"),
@@ -272,7 +272,7 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
             playerData.setNickname(sanitized);
         }
 
-        Component nickComp = plugin.parseComponent(sanitized);
+        Component nickComp = Component.text(sanitized);
         player.displayName(nickComp);
         player.playerListName(nickComp);
     }
