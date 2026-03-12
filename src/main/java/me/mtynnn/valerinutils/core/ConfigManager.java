@@ -638,7 +638,7 @@ public class ConfigManager {
         defaults.put("messages.repair-error", "%prefix%<red>Este item no se puede reparar.");
         defaults.put("messages.nick-usage", "%prefix%<gray>Uso: <yellow>/nick <apodo|off>");
         defaults.put("messages.nick-usage-others", "%prefix%<gray>Uso: <yellow>/nick <jugador> <apodo> <gray>o <yellow>/nick off <jugador>");
-        defaults.put("messages.nick-format-not-allowed", "%prefix%<red>No puedes hacer esto. <gray>Usa solo <yellow>letras, numeros y _ <gray>(3-16). Ejemplos validos: <yellow>Steve <gray>o <yellow>Alex_123<gray>.");
+        defaults.put("messages.nick-format-not-allowed", "%prefix%<red>No puedes usar ese formato en el nick. <gray>Tu nivel es <yellow>%tier%<gray>. Permitido: <yellow>%allowed%<gray>. Ejemplos: <yellow>&aNombre <gray>o <yellow><red>Nombre<gray>. <red>No se permite texto obfuscado para evitar nombres ilegibles.");
         defaults.put("messages.nick-no-spaces", "%prefix%<red>El nick no puede contener espacios.");
         defaults.put("messages.nick-success", "%prefix%<gray>Tu apodo ahora es: <white>%nick%");
         defaults.put("messages.nick-success-others", "%prefix%<gray>Apodo de <white>%player% <gray>actualizado a: <white>%nick%");

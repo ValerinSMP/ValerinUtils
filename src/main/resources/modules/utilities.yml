@@ -149,7 +149,7 @@ messages:
   repair-cooldown: "%prefix%<red>Espera <yellow>%time%s <red>antes de volver a usar /fix."
   nick-usage: "%prefix%<gray>Uso: <yellow>/nick <apodo|off>"
   nick-usage-others: "%prefix%<gray>Uso: <yellow>/nick <jugador> <apodo> <gray>o <yellow>/nick off <jugador>"
-  nick-format-not-allowed: "%prefix%<red>No puedes hacer esto. <gray>Usa solo <yellow>letras, numeros y _ <gray>(3-16). Ejemplos validos: <yellow>Steve <gray>o <yellow>Alex_123<gray>."
+  nick-format-not-allowed: "%prefix%<red>No puedes usar ese formato en el nick. <gray>Tu nivel es <yellow>%tier%<gray>. Permitido: <yellow>%allowed%<gray>. Ejemplos: <yellow>&aNombre <gray>o <yellow><red>Nombre<gray>. <red>No se permite texto obfuscado para evitar nombres ilegibles."
   nick-success: "%prefix%<gray>Tu apodo ahora es: <white>%nick%"
   nick-off: "%prefix%<red>Has desactivado tu apodo."
   nick-off-others: "%prefix%<gray>Has quitado el apodo de <white>%player%<gray>."

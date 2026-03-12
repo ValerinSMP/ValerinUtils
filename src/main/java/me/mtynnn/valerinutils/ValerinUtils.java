@@ -364,6 +364,12 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
                             ? key.substring(namespaceSplit + 1)
                             : key;
                     current = getCommand(raw);
+                    if (current == null) {
+                        String primary = resolvePrimaryCommandFromLabel(raw);
+                        if (primary != null) {
+                            current = getCommand(primary);
+                        }
+                    }
                 }
                 if (current == null) {
                     continue;
@@ -519,6 +525,15 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
                 PluginCommand fresh = ctor.newInstance(lower, this);
                 knownCommands.put(lower, fresh);
                 knownCommands.put(namespace + ":" + lower, fresh);
+
+                for (String alias : getAliasesForCommand(cmdName)) {
+                    String aliasLower = alias.toLowerCase(Locale.ROOT);
+                    Command aliasExisting = knownCommands.get(aliasLower);
+                    if (aliasExisting == null || (aliasExisting instanceof PluginCommand pc && isStaleValerinCommand(pc))) {
+                        knownCommands.put(aliasLower, fresh);
+                        knownCommands.put(namespace + ":" + aliasLower, fresh);
+                    }
+                }
                 reinstated++;
             }
             if (reinstated > 0) {
@@ -612,9 +627,15 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             if (knownCommands == null) return;
 
             int patched = 0;
-            for (String cmdName : getDescription().getCommands().keySet()) {
-                String lower = cmdName.toLowerCase(Locale.ROOT);
+            for (String label : getAllDeclaredCommandLabels()) {
+                String lower = label.toLowerCase(Locale.ROOT);
                 PluginCommand fresh = getCommand(lower);
+                if (fresh == null) {
+                    String primary = resolvePrimaryCommandFromLabel(lower);
+                    if (primary != null) {
+                        fresh = getCommand(primary);
+                    }
+                }
                 if (fresh != null) {
                     Command existing = knownCommands.get(lower);
                     if (existing instanceof PluginCommand pc && isStaleValerinCommand(pc)) {
@@ -635,6 +656,77 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private boolean isStaleValerinCommand(PluginCommand pc) {
         Plugin owner = pc.getPlugin();
         return owner != null && owner.getName().equalsIgnoreCase(getName()) && owner != this;
+    }
+
+    @SuppressWarnings("unchecked")
+    private String resolvePrimaryCommandFromLabel(String label) {
+        if (label == null || label.isBlank() || getDescription() == null || getDescription().getCommands() == null) {
+            return null;
+        }
+
+        String probe = label.toLowerCase(Locale.ROOT);
+        if (getDescription().getCommands().containsKey(probe)) {
+            return probe;
+        }
+
+        for (Map.Entry<String, Map<String, Object>> entry : getDescription().getCommands().entrySet()) {
+            Object aliasesRaw = entry.getValue().get("aliases");
+            if (aliasesRaw instanceof String aliasSingle) {
+                if (aliasSingle.equalsIgnoreCase(probe)) {
+                    return entry.getKey().toLowerCase(Locale.ROOT);
+                }
+                continue;
+            }
+
+            if (aliasesRaw instanceof List<?> aliasList) {
+                for (Object aliasObj : aliasList) {
+                    if (aliasObj != null && probe.equalsIgnoreCase(aliasObj.toString())) {
+                        return entry.getKey().toLowerCase(Locale.ROOT);
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private List<String> getAliasesForCommand(String commandName) {
+        if (getDescription() == null || getDescription().getCommands() == null) {
+            return Collections.emptyList();
+        }
+        Map<String, Object> meta = getDescription().getCommands().get(commandName);
+        if (meta == null) {
+            return Collections.emptyList();
+        }
+
+        Object aliasesRaw = meta.get("aliases");
+        if (aliasesRaw instanceof String aliasSingle) {
+            return List.of(aliasSingle);
+        }
+        if (aliasesRaw instanceof List<?> aliasList) {
+            List<String> out = new ArrayList<>();
+            for (Object aliasObj : aliasList) {
+                if (aliasObj != null) {
+                    out.add(aliasObj.toString());
+                }
+            }
+            return out;
+        }
+        return Collections.emptyList();
+    }
+
+    private Set<String> getAllDeclaredCommandLabels() {
+        Set<String> labels = new HashSet<>();
+        if (getDescription() == null || getDescription().getCommands() == null) {
+            return labels;
+        }
+
+        for (String cmdName : getDescription().getCommands().keySet()) {
+            labels.add(cmdName.toLowerCase(Locale.ROOT));
+            for (String alias : getAliasesForCommand(cmdName)) {
+                labels.add(alias.toLowerCase(Locale.ROOT));
+            }
+        }
+        return labels;
     }
 
     private void logCommandRegistrationState() {

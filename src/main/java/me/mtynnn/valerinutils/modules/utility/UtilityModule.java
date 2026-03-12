@@ -90,7 +90,7 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
             Map.entry("nick-off", "%prefix%<red>Has desactivado tu apodo."),
             Map.entry("nick-off-others", "%prefix%<gray>Has quitado el apodo de <white>%player%<gray>."),
             Map.entry("nick-no-spaces", "%prefix%<red>El nick no puede contener espacios."),
-            Map.entry("nick-format-not-allowed", "%prefix%<red>No puedes hacer esto. <gray>Usa solo <yellow>letras, numeros y _ <gray>(3-16). Ejemplos validos: <yellow>Steve <gray>o <yellow>Alex_123<gray>."),
+            Map.entry("nick-format-not-allowed", "%prefix%<red>No puedes usar ese formato en el nick. <gray>Tu nivel es <yellow>%tier%<gray>. Permitido: <yellow>%allowed%<gray>. Ejemplos: <yellow>&aNombre <gray>o <yellow><red>Nombre<gray>. <red>No se permite texto obfuscado para evitar nombres ilegibles."),
             Map.entry("gamemode-success", "%prefix%<green>Modo de juego cambiado a <yellow>%mode%<green>."),
             Map.entry("gamemode-success-others", "%prefix%<green>Modo de juego de <white>%player% <green>cambiado a <yellow>%mode%<green>."),
             Map.entry("hat-success", "%prefix%<green>¡Nuevo sombrero equipado!"),
@@ -261,7 +261,8 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
         }
 
         String sanitized = nickManager.sanitizeStoredNickname(playerData.getNickname());
-        if (sanitized == null) {
+        UtilityNickManager.NickTier tier = nickManager.resolveTier(player);
+        if (sanitized == null || !nickManager.isFormatAllowed(sanitized, tier)) {
             playerData.setNickname(null);
             player.displayName(Component.text(player.getName()));
             player.playerListName(Component.text(player.getName()));
@@ -272,7 +273,7 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
             playerData.setNickname(sanitized);
         }
 
-        Component nickComp = Component.text(sanitized);
+        Component nickComp = plugin.parseComponent(sanitized);
         player.displayName(nickComp);
         player.playerListName(nickComp);
     }
@@ -524,6 +525,8 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
         final int r = radius;
         String players = player.getNearbyEntities(r, r, r).stream()
                 .filter(entity -> entity instanceof Player)
+            .map(entity -> (Player) entity)
+            .filter(target -> isVisibleForNear(player, target))
                 .map(entity -> ((Player) entity).getName()
                         + " (<yellow>" + (int) entity.getLocation().distance(player.getLocation()) + "m<white>)")
                 .collect(Collectors.joining("<gray>, <white>"));
@@ -535,6 +538,14 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
                     .replace("%radius%", String.valueOf(r))
                     .replace("%players%", players));
         }
+    }
+
+    private boolean isVisibleForNear(Player viewer, Player target) {
+        if (target == null || !target.isOnline() || target.equals(viewer)) {
+            return false;
+        }
+        // Respect vanish/hidden state managed by other plugins.
+        return viewer.canSee(target);
     }
 
     private void handleTop(Player player) {

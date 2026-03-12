@@ -78,25 +78,49 @@ final class UtilityNickCommand {
         }
 
         String nickRaw = String.join(" ", java.util.Arrays.copyOfRange(args, startIndex, args.length));
-        if (!nickManager.isMinecraftStyleNickname(nickRaw)) {
-            sender.sendMessage(module.getMessage("nick-format-not-allowed"));
+        if (nickManager.containsWhitespace(nickRaw)) {
+            sender.sendMessage(module.getMessage("nick-no-spaces"));
             return;
         }
 
-        String nickFinal = nickRaw.trim();
+        UtilityNickManager.NickTier tier = resolveSenderTier(sender);
+        if (!nickManager.isFormatAllowed(nickRaw, tier)) {
+            sender.sendMessage(module.getMessage("nick-format-not-allowed")
+                    .replace("%tier%", tier.asConfigValue())
+                    .replace("%allowed%", describeAllowedByTier(tier)));
+            return;
+        }
+
+        String nickFinal = nickManager.withTrailingReset(nickRaw);
         playerData.setNickname(nickFinal);
-        Component nickComponent = Component.text(nickFinal);
+        Component nickComponent = module.plugin().parseComponent(nickFinal);
         target.displayName(nickComponent);
         target.playerListName(nickComponent);
 
         if (sender.getName().equalsIgnoreCase(target.getName())) {
-            target.sendMessage(module.getMessage("nick-success").replace("%nick%", nickFinal));
+            target.sendMessage(module.getMessage("nick-success").replace("%nick%", module.plugin().translateColors(nickFinal)));
         } else {
             sender.sendMessage(module.getMessage("nick-success-others")
                     .replace("%player%", target.getName())
-                    .replace("%nick%", nickFinal));
-            target.sendMessage(module.getMessage("nick-success").replace("%nick%", nickFinal));
+                    .replace("%nick%", module.plugin().translateColors(nickFinal)));
+            target.sendMessage(module.getMessage("nick-success").replace("%nick%", module.plugin().translateColors(nickFinal)));
         }
+    }
+
+    private UtilityNickManager.NickTier resolveSenderTier(CommandSender sender) {
+        if (sender instanceof Player player) {
+            return nickManager.resolveTier(player);
+        }
+        return UtilityNickManager.NickTier.HEX;
+    }
+
+    private String describeAllowedByTier(UtilityNickManager.NickTier tier) {
+        return switch (tier) {
+            case NONE -> "sin formatos (solo texto)";
+            case BASIC -> "colores basicos legacy/MiniMessage (sin hex ni formatos)";
+            case FORMAT -> "colores basicos + bold/italic/underlined/strikethrough (sin obfuscado)";
+            case HEX -> "colores basicos + formatos + hex/gradient (sin obfuscado)";
+        };
     }
 
     private void clearNick(CommandSender sender, Player target) {
