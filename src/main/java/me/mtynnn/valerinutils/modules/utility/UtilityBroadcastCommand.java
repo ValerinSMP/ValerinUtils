@@ -27,7 +27,7 @@ final class UtilityBroadcastCommand {
             return;
         }
         if (args.length == 0) {
-            sender.sendMessage(module.getMessage("broadcast-usage"));
+            module.getMessageLines("broadcast-usage").forEach(sender::sendMessage);
             module.plugin().debug(module.getId(), "Broadcast cancelado: sin argumentos (" + sender.getName() + ").");
             return;
         }
@@ -53,6 +53,8 @@ final class UtilityBroadcastCommand {
         int sentLines = 0;
         for (String line : formattedLines) {
             String formatted = line.replace("%message%", message);
+            // Apply center formatting if line contains {center}
+            formatted = applyCenter(formatted);
             Bukkit.broadcast(module.plugin().parseComponent(formatted));
             sentLines++;
         }
@@ -60,5 +62,61 @@ final class UtilityBroadcastCommand {
             module.playSound(online, "broadcast");
         }
         module.plugin().debug(module.getId(), "Broadcast enviado por " + sender.getName() + " con " + sentLines + " linea(s).");
+    }
+
+    /**
+     * Centers text by replacing {center} tags with appropriate spacing.
+     * Minecraft chat is approximately 50 characters wide.
+     * Emoji and wide characters count as ~2 width units.
+     */
+    private String applyCenter(String line) {
+        if (!line.contains("{center}")) {
+            return line;
+        }
+
+        String[] parts = line.split("\\{center\\}");
+        if (parts.length < 2) {
+            return line;
+        }
+
+        String beforeCenter = parts[0];
+        String textToCenter = parts[1];
+
+        // Extract visible text length (remove MiniMessage tags)
+        String visibleText = textToCenter.replaceAll("<[^>]*>", "");
+        
+        // Calculate visual width considering emoji and wide characters
+        int visualWidth = calculateVisualWidth(visibleText);
+        
+        // Minecraft chat width is approximately 50 characters
+        int chatWidth = 50;
+        int padding = Math.max(0, (chatWidth - visualWidth) / 2);
+        String spaces = " ".repeat(padding);
+
+        return beforeCenter + spaces + textToCenter;
+    }
+
+    /**
+     * Calculates the visual width of text in Minecraft.
+     * Emoji and certain unicode ranges count as 2 width units.
+     */
+    private int calculateVisualWidth(String text) {
+        int width = 0;
+        for (char ch : text.toCharArray()) {
+            // Emoji ranges and wide characters
+            if ((ch >= 0x1F000 && ch <= 0x1F9FF) ||  // Emoji range
+                (ch >= 0x2600 && ch <= 0x26FF) ||    // Miscellaneous Symbols
+                (ch >= 0x2700 && ch <= 0x27BF) ||    // Dingbats
+                Character.isSupplementaryCodePoint(ch)) {
+                width += 2;  // Emoji take ~2 width units
+            } else if (Character.isUpperCase(ch)) {
+                width += 1;
+            } else if (ch == ' ') {
+                width += 1;
+            } else {
+                width += 1;  // Regular characters
+            }
+        }
+        return width;
     }
 }

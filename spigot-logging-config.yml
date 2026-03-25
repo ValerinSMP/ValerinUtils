@@ -1,0 +1,25 @@
+# Configuración recomendada para spigot.yml
+# Agregar estas líneas a tu spigot.yml en el servidor
+
+# ============================================
+# LOGGING CONFIGURATION
+# ============================================
+# Opción 1: Deshabilitar logs genéricos de comandos
+commands:
+  log: false
+
+# O Opción 2: En logback.xml (si lo tienes configurado)
+# Agregar en tu logback.xml:
+# <logger name="org.bukkit.command.Command" level="OFF"/>
+# <logger name="org.bukkit.command" level="OFF"/>
+
+# Resultado esperado:
+# ✅ Se mantiene: [vChat] [PM] remisol -> zKlowd: increíble que la tomaronnnnnnnn
+# ❌ Se elimina:  remisol issued server command: /r increíble que la tomaronnnnnnnn
+
+# ============================================
+# EXPLICACIÓN
+# ============================================
+# - El log de vChat es específico y útil para auditoría de mensajes privados
+# - El log genérico "issued server command" es redundante y solo agrega ruido
+# - Con esta configuración, los logs serán más limpios sin perder información importante

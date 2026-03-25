@@ -128,7 +128,6 @@ commands:
   sell:
     description: Vende items de la mano o inventario
     usage: /sell <hand|inventory>
-    aliases: [sellhand, sellinventory]
   vtop:
     description: Te teletransporta al bloque más alto
     usage: /vtop

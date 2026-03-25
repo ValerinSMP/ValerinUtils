@@ -19,7 +19,7 @@ final class UtilityNickCommand {
 
     void execute(CommandSender sender, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(module.getMessage("nick-usage"));
+            module.getMessageLines("nick-usage").forEach(sender::sendMessage);
             return;
         }
 
@@ -55,7 +55,7 @@ final class UtilityNickCommand {
         }
 
         if (senderPlayer == null) {
-            sender.sendMessage(module.getMessage("nick-usage-others"));
+            module.getMessageLines("nick-usage-others").forEach(sender::sendMessage);
             return;
         }
 

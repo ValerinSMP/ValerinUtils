@@ -119,6 +119,9 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
             Map.entry("sell-economy-missing", "%prefix%<red>No se detectó economía (Vault)."),
             Map.entry("sell-nothing", "%prefix%<gray>No tienes items vendibles."),
             Map.entry("sell-success", "%prefix%<green>Vendiste <white>%items% <green>items por <yellow>$%amount%<green>."),
+            Map.entry("sell-enchanted", "%prefix%<red>No puedes vender items encantados."),
+            Map.entry("sell-damaged", "%prefix%<red>No puedes vender items dañados. Deben estar en perfecto estado."),
+            Map.entry("sell-custom", "%prefix%<red>No puedes vender items personalizados (custom)."),
             Map.entry("broadcast-usage", "%prefix%<gray>Uso: <yellow>/broadcast <mensaje> <gray>o <yellow>/vubroadcast <mensaje>"),
             Map.entry("helpop-usage", "%prefix%<gray>Uso: <yellow>/helpop <mensaje>"),
             Map.entry("helpop-sent", "%prefix%<green>Tu reporte fue enviado al staff <gray>(<white>%staff%<gray>)."),
@@ -216,7 +219,7 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
                 if (args.length > 0) {
                     seenCommand.execute(player, args[0]);
                 } else {
-                    player.sendMessage(getMessage("seen-usage"));
+                    getMessageLines("seen-usage").forEach(player::sendMessage);
                 }
             }
             case "clear" -> handleClear(player, args);
@@ -333,7 +336,7 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
 
     private void handleSpeed(Player player, String[] args) {
         if (args.length == 0) {
-            player.sendMessage(getMessage("speed-usage"));
+            getMessageLines("speed-usage").forEach(player::sendMessage);
             return;
         }
 
@@ -462,7 +465,7 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
         if (!checkStatus(player, "repair"))
             return;
         if (args.length > 0 && !args[0].equalsIgnoreCase("hand")) {
-            player.sendMessage(getMessage("repair-usage"));
+            getMessageLines("repair-usage").forEach(player::sendMessage);
             return;
         }
         int cd = Math.max(0, getConfig().getInt("commands.repair.cooldown-seconds", 0));
@@ -842,6 +845,11 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
             return plugin.translateColors(fallback);
         }
         return resolved;
+    }
+
+    List<String> getMessageLines(String key) {
+        List<String> lines = plugin.messages().moduleList(getId(), key);
+        return lines != null && !lines.isEmpty() ? lines : List.of(getMessage(key));
     }
 
     private boolean isCommandEnabled(String commandName) {

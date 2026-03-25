@@ -29,7 +29,7 @@ final class UtilitySellCommand {
             return;
         }
         if (args.length == 0) {
-            player.sendMessage(module.getMessage("sell-usage"));
+            module.getMessageLines("sell-usage").forEach(player::sendMessage);
             return;
         }
 
@@ -50,7 +50,7 @@ final class UtilitySellCommand {
             case "hand" -> sellHand(player, prices);
             case "inventory", "inv", "all" -> sellInventory(player, prices);
             default -> {
-                player.sendMessage(module.getMessage("sell-usage"));
+                module.getMessageLines("sell-usage").forEach(player::sendMessage);
                 yield SellResult.empty();
             }
         };
@@ -71,6 +71,13 @@ final class UtilitySellCommand {
         if (isEmpty(item)) {
             return SellResult.empty();
         }
+        
+        String rejectionReason = getItemRejectionReason(item);
+        if (rejectionReason != null) {
+            player.sendMessage(module.getMessage(rejectionReason));
+            return SellResult.empty();
+        }
+        
         double unitPrice = getSellPrice(prices, item.getType());
         if (unitPrice <= 0D) {
             return SellResult.empty();
@@ -90,6 +97,12 @@ final class UtilitySellCommand {
             if (isEmpty(stack)) {
                 continue;
             }
+            
+            // Skip items that don't meet sell requirements
+            if (getItemRejectionReason(stack) != null) {
+                continue;
+            }
+            
             double unitPrice = getSellPrice(prices, stack.getType());
             if (unitPrice <= 0D) {
                 continue;
@@ -134,6 +147,63 @@ final class UtilitySellCommand {
     private boolean isEmpty(ItemStack item) {
         return item == null || item.getType().isAir() || item.getAmount() <= 0;
     }
+
+    /**
+     * Checks if an item can be sold. Returns the rejection reason key if the item cannot be sold,
+     * or null if the item is valid for selling.
+     * 
+     * Requirements for a valid item:
+     * - No enchantments
+     * - No durability damage (must be in perfect condition)
+     * - No custom metadata (CustomModelData, DisplayName, Lore, etc.)
+     */
+    private String getItemRejectionReason(ItemStack item) {
+        if (item == null || item.getType().isAir()) {
+            return null; // Empty slot is handled separately
+        }
+
+        // Check for enchantments
+        if (!item.getEnchantments().isEmpty()) {
+            return "sell-enchanted";
+        }
+
+        // Check for durability damage (for items that have max durability)
+        if (item.getType().getMaxDurability() > 0) {
+            var meta = item.getItemMeta();
+            if (meta instanceof org.bukkit.inventory.meta.Damageable damageable) {
+                if (damageable.getDamage() > 0) {
+                    return "sell-damaged";
+                }
+            }
+        }
+
+        // Check for custom metadata (CustomModelData, DisplayName, Lore, etc.)
+        var meta = item.getItemMeta();
+        if (meta != null) {
+            // Check for CustomModelData (main indicator of custom items)
+            if (meta.hasCustomModelData()) {
+                return "sell-custom";
+            }
+            
+            // Check for custom DisplayName (renombrado)
+            if (meta.hasDisplayName()) {
+                return "sell-custom";
+            }
+            
+            // Check for custom Lore (descripción personalizada)
+            if (meta.hasLore()) {
+                return "sell-custom";
+            }
+            
+            // Check for any other modification (enchant glint, unbreakable, etc.)
+            if (meta.hasEnchants() || meta.isUnbreakable()) {
+                return "sell-custom";
+            }
+        }
+
+        return null; // Item is valid for selling
+    }
+
 
     private String formatMoney(double amount) {
         return String.format(Locale.US, "%,.2f", amount);

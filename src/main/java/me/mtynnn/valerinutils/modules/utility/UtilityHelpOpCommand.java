@@ -25,13 +25,13 @@ final class UtilityHelpOpCommand {
         }
 
         if (args.length == 0) {
-            sender.sendMessage(module.getMessage("helpop-usage"));
+            module.getMessageLines("helpop-usage").forEach(sender::sendMessage);
             return;
         }
 
         String message = String.join(" ", args).trim();
         if (message.isBlank()) {
-            sender.sendMessage(module.getMessage("helpop-usage"));
+            module.getMessageLines("helpop-usage").forEach(sender::sendMessage);
             return;
         }
 

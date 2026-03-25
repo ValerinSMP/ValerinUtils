@@ -16,7 +16,7 @@ final class UtilityPersonalWorldCommands {
             return;
         }
         if (args.length == 0) {
-            player.sendMessage(module.getMessage("ptime-usage"));
+            module.getMessageLines("ptime-usage").forEach(player::sendMessage);
             return;
         }
         String mode = args[0].toLowerCase();
@@ -39,7 +39,7 @@ final class UtilityPersonalWorldCommands {
                     player.setPlayerTime(ticks, false);
                     player.sendMessage(module.getMessage("ptime-set").replace("%value%", String.valueOf(ticks)));
                 } catch (NumberFormatException ex) {
-                    player.sendMessage(module.getMessage("ptime-usage"));
+                    module.getMessageLines("ptime-usage").forEach(player::sendMessage);
                 }
             }
         }
@@ -50,7 +50,7 @@ final class UtilityPersonalWorldCommands {
             return;
         }
         if (args.length == 0) {
-            player.sendMessage(module.getMessage("pweather-usage"));
+            module.getMessageLines("pweather-usage").forEach(player::sendMessage);
             return;
         }
         String mode = args[0].toLowerCase();
@@ -67,7 +67,7 @@ final class UtilityPersonalWorldCommands {
                 player.resetPlayerWeather();
                 player.sendMessage(module.getMessage("pweather-reset"));
             }
-            default -> player.sendMessage(module.getMessage("pweather-usage"));
+            default -> module.getMessageLines("pweather-usage").forEach(player::sendMessage);
         }
     }
 }
