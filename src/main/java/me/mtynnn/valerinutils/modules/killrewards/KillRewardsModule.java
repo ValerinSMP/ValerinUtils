@@ -57,7 +57,9 @@ public class KillRewardsModule extends BaseModule implements Listener {
 
     @Override
     protected void onDisableModule() {
-        HandlerList.unregisterAll(this);
+        try {
+            HandlerList.unregisterAll(this);
+        } catch (Exception ignored) {}
         cooldowns.clear();
     }
 

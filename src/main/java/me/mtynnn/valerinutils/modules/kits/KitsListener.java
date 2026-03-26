@@ -68,12 +68,16 @@ final class KitsListener implements Listener {
                         menuHolder, event.getClick());
             }
         }
+        if (holder instanceof KitsEditorHolder editorHolder && event.getWhoClicked() instanceof org.bukkit.entity.Player player) {
+            event.setCancelled(true);
+            module.commandHandler().onEditorClick(player, event.getRawSlot(), editorHolder);
+        }
     }
 
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
         Object holder = event.getView().getTopInventory().getHolder();
-        if (holder instanceof KitsPreviewHolder || holder instanceof KitsMenuHolder) {
+        if (holder instanceof KitsPreviewHolder || holder instanceof KitsMenuHolder || holder instanceof KitsEditorHolder) {
             event.setCancelled(true);
         }
     }
@@ -81,7 +85,7 @@ final class KitsListener implements Listener {
     @EventHandler
     public void onInventoryCreative(InventoryCreativeEvent event) {
         Object holder = event.getView().getTopInventory().getHolder();
-        if (holder instanceof KitsPreviewHolder || holder instanceof KitsMenuHolder) {
+        if (holder instanceof KitsPreviewHolder || holder instanceof KitsMenuHolder || holder instanceof KitsEditorHolder) {
             event.setCancelled(true);
         }
     }
@@ -89,7 +93,7 @@ final class KitsListener implements Listener {
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
         Object holder = event.getView().getTopInventory().getHolder();
-        if (holder instanceof KitsPreviewHolder || holder instanceof KitsMenuHolder) {
+        if (holder instanceof KitsPreviewHolder || holder instanceof KitsMenuHolder || holder instanceof KitsEditorHolder) {
             event.getView().getTopInventory().clear();
         }
         if (holder instanceof KitsMenuHolder && event.getPlayer() instanceof org.bukkit.entity.Player player) {
@@ -97,6 +101,10 @@ final class KitsListener implements Listener {
         }
         if (holder instanceof KitsPreviewHolder && event.getPlayer() instanceof org.bukkit.entity.Player player) {
             module.commandHandler().onPreviewClosed(player);
+        }
+        if (holder instanceof KitsEditorHolder && event.getPlayer() instanceof org.bukkit.entity.Player player) {
+            // Remove from editor sessions when inventory is closed
+            module.commandHandler().onEditorClosed(player);
         }
     }
 

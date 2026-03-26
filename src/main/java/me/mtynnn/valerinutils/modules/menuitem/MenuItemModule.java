@@ -74,12 +74,16 @@ public class MenuItemModule extends BaseModule implements Listener {
     @Override
     protected void onDisableModule() {
         // Unregister all event handlers
-        org.bukkit.event.HandlerList.unregisterAll(this);
+        try {
+            org.bukkit.event.HandlerList.unregisterAll(this);
+        } catch (Exception ignored) {}
 
         // Remove menu items from all online players
-        for (org.bukkit.entity.Player player : plugin.getServer().getOnlinePlayers()) {
-            clearMenuItem(player);
-        }
+        try {
+            for (org.bukkit.entity.Player player : plugin.getServer().getOnlinePlayers()) {
+                clearMenuItem(player);
+            }
+        } catch (Exception ignored) {}
 
         // Invalidate cache
         invalidateCache();

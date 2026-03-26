@@ -386,7 +386,9 @@ public class JoinQuitModule extends BaseModule implements Listener {
 
     @Override
     protected void onDisableModule() {
-        org.bukkit.event.HandlerList.unregisterAll(this);
+        try {
+            org.bukkit.event.HandlerList.unregisterAll(this);
+        } catch (Exception ignored) {}
         // unique-players data logic remains in flat file joinquit_data.yml for now
         // as migrating it to global player DB implies tracking every single offline
         // player ever joined?

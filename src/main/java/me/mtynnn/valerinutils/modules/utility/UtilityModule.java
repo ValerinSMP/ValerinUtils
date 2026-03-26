@@ -175,7 +175,25 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
 
     @Override
     protected void onDisableModule() {
-        HandlerList.unregisterAll(this);
+        try {
+            HandlerList.unregisterAll(this);
+        } catch (Exception ignored) {}
+        
+        // Clear cooldown maps
+        healCooldowns.clear();
+        repairCooldowns.clear();
+        
+        // Clear condense map
+        condenseMap.clear();
+        
+        // Close any open disposal inventories
+        try {
+            for (org.bukkit.entity.Player player : Bukkit.getOnlinePlayers()) {
+                if (player.getOpenInventory().getTopInventory().getHolder() instanceof UtilityDisposalHolder) {
+                    player.closeInventory();
+                }
+            }
+        } catch (Exception ignored) {}
     }
 
     @Override

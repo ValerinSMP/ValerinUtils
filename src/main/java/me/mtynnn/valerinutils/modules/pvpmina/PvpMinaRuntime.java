@@ -56,11 +56,22 @@ final class PvpMinaRuntime {
     void disable() {
         persistRuntimeState();
         if (rotationTask != null && !rotationTask.isCancelled()) {
-            rotationTask.cancel();
+            try {
+                rotationTask.cancel();
+            } catch (Exception ignored) {}
         }
+        rotationTask = null;
+        
         if (activeBossBar != null) {
-            activeBossBar.removeAll();
+            try {
+                activeBossBar.removeAll();
+            } catch (Exception ignored) {}
         }
+        activeBossBar = null;
+        
+        currentBlockedItems.clear();
+        currentMode = null;
+        nextRotationTime = null;
     }
 
     FileConfiguration getConfig() {

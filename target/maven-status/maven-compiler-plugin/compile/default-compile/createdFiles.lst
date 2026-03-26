@@ -15,6 +15,7 @@ me\mtynnn\valerinutils\utils\SignMenuFactory.class
 me\mtynnn\valerinutils\modules\pvpmina\PvpMinaModule.class
 me\mtynnn\valerinutils\modules\utility\UtilityModule.class
 me\mtynnn\valerinutils\modules\kits\KitsPreviewHolder.class
+me\mtynnn\valerinutils\modules\kits\KitsEditorHolder.class
 me\mtynnn\valerinutils\modules\codes\CodesModule.class
 me\mtynnn\valerinutils\modules\menuitem\MenuItemModule.class
 me\mtynnn\valerinutils\modules\kits\KitsAutoKitService.class

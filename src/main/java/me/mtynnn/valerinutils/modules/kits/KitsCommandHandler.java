@@ -29,12 +29,15 @@ import java.util.stream.Collectors;
 
 final class KitsCommandHandler implements CommandExecutor, TabCompleter {
     private static final String COOLDOWN_FILE = "kits-cooldowns.yml";
+    private static final int MAX_SHULKERS = 6;
+    private static final int MAX_TOTAL_ITEMS = 100;
     private final ValerinUtils plugin;
     private final KitsModule module;
     private final KitsAutoKitService autoKitService;
     private final Map<UUID, String> selectedByPlayer = new HashMap<>();
     private final Map<UUID, Integer> previewReturnPage = new HashMap<>();
     private final Map<UUID, BukkitTask> menuRefreshTasks = new HashMap<>();
+    private final Map<UUID, String> editorSessions = new HashMap<>();  // UUID -> kitName
     private final File file;
     private final FileConfiguration data;
 
@@ -48,10 +51,35 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
 
     void saveState() {
         saveData();
+        cleanupForReload();
+    }
+
+    void cleanupForReload() {
+        // Cancel all refresh tasks
         for (BukkitTask task : menuRefreshTasks.values()) {
-            if (task != null) task.cancel();
+            if (task != null) {
+                try {
+                    task.cancel();
+                } catch (Exception ignored) {}
+            }
         }
         menuRefreshTasks.clear();
+        
+        // Close all open menus
+        try {
+            for (org.bukkit.entity.Player player : Bukkit.getOnlinePlayers()) {
+                if (player.getOpenInventory().getTopInventory().getHolder() instanceof KitsMenuHolder ||
+                    player.getOpenInventory().getTopInventory().getHolder() instanceof KitsPreviewHolder ||
+                    player.getOpenInventory().getTopInventory().getHolder() instanceof KitsEditorHolder) {
+                    player.closeInventory();
+                }
+            }
+        } catch (Exception ignored) {}
+        
+        // Clear all tracking maps
+        selectedByPlayer.clear();
+        previewReturnPage.clear();
+        editorSessions.clear();
     }
 
     void onPlayerQuit(Player player) {
@@ -168,6 +196,12 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
             }
             case "delete" -> { if (!sender.hasPermission("valerinutils.kits.admin")) { sender.sendMessage(plugin.translateColors(plugin.getConfigManager().getConfig("settings").getString("messages.no-permission", "&cNo tienes permiso."))); return true; } if (args.length < 2) { sender.sendMessage(plugin.translateColors("%prefix%&cUso: /vukits delete <nombre>")); return true; } deleteKit(sender, args[1]); }
             case "reset" -> { if (!sender.hasPermission("valerinutils.kits.admin")) { sender.sendMessage(plugin.translateColors(plugin.getConfigManager().getConfig("settings").getString("messages.no-permission", "&cNo tienes permiso."))); return true; } if (args.length < 2) { sender.sendMessage(plugin.translateColors("%prefix%&cUso: /vukits reset <jugador>")); return true; } resetStarter(sender, args[1]); }
+            case "editor" -> {
+                if (!(sender instanceof Player p)) { sender.sendMessage(plugin.translateColors("%prefix%&cEste subcomando solo funciona en juego.")); return true; }
+                if (!p.hasPermission("valerinutils.kits.admin")) return noPerms(p);
+                if (args.length < 2) { p.sendMessage(plugin.translateColors("%prefix%&cUso: /vukits editor <nombre>")); return true; }
+                openKitEditor(p, args[1]);
+            }
             case "list" -> list(sender);
             case "inicial" -> { if (!(sender instanceof Player p)) { sender.sendMessage(plugin.translateColors("%prefix%&cEste subcomando solo funciona en juego.")); return true; } autoKitService.claimInitialKit(p); }
             case "debug" -> {
@@ -464,6 +498,171 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         }
     }
 
+    private void openKitEditor(Player player, String kitName) {
+        FileConfiguration cfg = module.getConfig();
+        String path = "kits." + kitName;
+        
+        if (!cfg.contains(path)) {
+            player.sendMessage(plugin.translateColors("%prefix%&cEl kit &e" + kitName + " &cno existe."));
+            return;
+        }
+        
+        List<ItemStack> kitItems = loadKitItems(cfg, path);
+        
+        // Create 6-row inventory for editor (54 slots total)
+        String displayName = cfg.getString(path + ".display_name", "&8Editor: " + kitName);
+        Inventory editor = Bukkit.createInventory(new KitsEditorHolder(kitName), 54, 
+                plugin.translateColors(displayName));
+        
+        // Load items into inventory, respecting MAX_TOTAL_ITEMS limit
+        int itemCount = 0;
+        for (ItemStack shulker : kitItems) {
+            if (itemCount >= MAX_TOTAL_ITEMS) break;
+            
+            if (shulker == null || shulker.getType().isAir()) continue;
+            
+            // If it's a shulker box, extract its contents
+            if (shulker.getType().name().contains("SHULKER_BOX")) {
+                ItemMeta meta = shulker.getItemMeta();
+                if (meta instanceof BlockStateMeta bsm && bsm.getBlockState() instanceof ShulkerBox box) {
+                    for (ItemStack item : box.getInventory().getContents()) {
+                        if (item == null || item.getType().isAir()) continue;
+                        if (itemCount >= MAX_TOTAL_ITEMS) break;
+                        
+                        int nextSlot = editor.firstEmpty();
+                        if (nextSlot >= 0 && nextSlot < 48) { // Reserve last 6 slots for buttons
+                            editor.setItem(nextSlot, item.clone());
+                            itemCount++;
+                        }
+                    }
+                } else {
+                    // Not a proper shulker, add as regular item
+                    int nextSlot = editor.firstEmpty();
+                    if (nextSlot >= 0 && nextSlot < 48) {
+                        editor.setItem(nextSlot, shulker.clone());
+                        itemCount++;
+                    }
+                }
+            } else {
+                // Regular item
+                int nextSlot = editor.firstEmpty();
+                if (nextSlot >= 0 && nextSlot < 48) {
+                    editor.setItem(nextSlot, shulker.clone());
+                    itemCount++;
+                }
+            }
+        }
+        
+        // Add Save button at slot 48 (green checkmark)
+        ItemStack saveButton = new ItemStack(Material.LIME_CONCRETE);
+        ItemMeta saveMeta = saveButton.getItemMeta();
+        saveMeta.displayName(plugin.parseComponent("<#77DD77>✓ <bold>Guardar</bold>").decoration(TextDecoration.ITALIC, false));
+        saveButton.setItemMeta(saveMeta);
+        editor.setItem(48, saveButton);
+        
+        // Add Cancel button at slot 49 (red X)
+        ItemStack cancelButton = new ItemStack(Material.RED_CONCRETE);
+        ItemMeta cancelMeta = cancelButton.getItemMeta();
+        cancelMeta.displayName(plugin.parseComponent("<#FF5555>✕ <bold>Cancelar</bold>").decoration(TextDecoration.ITALIC, false));
+        cancelButton.setItemMeta(cancelMeta);
+        editor.setItem(49, cancelButton);
+        
+        // Add filler blocks in remaining slots (50-53)
+        ItemStack filler = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+        ItemMeta fillerMeta = filler.getItemMeta();
+        fillerMeta.displayName(Component.text(" ").decoration(TextDecoration.ITALIC, false));
+        filler.setItemMeta(fillerMeta);
+        for (int i = 50; i < 54; i++) {
+            editor.setItem(i, filler.clone());
+        }
+        
+        // Track editor session
+        editorSessions.put(player.getUniqueId(), kitName);
+        
+        // Open inventory
+        player.openInventory(editor);
+        player.sendMessage(plugin.translateColors("%prefix%&aEditando kit &e" + kitName + "&a. Añade/quita items y haz clic en &fGuardar&a."));
+    }
+
+    private void saveKitFromEditor(Player player, String kitName) {
+        FileConfiguration cfg = module.getConfig();
+        String path = "kits." + kitName;
+        
+        Inventory editorInv = player.getOpenInventory().getTopInventory();
+        
+        // Extract items from editor inventory (slots 0-47, excluding save/cancel buttons)
+        List<ItemStack> extractedItems = new ArrayList<>();
+        for (int i = 0; i < 48; i++) {
+            ItemStack item = editorInv.getItem(i);
+            if (item != null && !item.getType().isAir()) {
+                extractedItems.add(item.clone());
+            }
+        }
+        
+        if (extractedItems.isEmpty()) {
+            player.sendMessage(plugin.translateColors("%prefix%&cNo puedes guardar un kit vacío."));
+            return;
+        }
+        
+        // Pack items into shulkers
+        List<ItemStack> packedShulkers = packIntoShulkers(extractedItems);
+        
+        // Validate shulker count
+        if (packedShulkers.size() > MAX_SHULKERS) {
+            player.sendMessage(plugin.translateColors("%prefix%&cEl kit tiene demasiados items. Máximo: &e" + (MAX_SHULKERS * 27) + " &citems (en &e" + MAX_SHULKERS + " &cshulkers)."));
+            return;
+        }
+        
+        // Save to config
+        cfg.set(path + ".shulker_items", packedShulkers);
+        plugin.getConfigManager().saveConfig("kits");
+        
+        // Remove from editor sessions
+        editorSessions.remove(player.getUniqueId());
+        
+        // Close and notify
+        player.closeInventory();
+        player.sendMessage(plugin.translateColors("%prefix%&aKit &e" + kitName + " &aguardado correctamente con &f" + extractedItems.size() + " &aitem(s)."));
+        module.logDebug("Kit editado: " + kitName + " -> " + player.getName() + " (items=" + extractedItems.size() + ", shulkers=" + packedShulkers.size() + ")");
+    }
+
+    void onEditorClick(Player player, int rawSlot, KitsEditorHolder holder) {
+        String kitName = holder.getKitName();
+        
+        if (rawSlot == 48) {
+            // Save button clicked
+            saveKitFromEditor(player, kitName);
+            return;
+        }
+        
+        if (rawSlot == 49) {
+            // Cancel button clicked
+            editorSessions.remove(player.getUniqueId());
+            player.closeInventory();
+            player.sendMessage(plugin.translateColors("%prefix%&cEdición cancelada."));
+            return;
+        }
+        
+        if (rawSlot >= 50) {
+            // Prevent clicking on filler items
+            return;
+        }
+        
+        // Allow clicking on item slots (0-47) for editing
+        // Items can be removed by shift+click or by picking them up and dropping
+    }
+
+    void onEditorClosed(Player player) {
+        UUID uuid = player.getUniqueId();
+        String kitName = editorSessions.get(uuid);
+        
+        if (kitName != null) {
+            // Editor was closed without saving - remove session
+            editorSessions.remove(uuid);
+            // No message needed - player knows what they did
+        }
+    }
+
     private void deleteKit(CommandSender sender, String name) { FileConfiguration cfg = module.getConfig(); if (!cfg.contains("kits." + name)) { sender.sendMessage(plugin.translateColors("%prefix%&cEl kit &e" + name + " &cno existe.")); return; } cfg.set("kits." + name, null); plugin.getConfigManager().saveConfig("kits"); sender.sendMessage(plugin.translateColors("%prefix%&cKit &e" + name + " &celiminado.")); }
     private void resetStarter(CommandSender sender, String targetName) { Player t = Bukkit.getPlayer(targetName); if (t == null) { sender.sendMessage(plugin.translateColors("%prefix%&cJugador no encontrado o no está online.")); return; } var d = plugin.getPlayerData(t.getUniqueId()); if (d != null) { d.setStarterKitReceived(false); sender.sendMessage(plugin.translateColors("%prefix%&aFlag de kit inicial reseteado para &f" + t.getName())); } }
     private void list(CommandSender sender) { FileConfiguration cfg = module.getConfig(); ConfigurationSection kits = cfg.getConfigurationSection("kits"); if (kits == null || kits.getKeys(false).isEmpty()) { sender.sendMessage(plugin.translateColors("%prefix%&7No hay kits creados.")); return; } sender.sendMessage(plugin.translateColors("%prefix%&eKits disponibles (&f" + kits.getKeys(false).size() + "&e):")); for (String key : kits.getKeys(false)) { String display = cfg.getString("kits." + key + ".display_name", key); String perm = cfg.getString("kits." + key + ".required-permission", ""); int cd = cfg.getInt("kits." + key + ".cooldown-days", cfg.getInt("settings.default_claim_cooldown_days", 15)); sender.sendMessage(plugin.translateColors(" &8- &f" + key + " &7(" + display + "&7) &8| &7Perm: &f" + (perm.isBlank() ? "ninguno" : perm) + " &8| &7CD: &f" + cd + "d")); } }
@@ -547,6 +746,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         sender.sendMessage(plugin.translateColors(" &e/kit inicial &7- Reclamar kit inicial (5min)"));
         if (sender.hasPermission("valerinutils.kits.admin")) {
             sender.sendMessage(plugin.translateColors(" &e/vukits create <nombre> [permiso] [cooldown] &7- Crear desde la mano"));
+            sender.sendMessage(plugin.translateColors(" &e/vukits editor <nombre> &7- Editar contenido del kit"));
             sender.sendMessage(plugin.translateColors(" &e/vukits give <jugador> <nombre> &7- Dar kit"));
             sender.sendMessage(plugin.translateColors(" &e/vukits reset <jugador> &7- Reset flag inicial"));
             sender.sendMessage(plugin.translateColors(" &e/vukits delete <nombre> &7- Eliminar kit"));
@@ -560,11 +760,11 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("menu", "preview", "list", "inicial"));
-            if (sender.hasPermission("valerinutils.kits.admin")) subs.addAll(List.of("create", "give", "delete", "reset", "debug"));
+            if (sender.hasPermission("valerinutils.kits.admin")) subs.addAll(List.of("create", "give", "delete", "reset", "editor", "debug"));
             return subs.stream().filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT))).collect(Collectors.toList());
         }
         if (args.length == 2) {
-            if (args[0].equalsIgnoreCase("preview") || args[0].equalsIgnoreCase("delete")) {
+            if (args[0].equalsIgnoreCase("preview") || args[0].equalsIgnoreCase("delete") || args[0].equalsIgnoreCase("editor")) {
                 ConfigurationSection kits = module.getConfig().getConfigurationSection("kits");
                 if (kits != null) return kits.getKeys(false).stream().filter(s -> s.toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))).collect(Collectors.toList());
             }

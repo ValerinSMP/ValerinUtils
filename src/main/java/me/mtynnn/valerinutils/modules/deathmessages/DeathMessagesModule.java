@@ -52,7 +52,9 @@ public class DeathMessagesModule extends BaseModule implements Listener, Command
 
     @Override
     protected void onDisableModule() {
-        org.bukkit.event.HandlerList.unregisterAll(this);
+        try {
+            org.bukkit.event.HandlerList.unregisterAll(this);
+        } catch (Exception ignored) {}
         plugin.debug(getId(), "Módulo deshabilitado.");
     }
 
