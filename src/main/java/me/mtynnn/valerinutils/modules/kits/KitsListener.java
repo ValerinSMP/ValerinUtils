@@ -69,24 +69,50 @@ final class KitsListener implements Listener {
             }
         }
         if (holder instanceof KitsEditorHolder editorHolder && event.getWhoClicked() instanceof org.bukkit.entity.Player player) {
-            event.setCancelled(true);
-            module.commandHandler().onEditorClick(player, event.getRawSlot(), editorHolder);
+            int rawSlot = event.getRawSlot();
+            
+            // Allow free editing in slots 0-47 (editable area)
+            if (rawSlot < 0 || rawSlot >= 48) {
+                // Cancel clicks on save/cancel buttons and fillers (slots 48-53)
+                event.setCancelled(true);
+                module.commandHandler().onEditorClick(player, rawSlot, editorHolder);
+            }
+            // Otherwise allow the click (slots 0-47 - let players move items freely)
         }
     }
 
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
         Object holder = event.getView().getTopInventory().getHolder();
-        if (holder instanceof KitsPreviewHolder || holder instanceof KitsMenuHolder || holder instanceof KitsEditorHolder) {
+        if (holder instanceof KitsPreviewHolder || holder instanceof KitsMenuHolder) {
             event.setCancelled(true);
+        }
+        if (holder instanceof KitsEditorHolder) {
+            // Allow dragging within editable area (slots 0-47)
+            // Cancel if dragging involves button/filler slots (48-53)
+            for (int slot : event.getRawSlots()) {
+                if (slot >= 48) {
+                    event.setCancelled(true);
+                    return;
+                }
+            }
+            // All slots are in editable range (0-47), allow dragging
         }
     }
 
     @EventHandler
     public void onInventoryCreative(InventoryCreativeEvent event) {
         Object holder = event.getView().getTopInventory().getHolder();
-        if (holder instanceof KitsPreviewHolder || holder instanceof KitsMenuHolder || holder instanceof KitsEditorHolder) {
+        if (holder instanceof KitsPreviewHolder || holder instanceof KitsMenuHolder) {
             event.setCancelled(true);
+        }
+        if (holder instanceof KitsEditorHolder) {
+            // Allow creative mode item placement in editable area (slots 0-47)
+            // But cancel in button/filler area (slots 48-53)
+            int slot = event.getSlot();
+            if (slot >= 48) {
+                event.setCancelled(true);
+            }
         }
     }
 
