@@ -71,13 +71,12 @@ final class KitsListener implements Listener {
         if (holder instanceof KitsEditorHolder editorHolder && event.getWhoClicked() instanceof org.bukkit.entity.Player player) {
             int rawSlot = event.getRawSlot();
             
-            // Allow free editing in slots 0-47 (editable area)
-            if (rawSlot < 0 || rawSlot >= 48) {
-                // Cancel clicks on save/cancel buttons and fillers (slots 48-53)
+            // Only cancel clicks on save/cancel/filler slots (48-53)
+            // Allow everything else: editor items (0-47), player inventory (54+), outside (-999)
+            if (rawSlot >= 48 && rawSlot < 54) {
                 event.setCancelled(true);
                 module.commandHandler().onEditorClick(player, rawSlot, editorHolder);
             }
-            // Otherwise allow the click (slots 0-47 - let players move items freely)
         }
     }
 

@@ -322,21 +322,65 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
     }
 
     private List<ItemStack> loadKitItems(FileConfiguration cfg, String path) {
+        List<ItemStack> result = new ArrayList<>();
+        
+        // Try loading shulker_items list
         if (cfg.contains(path + ".shulker_items")) {
-            @SuppressWarnings("unchecked")
-            List<ItemStack> list = (List<ItemStack>) cfg.getList(path + ".shulker_items");
-            if (list != null && !list.isEmpty()) return list;
+            try {
+                List<?> itemsList = cfg.getList(path + ".shulker_items");
+                if (itemsList != null) {
+                    for (Object obj : itemsList) {
+                        if (obj instanceof ItemStack) {
+                            ItemStack item = (ItemStack) obj;
+                            if (!item.getType().isAir()) {
+                                result.add(item);
+                            }
+                        }
+                    }
+                }
+                if (!result.isEmpty()) return result;
+            } catch (Exception e) {
+                // Log the error for debugging
+                e.printStackTrace();
+            }
         }
-        ItemStack single = cfg.getItemStack(path + ".shulker_item");
-        return single != null ? List.of(single) : Collections.emptyList();
+        
+        // Fallback to single shulker_item
+        try {
+            ItemStack single = cfg.getItemStack(path + ".shulker_item");
+            return single != null ? List.of(single) : Collections.emptyList();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
     }
 
     private List<ItemStack> packIntoShulkers(List<ItemStack> items) {
+        return packIntoShulkers(items, Material.SHULKER_BOX, null);
+    }
+
+    private List<ItemStack> packIntoShulkers(List<ItemStack> items, Material shulkerMaterial) {
+        return packIntoShulkers(items, shulkerMaterial, null);
+    }
+
+    private List<ItemStack> packIntoShulkers(List<ItemStack> items, Material shulkerMaterial, String displayName) {
         List<ItemStack> result = new ArrayList<>();
         if (items.isEmpty()) return result;
-        ItemStack shulkerItem = new ItemStack(Material.SHULKER_BOX);
+        
+        // Validate shulker material
+        if (!shulkerMaterial.name().contains("SHULKER_BOX")) {
+            shulkerMaterial = Material.SHULKER_BOX;
+        }
+        
+        ItemStack shulkerItem = new ItemStack(shulkerMaterial);
         BlockStateMeta bsm = (BlockStateMeta) shulkerItem.getItemMeta();
         ShulkerBox box = (ShulkerBox) bsm.getBlockState();
+        
+        // Apply display name if provided
+        if (displayName != null && !displayName.isEmpty()) {
+            bsm.setDisplayName(displayName);
+        }
+        
         int slot = 0;
         for (ItemStack item : items) {
             if (item == null || item.getType().isAir()) continue;
@@ -344,9 +388,15 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
                 bsm.setBlockState(box);
                 shulkerItem.setItemMeta(bsm);
                 result.add(shulkerItem.clone());
-                shulkerItem = new ItemStack(Material.SHULKER_BOX);
+                shulkerItem = new ItemStack(shulkerMaterial);
                 bsm = (BlockStateMeta) shulkerItem.getItemMeta();
                 box = (ShulkerBox) bsm.getBlockState();
+                
+                // Apply display name to next shulker if provided
+                if (displayName != null && !displayName.isEmpty()) {
+                    bsm.setDisplayName(displayName);
+                }
+                
                 slot = 0;
             }
             box.getInventory().setItem(slot++, item.clone());
@@ -604,8 +654,28 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
             return;
         }
         
-        // Pack items into shulkers
-        List<ItemStack> packedShulkers = packIntoShulkers(extractedItems);
+        // Get original shulker color and name to preserve them
+        Material preferredShulkerMaterial = Material.SHULKER_BOX; // default black
+        String preferredShulkerName = null;
+        
+        List<ItemStack> originalKitItems = loadKitItems(cfg, path);
+        if (!originalKitItems.isEmpty() && originalKitItems.get(0) != null) {
+            ItemStack originalShulker = originalKitItems.get(0);
+            
+            // Get color
+            Material originalType = originalShulker.getType();
+            if (originalType.name().contains("SHULKER_BOX")) {
+                preferredShulkerMaterial = originalType;
+            }
+            
+            // Get display name
+            if (originalShulker.hasItemMeta() && originalShulker.getItemMeta().hasDisplayName()) {
+                preferredShulkerName = originalShulker.getItemMeta().getDisplayName();
+            }
+        }
+        
+        // Pack items into shulkers, preserving original color and name
+        List<ItemStack> packedShulkers = packIntoShulkers(extractedItems, preferredShulkerMaterial, preferredShulkerName);
         
         // Validate shulker count
         if (packedShulkers.size() > MAX_SHULKERS) {
