@@ -49,9 +49,11 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
     private boolean nexoLookupInitialized;
 
     private final Map<UUID, Long> healCooldowns = new HashMap<>();
+    private final Map<UUID, Long> feedCooldowns = new HashMap<>();
     private final Map<UUID, Long> repairCooldowns = new HashMap<>();
 
     private static final String BYPASS_HEAL_COOLDOWN = "valerinutils.utility.heal.bypasscooldown";
+    private static final String BYPASS_FEED_COOLDOWN = "valerinutils.utility.feed.bypasscooldown";
     private static final String BYPASS_REPAIR_COOLDOWN = "valerinutils.utility.repair.bypasscooldown";
 
     private static final String[] REGISTERED_COMMANDS = {
@@ -128,6 +130,7 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
             Map.entry("helpop-no-staff", "%prefix%<yellow>No hay staff conectado ahora. Tu mensaje fue enviado a consola."),
             Map.entry("helpop-cooldown", "%prefix%<red>Espera <yellow>%time%s <red>antes de volver a usar /helpop."),
             Map.entry("heal-cooldown", "%prefix%<red>Espera <yellow>%time%s <red>antes de volver a usar /heal."),
+            Map.entry("feed-cooldown", "%prefix%<red>Espera <yellow>%time%s <red>antes de volver a usar /feed."),
             Map.entry("repair-cooldown", "%prefix%<red>Espera <yellow>%time%s <red>antes de volver a usar /fix."));
 
     public UtilityModule(ValerinUtils plugin) {
@@ -462,6 +465,17 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
         } else {
             if (!checkStatus(player, "feed"))
                 return;
+            int cd = Math.max(0, getConfig().getInt("commands.feed.cooldown-seconds", 0));
+            if (cd > 0 && !player.hasPermission(BYPASS_FEED_COOLDOWN)) {
+                long now = System.currentTimeMillis();
+                Long nextUse = feedCooldowns.get(player.getUniqueId());
+                if (nextUse != null && nextUse > now) {
+                    long left = Math.max(1L, (nextUse - now + 999L) / 1000L);
+                    player.sendMessage(getMessage("feed-cooldown").replace("%time%", String.valueOf(left)));
+                    return;
+                }
+                feedCooldowns.put(player.getUniqueId(), now + (cd * 1000L));
+            }
         }
 
         target.setFoodLevel(20);

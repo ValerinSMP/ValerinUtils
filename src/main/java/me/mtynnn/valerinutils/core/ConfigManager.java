@@ -567,8 +567,10 @@ public class ConfigManager {
         defaults.put("commands.helpop.send-to-console", true);
         defaults.put("commands.heal.enabled", true);
         defaults.put("commands.heal.others-enabled", true);
+        defaults.put("commands.heal.cooldown-seconds", 0);
         defaults.put("commands.feed.enabled", true);
         defaults.put("commands.feed.others-enabled", true);
+        defaults.put("commands.feed.cooldown-seconds", 0);
         defaults.put("commands.repair.enabled", true);
         defaults.put("commands.nick.enabled", true);
         defaults.put("commands.nick.others-enabled", true);
