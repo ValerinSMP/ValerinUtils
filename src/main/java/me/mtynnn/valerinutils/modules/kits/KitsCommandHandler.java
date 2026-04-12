@@ -94,7 +94,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         FileConfiguration cfg = module.getConfig();
         String menuRoot = menuRoot(cfg);
         playConfiguredSound(player, cfg, "sounds.menu-click", "UI_BUTTON_CLICK", 1.0f, 1.1f);
-        List<String> kits = listKits(cfg);
+        List<String> kits = listKits(cfg, player);
         List<Integer> kitSlots = getKitSlots(cfg);
         int perPage = Math.max(1, kitSlots.size());
         int maxPage = Math.max(1, (int) Math.ceil(kits.size() / (double) perPage));
@@ -204,6 +204,18 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
             }
             case "list" -> list(sender);
             case "inicial" -> { if (!(sender instanceof Player p)) { sender.sendMessage(plugin.translateColors("%prefix%&cEste subcomando solo funciona en juego.")); return true; } autoKitService.claimInitialKit(p); }
+            case "order" -> {
+                if (!sender.hasPermission("valerinutils.kits.admin")) {
+                    if (sender instanceof Player p) return noPerms(p);
+                    sender.sendMessage(plugin.translateColors("%prefix%&cNo tienes permiso."));
+                    return true;
+                }
+                if (args.length < 3) {
+                    sender.sendMessage(plugin.translateColors("%prefix%&cUso: /vukits order <kit> <posicion>"));
+                    return true;
+                }
+                orderKit(sender, args[1], args[2]);
+            }
             case "debug" -> {
                 if (!sender.hasPermission("valerinutils.kits.admin")) { if (sender instanceof Player p) return noPerms(p); sender.sendMessage(plugin.translateColors("%prefix%&cNo tienes permiso.")); return true; }
                 boolean enabled = plugin.toggleModuleDebug(module.getId());
@@ -221,7 +233,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         if (menu == null) { player.sendMessage(plugin.translateColors("%prefix%&cNo existe configuración de GUI en kits.yml")); return; }
         int rows = Math.max(1, Math.min(6, menu.getInt("rows", 6)));
         int size = rows * 9;
-        List<String> kits = listKits(cfg);
+        List<String> kits = listKits(cfg, player);
         List<Integer> kitSlots = getKitSlots(cfg);
         if (kitSlots.isEmpty()) { player.sendMessage(plugin.translateColors("%prefix%&cNo hay slots para kits en la GUI.")); return; }
         int perPage = Math.max(1, kitSlots.size());
@@ -275,7 +287,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         FileConfiguration cfg = module.getConfig();
         String menuRoot = menuRoot(cfg);
         Inventory inv = player.getOpenInventory().getTopInventory();
-        List<String> kits = listKits(cfg);
+        List<String> kits = listKits(cfg, player);
         List<Integer> kitSlots = getKitSlots(cfg);
         int perPage = Math.max(1, kitSlots.size());
         int maxPage = Math.max(1, (int) Math.ceil(kits.size() / (double) perPage));
@@ -514,6 +526,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         }
         cfg.set("kits." + name + ".required-permission", finalPerm == null ? "" : finalPerm);
         cfg.set("kits." + name + ".cooldown-days", finalCooldown);
+        cfg.set("kits." + name + ".order", getNextKitOrder(cfg));
         plugin.getConfigManager().saveConfig("kits");
         int totalShulkers = kitItems.size();
         player.sendMessage(plugin.translateColors("%prefix%&aKit &e" + name + " &acreado con &f" + totalShulkers + " &ashulker(s). &7Perm: &f"
@@ -735,9 +748,82 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
 
     private void deleteKit(CommandSender sender, String name) { FileConfiguration cfg = module.getConfig(); if (!cfg.contains("kits." + name)) { sender.sendMessage(plugin.translateColors("%prefix%&cEl kit &e" + name + " &cno existe.")); return; } cfg.set("kits." + name, null); plugin.getConfigManager().saveConfig("kits"); sender.sendMessage(plugin.translateColors("%prefix%&cKit &e" + name + " &celiminado.")); }
     private void resetStarter(CommandSender sender, String targetName) { Player t = Bukkit.getPlayer(targetName); if (t == null) { sender.sendMessage(plugin.translateColors("%prefix%&cJugador no encontrado o no está online.")); return; } var d = plugin.getPlayerData(t.getUniqueId()); if (d != null) { d.setStarterKitReceived(false); sender.sendMessage(plugin.translateColors("%prefix%&aFlag de kit inicial reseteado para &f" + t.getName())); } }
-    private void list(CommandSender sender) { FileConfiguration cfg = module.getConfig(); ConfigurationSection kits = cfg.getConfigurationSection("kits"); if (kits == null || kits.getKeys(false).isEmpty()) { sender.sendMessage(plugin.translateColors("%prefix%&7No hay kits creados.")); return; } sender.sendMessage(plugin.translateColors("%prefix%&eKits disponibles (&f" + kits.getKeys(false).size() + "&e):")); for (String key : kits.getKeys(false)) { String display = cfg.getString("kits." + key + ".display_name", key); String perm = cfg.getString("kits." + key + ".required-permission", ""); int cd = cfg.getInt("kits." + key + ".cooldown-days", cfg.getInt("settings.default_claim_cooldown_days", 15)); sender.sendMessage(plugin.translateColors(" &8- &f" + key + " &7(" + display + "&7) &8| &7Perm: &f" + (perm.isBlank() ? "ninguno" : perm) + " &8| &7CD: &f" + cd + "d")); } }
+    private void list(CommandSender sender) {
+        FileConfiguration cfg = module.getConfig();
+        List<String> visible = listKits(cfg, sender instanceof Player p ? p : null);
+        if (visible.isEmpty()) {
+            sender.sendMessage(plugin.translateColors("%prefix%&7No hay kits disponibles."));
+            return;
+        }
+        sender.sendMessage(plugin.translateColors("%prefix%&eKits disponibles (&f" + visible.size() + "&e):"));
+        for (String key : visible) {
+            String display = cfg.getString("kits." + key + ".display_name", key);
+            String perm = cfg.getString("kits." + key + ".required-permission", "");
+            int cd = cfg.getInt("kits." + key + ".cooldown-days", cfg.getInt("settings.default_claim_cooldown_days", 15));
+            int order = cfg.getInt("kits." + key + ".order", Integer.MAX_VALUE);
+            String orderDisplay = order == Integer.MAX_VALUE ? "-" : String.valueOf(order);
+            sender.sendMessage(plugin.translateColors(" &8- &f" + key + " &7(" + display + "&7) &8| &7Ord: &f" + orderDisplay + " &8| &7Perm: &f" + (perm.isBlank() ? "ninguno" : perm) + " &8| &7CD: &f" + cd + "d"));
+        }
+    }
 
-    private List<String> listKits(FileConfiguration cfg) { ConfigurationSection s = cfg.getConfigurationSection("kits"); if (s == null) return Collections.emptyList(); return s.getKeys(false).stream().sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()); }
+    private void orderKit(CommandSender sender, String kitName, String positionRaw) {
+        FileConfiguration cfg = module.getConfig();
+        ConfigurationSection kits = cfg.getConfigurationSection("kits");
+        if (kits == null || kits.getKeys(false).isEmpty()) {
+            sender.sendMessage(plugin.translateColors("%prefix%&cNo hay kits para ordenar."));
+            return;
+        }
+        if (!cfg.contains("kits." + kitName)) {
+            sender.sendMessage(plugin.translateColors("%prefix%&cEl kit &e" + kitName + " &cno existe."));
+            return;
+        }
+
+        int position;
+        try {
+            position = Integer.parseInt(positionRaw);
+        } catch (NumberFormatException ex) {
+            sender.sendMessage(plugin.translateColors("%prefix%&cLa posición debe ser un número."));
+            return;
+        }
+
+        List<String> ordered = listKits(cfg, null);
+        String found = ordered.stream().filter(k -> k.equalsIgnoreCase(kitName)).findFirst().orElse(kitName);
+        ordered.removeIf(k -> k.equalsIgnoreCase(found));
+        int maxPosition = ordered.size() + 1;
+        int clamped = Math.max(1, Math.min(position, maxPosition));
+        ordered.add(clamped - 1, found);
+
+        for (int i = 0; i < ordered.size(); i++) {
+            cfg.set("kits." + ordered.get(i) + ".order", i + 1);
+        }
+        plugin.getConfigManager().saveConfig("kits");
+        sender.sendMessage(plugin.translateColors("%prefix%&aKit &e" + found + " &aordenado en posición &f" + clamped + "&a."));
+    }
+
+    private List<String> listKits(FileConfiguration cfg, Player viewer) {
+        ConfigurationSection s = cfg.getConfigurationSection("kits");
+        if (s == null) return Collections.emptyList();
+        return s.getKeys(false).stream()
+                .sorted((a, b) -> {
+                    int ao = cfg.getInt("kits." + a + ".order", Integer.MAX_VALUE);
+                    int bo = cfg.getInt("kits." + b + ".order", Integer.MAX_VALUE);
+                    if (ao != bo) return Integer.compare(ao, bo);
+                    return String.CASE_INSENSITIVE_ORDER.compare(a, b);
+                })
+                .collect(Collectors.toList());
+    }
+
+    private int getNextKitOrder(FileConfiguration cfg) {
+        ConfigurationSection s = cfg.getConfigurationSection("kits");
+        if (s == null || s.getKeys(false).isEmpty()) {
+            return 1;
+        }
+        int max = 0;
+        for (String kit : s.getKeys(false)) {
+            max = Math.max(max, cfg.getInt("kits." + kit + ".order", 0));
+        }
+        return max + 1;
+    }
     private List<Integer> getKitSlots(FileConfiguration cfg) { List<Integer> list = cfg.getIntegerList(menuRoot(cfg) + ".kit-slots"); if (list == null || list.isEmpty()) return Collections.emptyList(); return list.stream().filter(i -> i >= 0 && i < 54).distinct().collect(Collectors.toList()); }
     private Set<Integer> fillerSlots(FileConfiguration cfg) { Set<Integer> out = new LinkedHashSet<>(); for (String token : cfg.getStringList(menuRoot(cfg) + ".filler-slots")) parseSlots(token, out); return out; }
     private void parseSlots(String token, Set<Integer> out) { if (token == null || token.isBlank()) return; if (token.contains("-")) { String[] p = token.split("-", 2); try { int a = Integer.parseInt(p[0].trim()), b = Integer.parseInt(p[1].trim()); if (a > b) { int t = a; a = b; b = t; } for (int i = a; i <= b; i++) if (i >= 0 && i < 54) out.add(i); } catch (Exception ignored) {} } else { try { int s = Integer.parseInt(token.trim()); if (s >= 0 && s < 54) out.add(s); } catch (Exception ignored) {} } }
@@ -817,6 +903,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         if (sender.hasPermission("valerinutils.kits.admin")) {
             sender.sendMessage(plugin.translateColors(" &e/vukits create <nombre> [permiso] [cooldown] &7- Crear desde la mano"));
             sender.sendMessage(plugin.translateColors(" &e/vukits editor <nombre> &7- Editar contenido del kit"));
+            sender.sendMessage(plugin.translateColors(" &e/vukits order <nombre> <posicion> &7- Ordenar kit en la GUI"));
             sender.sendMessage(plugin.translateColors(" &e/vukits give <jugador> <nombre> &7- Dar kit"));
             sender.sendMessage(plugin.translateColors(" &e/vukits reset <jugador> &7- Reset flag inicial"));
             sender.sendMessage(plugin.translateColors(" &e/vukits delete <nombre> &7- Eliminar kit"));
@@ -830,11 +917,11 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("menu", "preview", "list", "inicial"));
-            if (sender.hasPermission("valerinutils.kits.admin")) subs.addAll(List.of("create", "give", "delete", "reset", "editor", "debug"));
+            if (sender.hasPermission("valerinutils.kits.admin")) subs.addAll(List.of("create", "give", "delete", "reset", "editor", "order", "debug"));
             return subs.stream().filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT))).collect(Collectors.toList());
         }
         if (args.length == 2) {
-            if (args[0].equalsIgnoreCase("preview") || args[0].equalsIgnoreCase("delete") || args[0].equalsIgnoreCase("editor")) {
+            if (args[0].equalsIgnoreCase("preview") || args[0].equalsIgnoreCase("delete") || args[0].equalsIgnoreCase("editor") || args[0].equalsIgnoreCase("order")) {
                 ConfigurationSection kits = module.getConfig().getConfigurationSection("kits");
                 if (kits != null) return kits.getKeys(false).stream().filter(s -> s.toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))).collect(Collectors.toList());
             }
@@ -842,6 +929,15 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
                 String p = args[1].toLowerCase(Locale.ROOT);
                 return Bukkit.getOnlinePlayers().stream().map(Player::getName).filter(n -> n != null && n.toLowerCase(Locale.ROOT).startsWith(p)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList());
             }
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("order")) {
+            ConfigurationSection kits = module.getConfig().getConfigurationSection("kits");
+            int size = kits == null ? 1 : Math.max(1, kits.getKeys(false).size());
+            List<String> suggestions = new ArrayList<>();
+            for (int i = 1; i <= size; i++) {
+                suggestions.add(String.valueOf(i));
+            }
+            return suggestions.stream().filter(s -> s.startsWith(args[2])).collect(Collectors.toList());
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
             ConfigurationSection kits = module.getConfig().getConfigurationSection("kits");

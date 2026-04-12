@@ -38,6 +38,9 @@ final class PvpMinaRulesListener implements Listener {
 
         if (event.getDamager() instanceof org.bukkit.entity.Projectile projectile
                 && projectile.getShooter() instanceof Player player) {
+            if (!runtime.getTargetWorldName().equals(player.getWorld().getName())) {
+                return;
+            }
             if (projectile instanceof org.bukkit.entity.Trident
                     && runtime.getCurrentBlockedItems().contains(Material.TRIDENT)) {
                 event.setCancelled(true);
