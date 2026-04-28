@@ -140,6 +140,16 @@ commands:
     description: Comando interno para manejar apertura de geodas
     permission: valerinutils.geodes.admin
 
+  sign:
+    description: Firma el item en la mano con una dedicatoria
+    usage: "/sign <texto>"
+    permission: valerinutils.itemsign.use
+
+  itemsign:
+    description: Administra firmas de items
+    usage: "/itemsign remove <jugador>"
+    permission: valerinutils.itemsign.admin
+
   vukits:
     description: Sistema de kits basados en Shulker Boxes
   kits:
@@ -147,12 +157,13 @@ commands:
     usage: "/kits <subcomando>"
     aliases: [kit]
 
-  pvpmina:
-    description: Comandos del sistema de Mina PvP
-    aliases: [minapvp]
-    permission: valerinutils.pvpmina.use
-
 permissions:
+  valerinutils.itemsign.use:
+    description: Permite firmar el item en la mano
+    default: false
+  valerinutils.itemsign.admin:
+    description: Permite quitar firmas de items
+    default: op
   valerinutils.kits.admin:
     description: Acceso a comandos admin de kits
     default: op

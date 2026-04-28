@@ -13,6 +13,8 @@ C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutil
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\deathmessages\DeathMessagesModule.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\geodes\GeodesModule.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\itemeditor\ItemEditorModule.java
+C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\itemsign\ItemSignCommandHandler.java
+C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\itemsign\ItemSignModule.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\joinquit\JoinQuitModule.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\killrewards\KillRewardsModule.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\kits\KitsAutoKitService.java
@@ -23,10 +25,6 @@ C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutil
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\kits\KitsModule.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\kits\KitsPreviewHolder.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\menuitem\MenuItemModule.java
-C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\pvpmina\PvpMinaCommandHandler.java
-C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\pvpmina\PvpMinaModule.java
-C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\pvpmina\PvpMinaRulesListener.java
-C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\pvpmina\PvpMinaRuntime.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\utility\UtilityBroadcastCommand.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\utility\UtilityDisposalHolder.java
 C:\Users\marti\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\utility\UtilityHelpOpCommand.java

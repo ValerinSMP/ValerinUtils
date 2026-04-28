@@ -16,8 +16,8 @@ import me.mtynnn.valerinutils.modules.utility.UtilityModule;
 import me.mtynnn.valerinutils.modules.itemeditor.ItemEditorModule;
 import me.mtynnn.valerinutils.modules.deathmessages.DeathMessagesModule;
 import me.mtynnn.valerinutils.modules.geodes.GeodesModule;
+import me.mtynnn.valerinutils.modules.itemsign.ItemSignModule;
 import me.mtynnn.valerinutils.placeholders.ValerinUtilsExpansion;
-import me.mtynnn.valerinutils.modules.pvpmina.PvpMinaModule;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -73,10 +73,10 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private CodesModule codesModule;
     private DeathMessagesModule deathMessagesModule;
     private GeodesModule geodesModule;
+    private ItemSignModule itemSignModule;
     private me.mtynnn.valerinutils.modules.kits.KitsModule kitsModule;
     private UtilityModule utilityModule;
     private ItemEditorModule itemEditorModule;
-    private PvpMinaModule pvpMinaModule;
     private ValerinUtilsExpansion placeholderExpansion;
 
     // Cache
@@ -152,9 +152,6 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         joinQuitModule = new JoinQuitModule(this);
         moduleManager.registerModule(joinQuitModule);
 
-        pvpMinaModule = new PvpMinaModule(this);
-        moduleManager.registerModule(pvpMinaModule);
-
         killRewardsModule = new KillRewardsModule(this);
         moduleManager.registerModule(killRewardsModule);
 
@@ -166,6 +163,9 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
         geodesModule = new GeodesModule(this);
         moduleManager.registerModule(geodesModule);
+
+        itemSignModule = new ItemSignModule(this);
+        moduleManager.registerModule(itemSignModule);
 
         kitsModule = new me.mtynnn.valerinutils.modules.kits.KitsModule(this);
         moduleManager.registerModule(kitsModule);
@@ -233,6 +233,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         boolean killRewardsEnabled = moduleManager.isModuleEnabled("killrewards");
         boolean codesEnabled = moduleManager.isModuleEnabled("codes");
         boolean geodesEnabled = moduleManager.isModuleEnabled("geodes");
+        boolean itemSignEnabled = moduleManager.isModuleEnabled("itemsign");
         boolean kitsEnabled = moduleManager.isModuleEnabled("kits");
         boolean utilityEnabled = moduleManager.isModuleEnabled("utility");
         boolean itemEditorEnabled = moduleManager.isModuleEnabled("itemeditor");
@@ -249,6 +250,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
                 + " | KillRewards " + (killRewardsEnabled ? "✔" : "✘")
                 + " | Codes " + (codesEnabled ? "✔" : "✘")
                 + " | Geodes " + (geodesEnabled ? "✔" : "✘")
+                + " | ItemSign " + (itemSignEnabled ? "✔" : "✘")
                 + " | Kits " + (kitsEnabled ? "✔" : "✘")
                 + " | Utility " + (utilityEnabled ? "✔" : "✘")
                 + " | ItemEditor " + (itemEditorEnabled ? "✔" : "✘"));

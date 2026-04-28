@@ -20,8 +20,6 @@ modules:
     enabled: false
   geodes:
     enabled: false
-  pvpmina:
-    enabled: false
   kits:
     enabled: false
   utility:

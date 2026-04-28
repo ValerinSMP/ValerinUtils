@@ -10,9 +10,9 @@ Plugin modular para Paper 1.21+ con utilidades de administración, QoL y sistema
 - `codes` (`src/main/resources/modules/codes.yml`)
 - `deathmessages` (`src/main/resources/modules/deathmessages.yml`)
 - `geodes` (`src/main/resources/modules/geodes.yml`)
+- `itemsign` (`src/main/resources/modules/itemsign.yml`)
 - `kits` (`src/main/resources/modules/kits.yml`)
 - `utility` (`src/main/resources/modules/utilities.yml`)
-- `pvpmina` (`src/main/resources/modules/pvpmina.yml`)
 - `itemeditor` (`src/main/resources/modules/itemeditor.yml`)
 
 > Los módulos `vote40` y `votetracking` fueron retirados.
@@ -111,6 +111,14 @@ Comandos y aliases completos: `src/main/resources/plugin.yml`.
 - **Placeholders internos (config)**
   - `%player%`
 
+### itemsign
+
+- **Permisos**
+  - `valerinutils.itemsign.use`
+  - `valerinutils.itemsign.admin`
+- **Placeholders internos (config)**
+  - `%player%`, `%date%`
+
 ### kits
 
 - **Permisos**
@@ -171,15 +179,6 @@ Comandos y aliases completos: `src/main/resources/plugin.yml`.
   - `%ping%`, `%state%`, `%type%`, `%speed%`, `%value%`, `%count%`, `%amount%`
   - `%radius%`, `%status%`, `%uuid%`, `%ip%`, `%first_join%`, `%last_seen%`
   - `%world%`, `%x%`, `%y%`, `%z%`, `%health%`, `%hunger%`, `%xp%`, `%fly%`, `%gamemode%`, `%items%`
-
-### pvpmina
-
-- **Permisos**
-  - `valerinutils.pvpmina.use`
-  - `valerinutils.pvpmina.admin`
-  - `valerinutils.pvpmina.bypass`
-- **Placeholders internos (config)**
-  - `%mode%`, `%time_left%`
 
 ### itemeditor
 

@@ -148,7 +148,3 @@ commands:
     usage: "/kits <subcomando>"
     aliases: [kit]
 
-  pvpmina:
-    description: Comandos del sistema de Mina PvP
-    aliases: [minapvp]
-    permission: valerinutils.pvpmina.use

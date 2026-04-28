@@ -67,11 +67,11 @@ public class ConfigManager {
         registerConfig("menuitem", "modules/menuitem.yml");
         registerConfig("deathmessages", "modules/deathmessages.yml");
         registerConfig("geodes", "modules/geodes.yml");
+        registerConfig("itemsign", "modules/itemsign.yml");
         registerConfig("kits", "modules/kits.yml");
         registerConfig("codes", "modules/codes.yml");
         registerConfig("utility", "modules/utilities.yml");
         registerConfig("itemeditor", "modules/itemeditor.yml");
-        registerConfig("pvpmina", "modules/pvpmina.yml");
         migrateSellPriceConfigLocation();
         registerConfig("sellprice", "sellprice.yml");
 
@@ -108,12 +108,13 @@ public class ConfigManager {
         // JoinQuit - Add MOTD section if missing
         updateJoinQuitConfig();
         updateKitsConfig();
+        updateItemSignConfig();
         updateUtilitiesConfig();
         updateMenuItemConfig();
         updateKillRewardsConfig();
         updateItemEditorConfig();
         updateDeathMessagesConfig();
-        updateCodesConfig();
+            // updateCodesConfig();
     }
 
     private void updateMenuItemConfig() {
@@ -156,6 +157,14 @@ public class ConfigManager {
             saveConfig("menuitem");
             plugin.getLogger().info("[MenuItem] Config updated with new keys.");
         }
+    }
+
+    private void updateItemSignConfig() {
+        FileConfiguration config = getConfig("itemsign");
+        if (config == null) {
+            return;
+        }
+        // Defaults live in resources/modules/itemsign.yml; this hook keeps future migrations centralized.
     }
 
     private void updateKillRewardsConfig() {
@@ -901,8 +910,8 @@ public class ConfigManager {
 
         boolean changed = false;
         String[] modules = {
-                "menuitem", "joinquit",
-                "killrewards", "codes", "deathmessages", "geodes", "kits", "utility", "pvpmina", "itemeditor"
+            "menuitem", "joinquit",
+            "killrewards", "codes", "deathmessages", "geodes", "itemsign", "kits", "utility", "itemeditor"
         };
         for (String moduleId : modules) {
             String path = "modules." + moduleId + ".enabled";

@@ -1,0 +1,24 @@
+enabled: true
+
+limits:
+  max-total-chars: 120
+  max-line-chars: 30
+  max-lines: 4
+
+signature:
+  format: "&8Firmado por: &f%luckperms_prefix%%player% &8| &7%date%"
+
+messages:
+  only-player: "%prefix%&cSolo jugadores pueden usar este comando."
+  no-permission: "%prefix%&cNo tienes permiso para usar este comando."
+  item-required: "%prefix%&cDebes tener un item en la mano."
+  already-signed: "%prefix%&cEste item ya fue firmado. Usa &e/itemsign remove &cpara quitarle la firma."
+  signed: "%prefix%&aItem firmado."
+  removed: "%prefix%&aFirma removida de &f%player%&a."
+  removed-target: "%prefix%&cUn admin quitó la firma de tu item."
+  not-signed: "%prefix%&cEse item no tiene firma."
+  usage-sign: "%prefix%&7Uso: &e/sign <texto...>"
+  usage-remove: "%prefix%&7Uso: &e/itemsign remove <usuario>"
+  player-not-found: "%prefix%&cJugador no encontrado."
+  too-long: "%prefix%&cTexto demasiado largo. Máximo: &e%max% &cchars."
+  too-many-lines: "%prefix%&cTexto genera demasiadas líneas. Máximo: &e%max%&c."
