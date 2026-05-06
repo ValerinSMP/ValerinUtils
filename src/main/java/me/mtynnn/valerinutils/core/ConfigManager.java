@@ -960,6 +960,11 @@ public class ConfigManager {
     private void mergeMissingKeysFromDefaults() {
         for (Map.Entry<String, String> entry : configPaths.entrySet()) {
             String id = entry.getKey();
+            // Sell price list is intended to be fully user-managed in production.
+            // Do not re-inject removed keys from bundled defaults.
+            if ("sellprice".equals(id)) {
+                continue;
+            }
             String path = entry.getValue();
             FileConfiguration target = configs.get(id);
             if (target == null) {

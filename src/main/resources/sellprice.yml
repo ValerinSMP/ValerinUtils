@@ -415,7 +415,6 @@ prices:
   player_head: 100.0
   book: 8.0
   writable_book: 15.0
-  enchanted_book: 50.0
   trial_key: 150.0
   ominous_trial_key: 500.0
   wind_charge: 25.0
