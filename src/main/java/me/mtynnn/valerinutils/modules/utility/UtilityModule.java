@@ -439,9 +439,6 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
         target.setHealth(target.getAttribute(Attribute.MAX_HEALTH).getValue());
         target.setFoodLevel(20);
         target.setFireTicks(0);
-        for (org.bukkit.potion.PotionEffect effect : target.getActivePotionEffects()) {
-            target.removePotionEffect(effect.getType());
-        }
 
         playSound(target, "heal");
         if (target == player) {
