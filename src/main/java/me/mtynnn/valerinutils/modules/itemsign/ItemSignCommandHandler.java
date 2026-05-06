@@ -75,10 +75,6 @@ final class ItemSignCommandHandler implements CommandExecutor {
         }
 
         PersistentDataContainer data = meta.getPersistentDataContainer();
-        if (data.has(signedKey, PersistentDataType.BYTE)) {
-            player.sendMessage(msg("already-signed", "%prefix%&cEste item ya fue firmado. Usa &e/itemsign remove &cpara quitarle la firma."));
-            return true;
-        }
 
         FileConfiguration cfg = config();
         int maxTotalChars = Math.max(1, cfg.getInt("limits.max-total-chars", 120));
@@ -103,10 +99,7 @@ final class ItemSignCommandHandler implements CommandExecutor {
 
         List<Component> lore = meta.lore() == null ? new ArrayList<>() : new ArrayList<>(meta.lore());
         
-        // Add signature first, then dedication text below
-        if (!lore.isEmpty()) {
-            lore.add(Component.empty());
-        }
+        // Add signature first, then dedication text below (no blank separator lines)
         lore.add(plugin.parseComponent(buildSignatureLine(player)).decoration(TextDecoration.ITALIC, false));
         
         // Add custom text with explicit gray color
@@ -176,28 +169,18 @@ final class ItemSignCommandHandler implements CommandExecutor {
     }
 
     private void removeSignatureLore(List<Component> lore) {
-        // Remove from end until we find the signature line
-        boolean foundSignature = false;
-        while (!lore.isEmpty()) {
-            Component last = lore.get(lore.size() - 1);
-            String plain = plainText(last);
-            
-            // Remove everything after finding the signature line
-            lore.remove(lore.size() - 1);
-            
+        int firstSignatureIndex = -1;
+        for (int i = 0; i < lore.size(); i++) {
+            String plain = plainText(lore.get(i));
             if (plain.startsWith("Firmado por:")) {
-                foundSignature = true;
-                // Also remove the blank line before signature if exists
-                if (!lore.isEmpty() && isEmptyLine(lore.get(lore.size() - 1))) {
-                    lore.remove(lore.size() - 1);
-                }
+                firstSignatureIndex = i;
                 break;
             }
         }
-    }
 
-    private boolean isEmptyLine(Component component) {
-        return plainText(component).isBlank();
+        if (firstSignatureIndex >= 0) {
+            lore.subList(firstSignatureIndex, lore.size()).clear();
+        }
     }
 
     private String plainText(Component component) {
