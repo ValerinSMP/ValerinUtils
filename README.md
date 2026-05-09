@@ -174,6 +174,15 @@ Comandos y aliases completos: `src/main/resources/plugin.yml`.
   - `valerinutils.utility.nick.color.format`
   - `valerinutils.utility.nick.color.hex`
   - `valerinutils.utility.seen.ip`
+  - `valerinutils.utility.helpop.receive`
+  - `valerinutils.utility.heal.bypasscooldown`
+  - `valerinutils.utility.feed.bypasscooldown`
+  - `valerinutils.utility.repair.bypasscooldown`
+  - `valerinutils.utility.helpop.bypasscooldown`
+
+- **Nota de compatibilidad**
+  - Utility usa un único namespace de permisos: `valerinutils.utility.*`
+  - Se removió compatibilidad legacy con `valerinutils.utilities.*` y `valerinutils.utility.fix`
 - **Placeholders internos (config)**
   - `%player%`, `%players%`, `%message%`, `%mode%`, `%nick%`, `%tier%`, `%time%`
   - `%ping%`, `%state%`, `%type%`, `%speed%`, `%value%`, `%count%`, `%amount%`

@@ -839,17 +839,8 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
 
     private boolean hasUtilityPermission(CommandSender sender, String key, boolean others) {
         String suffix = others ? ".others" : "";
-        String primary = "valerinutils.utility." + key + suffix;
-        String legacyPlural = "valerinutils.utilities." + key + suffix;
-        if (sender.hasPermission(primary) || sender.hasPermission(legacyPlural)) {
-            return true;
-        }
-
-        if (!others && "repair".equals(key)) {
-            return sender.hasPermission("valerinutils.utility.fix")
-                    || sender.hasPermission("valerinutils.utilities.fix");
-        }
-        return false;
+        String permissionNode = "valerinutils.utility." + key + suffix;
+        return sender.hasPermission(permissionNode);
     }
 
     void playSound(Player player, String key) {
