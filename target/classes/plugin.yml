@@ -152,9 +152,10 @@ commands:
 
   vukits:
     description: Sistema de kits basados en Shulker Boxes
+    usage: "/kit <nombre>|/kit list|/kit preview <nombre>"
   kits:
-    description: Alias del sistema de kits (/vukits)
-    usage: "/kits <subcomando>"
+    description: Comando principal del sistema de kits
+    usage: "/kit <nombre>|/kit list|/kit preview <nombre>"
     aliases: [kit]
 
 permissions:

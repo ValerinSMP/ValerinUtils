@@ -35,11 +35,14 @@ auto_kit:
     boots: CHAINMAIL_BOOTS
 
 # Los kits de Shulker se guardarán aquí automáticamente
+# Campo opcional por kit:
+#   one-time: true|false  (si es true, solo se puede reclamar una vez por jugador)
 kits: {}
 
 messages:
   kit-no-permission: "%prefix%&cNo cumples el rango/permiso requerido para este kit."
   kit-on-cooldown: "%prefix%&cDebes esperar &e%time% &cpara volver a reclamar este kit."
+  kit-one-time-used: "%prefix%&cEste kit solo se puede reclamar una vez."
   kit-claimed: "%prefix%&aHas reclamado el kit: &f%kit%"
 
 sounds:

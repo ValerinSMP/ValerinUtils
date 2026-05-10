@@ -180,26 +180,30 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
             case "create" -> {
                 if (!(sender instanceof Player p)) { sender.sendMessage(plugin.translateColors("%prefix%&cEste subcomando solo funciona en juego.")); return true; }
                 if (!p.hasPermission("valerinutils.kits.admin")) return noPerms(p);
-                if (args.length < 2) { p.sendMessage(plugin.translateColors("%prefix%&cUso: /vukits create <nombre> [permiso] [cooldown_dias]")); return true; }
+                if (args.length < 2) { p.sendMessage(plugin.translateColors("%prefix%&cUso: /kit create <nombre> [permiso] [dias|-1] [nombre_shulker]")); return true; }
                 createKit(p, args);
             }
             case "preview" -> {
                 if (!(sender instanceof Player p)) { sender.sendMessage(plugin.translateColors("%prefix%&cEste subcomando solo funciona en juego.")); return true; }
-                if (args.length < 2) { p.sendMessage(plugin.translateColors("%prefix%&cUso: /vukits preview <nombre>")); return true; }
+                if (args.length < 2) { p.sendMessage(plugin.translateColors("%prefix%&cUso: /kit preview <nombre>")); return true; }
                 previewKit(p, args[1]);
             }
             case "give" -> {
                 if (!sender.hasPermission("valerinutils.kits.admin")) { sender.sendMessage(plugin.translateColors(plugin.getConfigManager().getConfig("settings").getString("messages.no-permission", "&cNo tienes permiso."))); return true; }
-                if (args.length < 3) { sender.sendMessage(plugin.translateColors("%prefix%&cUso: /vukits give <jugador> <nombre>")); return true; }
-                Player target = Bukkit.getPlayer(args[1]); if (target == null) { sender.sendMessage(plugin.translateColors("%prefix%&cJugador no encontrado o no está online.")); return true; }
+                if (args.length < 3) { sender.sendMessage(plugin.translateColors("%prefix%&cUso: /kit give <jugador> <nombre>")); return true; }
+                Player target = Bukkit.getPlayer(args[1]); if (target == null) { sender.sendMessage(plugin.translateColors("%prefix%&cJugador no encontrado o no estÃ¡ online.")); return true; }
                 giveKit(sender, target, args[2], false, true);
             }
-            case "delete" -> { if (!sender.hasPermission("valerinutils.kits.admin")) { sender.sendMessage(plugin.translateColors(plugin.getConfigManager().getConfig("settings").getString("messages.no-permission", "&cNo tienes permiso."))); return true; } if (args.length < 2) { sender.sendMessage(plugin.translateColors("%prefix%&cUso: /vukits delete <nombre>")); return true; } deleteKit(sender, args[1]); }
-            case "reset" -> { if (!sender.hasPermission("valerinutils.kits.admin")) { sender.sendMessage(plugin.translateColors(plugin.getConfigManager().getConfig("settings").getString("messages.no-permission", "&cNo tienes permiso."))); return true; } if (args.length < 2) { sender.sendMessage(plugin.translateColors("%prefix%&cUso: /vukits reset <jugador>")); return true; } resetStarter(sender, args[1]); }
+            case "delete" -> { if (!sender.hasPermission("valerinutils.kits.admin")) { sender.sendMessage(plugin.translateColors(plugin.getConfigManager().getConfig("settings").getString("messages.no-permission", "&cNo tienes permiso."))); return true; } if (args.length < 2) { sender.sendMessage(plugin.translateColors("%prefix%&cUso: /kit delete <nombre>")); return true; } deleteKit(sender, args[1]); }
+            case "reset" -> {
+                if (!sender.hasPermission("valerinutils.kits.admin")) { sender.sendMessage(plugin.translateColors(plugin.getConfigManager().getConfig("settings").getString("messages.no-permission", "&cNo tienes permiso."))); return true; }
+                if (args.length < 2) { sender.sendMessage(plugin.translateColors("%prefix%&cUso: /kit reset <jugador> [kit|all]")); return true; }
+                resetClaims(sender, args[1], args.length >= 3 ? args[2] : "all");
+            }
             case "editor" -> {
                 if (!(sender instanceof Player p)) { sender.sendMessage(plugin.translateColors("%prefix%&cEste subcomando solo funciona en juego.")); return true; }
                 if (!p.hasPermission("valerinutils.kits.admin")) return noPerms(p);
-                if (args.length < 2) { p.sendMessage(plugin.translateColors("%prefix%&cUso: /vukits editor <nombre>")); return true; }
+                if (args.length < 2) { p.sendMessage(plugin.translateColors("%prefix%&cUso: /kit editor <nombre>")); return true; }
                 openKitEditor(p, args[1]);
             }
             case "list" -> list(sender);
@@ -211,7 +215,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 if (args.length < 3) {
-                    sender.sendMessage(plugin.translateColors("%prefix%&cUso: /vukits order <kit> <posicion>"));
+                    sender.sendMessage(plugin.translateColors("%prefix%&cUso: /kit order <kit> <posicion>"));
                     return true;
                 }
                 orderKit(sender, args[1], args[2]);
@@ -221,7 +225,15 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
                 boolean enabled = plugin.toggleModuleDebug(module.getId());
                 sender.sendMessage(plugin.translateColors("%prefix%&7Debug de kits: " + (enabled ? "&aACTIVADO" : "&cDESACTIVADO")));
             }
-            default -> sendHelp(sender);
+            default -> {
+                if (sender instanceof Player p) {
+                    if (giveKit(p, p, args[0], true, false)) {
+                        runClaimEffects(p, module.getConfig());
+                    }
+                    return true;
+                }
+                sendHelp(sender);
+            }
         }
         return true;
     }
@@ -230,7 +242,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         FileConfiguration cfg = module.getConfig();
         String menuRoot = menuRoot(cfg);
         ConfigurationSection menu = cfg.getConfigurationSection(menuRoot);
-        if (menu == null) { player.sendMessage(plugin.translateColors("%prefix%&cNo existe configuración de GUI en kits.yml")); return; }
+        if (menu == null) { player.sendMessage(plugin.translateColors("%prefix%&cNo existe configuraciÃ³n de GUI en kits.yml")); return; }
         int rows = Math.max(1, Math.min(6, menu.getInt("rows", 6)));
         int size = rows * 9;
         List<String> kits = listKits(cfg, player);
@@ -240,7 +252,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         int maxPage = Math.max(1, (int) Math.ceil(kits.size() / (double) perPage));
         int p = Math.max(1, Math.min(maxPage, page));
 
-        String title = withInfo(menu.getString("title", "&8sᴇʟᴇᴄᴄɪᴏɴᴀ ᴋɪᴛ"), player, p, maxPage);
+        String title = withInfo(menu.getString("title", "&8sá´‡ÊŸá´‡á´„á´„Éªá´É´á´€ á´‹Éªá´›"), player, p, maxPage);
         Inventory inv = Bukkit.createInventory(new KitsMenuHolder(p), size, plugin.translateColors(title));
         ItemStack filler = configuredItem(cfg, menuRoot + ".items.filler", player, p, maxPage, "BLACK_STAINED_GLASS_PANE", " ");
         for (int slot : fillerSlots(cfg)) if (slot >= 0 && slot < size) inv.setItem(slot, filler);
@@ -257,7 +269,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         int closeSlot = cfg.getInt(menuRoot + ".items.close.slot", 49);
         int nextSlot = cfg.getInt(menuRoot + ".items.next.slot", 50);
         set(inv, infoSlot, configuredItem(cfg, menuRoot + ".items.info", player, p, maxPage, "BOOK", "&eInfo"));
-        set(inv, backSlot, configuredItem(cfg, menuRoot + ".items.back", player, p, maxPage, "ARROW", "&cAtrás"));
+        set(inv, backSlot, configuredItem(cfg, menuRoot + ".items.back", player, p, maxPage, "ARROW", "&cAtrÃ¡s"));
         set(inv, closeSlot, configuredItem(cfg, menuRoot + ".items.close", player, p, maxPage, "BARRIER", "&cCerrar"));
         set(inv, prevSlot, p > 1 ? configuredItem(cfg, menuRoot + ".items.previous", player, p, maxPage, "PAPER", "&eAnterior") : filler);
         set(inv, nextSlot, p < maxPage ? configuredItem(cfg, menuRoot + ".items.next", player, p, maxPage, "LIME_STAINED_GLASS_PANE", "&aSiguiente") : filler);
@@ -310,7 +322,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         int closeSlot = cfg.getInt(menuRoot + ".items.close.slot", 49);
         int nextSlot = cfg.getInt(menuRoot + ".items.next.slot", 50);
         set(inv, infoSlot, configuredItem(cfg, menuRoot + ".items.info", player, p, maxPage, "BOOK", "&eInfo"));
-        set(inv, backSlot, configuredItem(cfg, menuRoot + ".items.back", player, p, maxPage, "ARROW", "&cAtrás"));
+        set(inv, backSlot, configuredItem(cfg, menuRoot + ".items.back", player, p, maxPage, "ARROW", "&cAtrÃ¡s"));
         set(inv, closeSlot, configuredItem(cfg, menuRoot + ".items.close", player, p, maxPage, "BARRIER", "&cCerrar"));
         set(inv, prevSlot, p > 1 ? configuredItem(cfg, menuRoot + ".items.previous", player, p, maxPage, "PAPER", "&eAnterior") : filler);
         set(inv, nextSlot, p < maxPage ? configuredItem(cfg, menuRoot + ".items.next", player, p, maxPage, "LIME_STAINED_GLASS_PANE", "&aSiguiente") : filler);
@@ -432,11 +444,15 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         int items = kitItems.stream().mapToInt(this::shulkerAmount).sum();
         int days = Math.max(0, cfg.getInt(path + ".cooldown-days", cfg.getInt("settings.default_claim_cooldown_days", 15)));
         String perm = cfg.getString(path + ".required-permission", "").trim();
+        boolean oneTime = cfg.getBoolean(path + ".one-time", false);
         boolean allowed = perm.isEmpty() || player.hasPermission(perm);
         long now = System.currentTimeMillis(), next = nextClaim(player.getUniqueId(), kitName);
-        String status = !allowed ? "Sin permiso" : (next > now ? "En " + duration(next - now) : "Disponible");
+        boolean claimedOnce = hasClaimedOneTime(player.getUniqueId(), kitName);
+        String status = !allowed ? "Sin permiso"
+                : (oneTime ? (claimedOnce ? "Reclamado" : "Disponible")
+                : (next > now ? "En " + duration(next - now) : "Disponible"));
         List<String> lore = cfg.getStringList(menuRoot(cfg) + ".kit-lore");
-        if (lore.isEmpty()) lore = List.of("&8• &fItems: &#FF6961%items%", "&8• &fCooldown: &#FF6961%days%d", "&8• &fPermiso: &#FF6961%perm%", "&8• &fEstado: &#FF6961%status%");
+        if (lore.isEmpty()) lore = List.of("&8â€¢ &fItems: &#FF6961%items%", "&8â€¢ &fCooldown: &#FF6961%days%d", "&8â€¢ &fPermiso: &#FF6961%perm%", "&8â€¢ &fEstado: &#FF6961%status%");
         meta.lore(lore.stream()
                 .map(s -> s.replace("%kit_name%", kitName)
                         .replace("%items%", String.valueOf(items))
@@ -455,12 +471,21 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         if (!cfg.contains(path)) { sender.sendMessage(plugin.translateColors("%prefix%&cEl kit &e" + kitName + " &cno existe.")); return false; }
         String perm = cfg.getString(path + ".required-permission", "").trim();
         if (!perm.isEmpty() && !target.hasPermission(perm)) { target.sendMessage(plugin.translateColors(cfg.getString("messages.kit-no-permission", "%prefix%&cNo cumples el permiso requerido.").replace("%permission%", perm))); return false; }
+        boolean oneTime = cfg.getBoolean(path + ".one-time", false);
         int days = Math.max(0, cfg.getInt(path + ".cooldown-days", cfg.getInt("settings.default_claim_cooldown_days", 15)));
         boolean bypassCooldown = target.isOp() || target.hasPermission("valerinutils.kits.cooldown.bypass");
-        if (!bypassCooldown && respectCooldown && days > 0) {
-            long now = System.currentTimeMillis(), next = nextClaim(target.getUniqueId(), kitName);
-            if (next > now) { target.sendMessage(plugin.translateColors(cfg.getString("messages.kit-on-cooldown", "%prefix%&cDebes esperar &e%time% &cpara este kit.").replace("%time%", duration(next - now)))); return false; }
-            setNextClaim(target.getUniqueId(), kitName, now + days * 24L * 60L * 60L * 1000L);
+        if (respectCooldown) {
+            if (oneTime) {
+                if (hasClaimedOneTime(target.getUniqueId(), kitName)) {
+                    target.sendMessage(plugin.translateColors(cfg.getString("messages.kit-one-time-used",
+                            "%prefix%&cEste kit solo se puede reclamar una vez.")));
+                    return false;
+                }
+            } else if (!bypassCooldown && days > 0) {
+                long now = System.currentTimeMillis(), next = nextClaim(target.getUniqueId(), kitName);
+                if (next > now) { target.sendMessage(plugin.translateColors(cfg.getString("messages.kit-on-cooldown", "%prefix%&cDebes esperar &e%time% &cpara este kit.").replace("%time%", duration(next - now)))); return false; }
+                setNextClaim(target.getUniqueId(), kitName, now + days * 24L * 60L * 60L * 1000L);
+            }
         }
         List<ItemStack> kitItems = loadKitItems(cfg, path);
         if (kitItems.isEmpty()) { sender.sendMessage(plugin.translateColors("%prefix%&cError al cargar el item del kit.")); return false; }
@@ -474,7 +499,10 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
                 target.getInventory().addItem(give);
             }
         }
-        if (droppedAny) target.sendMessage(plugin.translateColors("%prefix%&eTu inventario estaba lleno, parte del kit se soltó al suelo."));
+        if (droppedAny) target.sendMessage(plugin.translateColors("%prefix%&eTu inventario estaba lleno, parte del kit se soltÃ³ al suelo."));
+        if (respectCooldown && oneTime) {
+            markClaimedOneTime(target.getUniqueId(), kitName);
+        }
         if (!sender.getName().equalsIgnoreCase(target.getName())) sender.sendMessage(plugin.translateColors("%prefix%&aHas dado el kit &e" + kitName + " &aa &f" + target.getName()));
         if (!silentTarget) target.sendMessage(plugin.translateColors(cfg.getString("messages.kit-claimed", "%prefix%&aHas reclamado el kit: &f%kit%").replace("%kit%", cfg.getString(path + ".display_name", kitName))));
         module.logDebug("Kit entregado: " + kitName + " -> " + target.getName() + " (sender=" + sender.getName() + ")");
@@ -498,7 +526,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
             }
         }
         if (shulkers.isEmpty() && regularItems.isEmpty()) {
-            player.sendMessage(plugin.translateColors("%prefix%&cTu inventario está vacío. Llenalo con los items del kit."));
+            player.sendMessage(plugin.translateColors("%prefix%&cTu inventario estÃ¡ vacÃ­o. Llenalo con los items del kit."));
             return;
         }
 
@@ -509,7 +537,9 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         List<ItemStack> kitItems = new ArrayList<>(shulkers);
         kitItems.addAll(packedShulkers);
 
-        String displayName = "&8Kit " + name;
+        String displayName = args.length >= 5 ? String.join(" ", Arrays.copyOfRange(args, 4, args.length)) : "";
+        if (displayName.isBlank()) displayName = firstNamedShulkerDisplay(shulkers);
+        if (displayName == null || displayName.isBlank()) displayName = "&8Kit " + name;
         cfg.set("kits." + name + ".display_name", displayName);
         cfg.set("kits." + name + ".shulker_items", kitItems);
         cfg.set("kits." + name + ".shulker_item", null); // remove legacy key if present
@@ -518,19 +548,28 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         String defaultPerm = defaultPermPattern == null ? "" : defaultPermPattern.replace("%kit%", name.toLowerCase(Locale.ROOT));
         String finalPerm = args.length >= 3 ? args[2] : defaultPerm;
         int finalCooldown = cfg.getInt("settings.default_claim_cooldown_days", 15);
+        boolean oneTime = false;
         if (args.length >= 4) {
             try {
-                finalCooldown = Math.max(0, Integer.parseInt(args[3]));
+                int rawValue = Integer.parseInt(args[3]);
+                if (rawValue == -1) {
+                    oneTime = true;
+                    finalCooldown = 0;
+                } else {
+                    finalCooldown = Math.max(0, rawValue);
+                }
             } catch (NumberFormatException ignored) {
             }
         }
         cfg.set("kits." + name + ".required-permission", finalPerm == null ? "" : finalPerm);
         cfg.set("kits." + name + ".cooldown-days", finalCooldown);
+        cfg.set("kits." + name + ".one-time", oneTime);
         cfg.set("kits." + name + ".order", getNextKitOrder(cfg));
         plugin.getConfigManager().saveConfig("kits");
         int totalShulkers = kitItems.size();
         player.sendMessage(plugin.translateColors("%prefix%&aKit &e" + name + " &acreado con &f" + totalShulkers + " &ashulker(s). &7Perm: &f"
-                + (finalPerm == null || finalPerm.isBlank() ? "ninguno" : finalPerm) + " &8| &7CD: &f" + finalCooldown + "d"));
+                + (finalPerm == null || finalPerm.isBlank() ? "ninguno" : finalPerm) + " &8| &7CD: &f" + finalCooldown + "d &8| &7One-Time: &f" + (oneTime ? "si" : "no")
+                + " &8| &7Nombre: &f" + displayName));
     }
 
     private void previewKit(Player player, String name) {
@@ -619,14 +658,14 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         // Add Save button at slot 48 (green checkmark)
         ItemStack saveButton = new ItemStack(Material.LIME_CONCRETE);
         ItemMeta saveMeta = saveButton.getItemMeta();
-        saveMeta.displayName(plugin.parseComponent("<#77DD77>✓ <bold>Guardar</bold>").decoration(TextDecoration.ITALIC, false));
+        saveMeta.displayName(plugin.parseComponent("<#77DD77>âœ“ <bold>Guardar</bold>").decoration(TextDecoration.ITALIC, false));
         saveButton.setItemMeta(saveMeta);
         editor.setItem(48, saveButton);
         
         // Add Cancel button at slot 49 (red X)
         ItemStack cancelButton = new ItemStack(Material.RED_CONCRETE);
         ItemMeta cancelMeta = cancelButton.getItemMeta();
-        cancelMeta.displayName(plugin.parseComponent("<#FF5555>✕ <bold>Cancelar</bold>").decoration(TextDecoration.ITALIC, false));
+        cancelMeta.displayName(plugin.parseComponent("<#FF5555>âœ• <bold>Cancelar</bold>").decoration(TextDecoration.ITALIC, false));
         cancelButton.setItemMeta(cancelMeta);
         editor.setItem(49, cancelButton);
         
@@ -644,7 +683,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         
         // Open inventory
         player.openInventory(editor);
-        player.sendMessage(plugin.translateColors("%prefix%&aEditando kit &e" + kitName + "&a. Añade/quita items y haz clic en &fGuardar&a."));
+        player.sendMessage(plugin.translateColors("%prefix%&aEditando kit &e" + kitName + "&a. AÃ±ade/quita items y haz clic en &fGuardar&a."));
     }
 
     private void saveKitFromEditor(Player player, String kitName) {
@@ -663,7 +702,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         }
         
         if (extractedItems.isEmpty()) {
-            player.sendMessage(plugin.translateColors("%prefix%&cNo puedes guardar un kit vacío."));
+            player.sendMessage(plugin.translateColors("%prefix%&cNo puedes guardar un kit vacÃ­o."));
             return;
         }
         
@@ -692,7 +731,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         
         // Validate shulker count
         if (packedShulkers.size() > MAX_SHULKERS) {
-            player.sendMessage(plugin.translateColors("%prefix%&cEl kit tiene demasiados items. Máximo: &e" + (MAX_SHULKERS * 27) + " &citems (en &e" + MAX_SHULKERS + " &cshulkers)."));
+            player.sendMessage(plugin.translateColors("%prefix%&cEl kit tiene demasiados items. MÃ¡ximo: &e" + (MAX_SHULKERS * 27) + " &citems (en &e" + MAX_SHULKERS + " &cshulkers)."));
             return;
         }
         
@@ -722,7 +761,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
             // Cancel button clicked
             editorSessions.remove(player.getUniqueId());
             player.closeInventory();
-            player.sendMessage(plugin.translateColors("%prefix%&cEdición cancelada."));
+            player.sendMessage(plugin.translateColors("%prefix%&cEdiciÃ³n cancelada."));
             return;
         }
         
@@ -747,7 +786,32 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
     }
 
     private void deleteKit(CommandSender sender, String name) { FileConfiguration cfg = module.getConfig(); if (!cfg.contains("kits." + name)) { sender.sendMessage(plugin.translateColors("%prefix%&cEl kit &e" + name + " &cno existe.")); return; } cfg.set("kits." + name, null); plugin.getConfigManager().saveConfig("kits"); sender.sendMessage(plugin.translateColors("%prefix%&cKit &e" + name + " &celiminado.")); }
-    private void resetStarter(CommandSender sender, String targetName) { Player t = Bukkit.getPlayer(targetName); if (t == null) { sender.sendMessage(plugin.translateColors("%prefix%&cJugador no encontrado o no está online.")); return; } var d = plugin.getPlayerData(t.getUniqueId()); if (d != null) { d.setStarterKitReceived(false); sender.sendMessage(plugin.translateColors("%prefix%&aFlag de kit inicial reseteado para &f" + t.getName())); } }
+    private void resetClaims(CommandSender sender, String targetName, String kitOrAll) {
+        Player t = Bukkit.getPlayer(targetName);
+        if (t == null) {
+            sender.sendMessage(plugin.translateColors("%prefix%&cJugador no encontrado o no estÃ¡ online."));
+            return;
+        }
+        UUID uuid = t.getUniqueId();
+        if ("all".equalsIgnoreCase(kitOrAll)) {
+            data.set("cooldowns.players." + uuid, null);
+            data.set("one_time.players." + uuid, null);
+            saveData();
+            sender.sendMessage(plugin.translateColors("%prefix%&aCooldowns y one-time reseteados para &f" + t.getName() + "&a."));
+            return;
+        }
+
+        FileConfiguration cfg = module.getConfig();
+        if (!cfg.contains("kits." + kitOrAll)) {
+            sender.sendMessage(plugin.translateColors("%prefix%&cEl kit &e" + kitOrAll + " &cno existe."));
+            return;
+        }
+        String key = kitOrAll.toLowerCase(Locale.ROOT);
+        data.set("cooldowns.players." + uuid + "." + key, null);
+        data.set("one_time.players." + uuid + "." + key, null);
+        saveData();
+        sender.sendMessage(plugin.translateColors("%prefix%&aEstado de reclamo reseteado para &f" + t.getName() + "&a en kit &e" + kitOrAll + "&a."));
+    }
     private void list(CommandSender sender) {
         FileConfiguration cfg = module.getConfig();
         List<String> visible = listKits(cfg, sender instanceof Player p ? p : null);
@@ -782,7 +846,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
         try {
             position = Integer.parseInt(positionRaw);
         } catch (NumberFormatException ex) {
-            sender.sendMessage(plugin.translateColors("%prefix%&cLa posición debe ser un número."));
+            sender.sendMessage(plugin.translateColors("%prefix%&cLa posiciÃ³n debe ser un nÃºmero."));
             return;
         }
 
@@ -797,7 +861,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
             cfg.set("kits." + ordered.get(i) + ".order", i + 1);
         }
         plugin.getConfigManager().saveConfig("kits");
-        sender.sendMessage(plugin.translateColors("%prefix%&aKit &e" + found + " &aordenado en posición &f" + clamped + "&a."));
+        sender.sendMessage(plugin.translateColors("%prefix%&aKit &e" + found + " &aordenado en posiciÃ³n &f" + clamped + "&a."));
     }
 
     private List<String> listKits(FileConfiguration cfg, Player viewer) {
@@ -829,9 +893,32 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
     private void parseSlots(String token, Set<Integer> out) { if (token == null || token.isBlank()) return; if (token.contains("-")) { String[] p = token.split("-", 2); try { int a = Integer.parseInt(p[0].trim()), b = Integer.parseInt(p[1].trim()); if (a > b) { int t = a; a = b; b = t; } for (int i = a; i <= b; i++) if (i >= 0 && i < 54) out.add(i); } catch (Exception ignored) {} } else { try { int s = Integer.parseInt(token.trim()); if (s >= 0 && s < 54) out.add(s); } catch (Exception ignored) {} } }
     private void set(Inventory inv, int slot, ItemStack item) { if (slot >= 0 && slot < inv.getSize()) inv.setItem(slot, item); }
     private String withInfo(String text, Player player, int page, int maxPage) { if (text == null) return ""; return text.replace("%selected_kit%", selectedByPlayer.getOrDefault(player.getUniqueId(), "Ninguno")).replace("%preset_slot%", "N/A").replace("%page%", String.valueOf(page)).replace("%max_page%", String.valueOf(maxPage)); }
+    private String firstNamedShulkerDisplay(List<ItemStack> shulkers) {
+        for (ItemStack shulker : shulkers) {
+            if (shulker == null || shulker.getType().isAir()) continue;
+            ItemMeta meta = shulker.getItemMeta();
+            if (meta == null || !meta.hasDisplayName()) continue;
+            Component display = meta.displayName();
+            if (display == null) continue;
+            String legacy = LegacyComponentSerializer.legacySection().serialize(display);
+            if (!legacy.isBlank()) return legacy;
+        }
+        return "";
+    }
     private int shulkerAmount(ItemStack stack) { ItemMeta m = stack.getItemMeta(); if (!(m instanceof BlockStateMeta b) || !(b.getBlockState() instanceof ShulkerBox box)) return 0; int c = 0; for (ItemStack it : box.getInventory().getContents()) if (it != null && it.getType() != Material.AIR && it.getAmount() > 0) c += it.getAmount(); return c; }
-    private long nextClaim(UUID uuid, String kit) { return data.getLong("players." + uuid + "." + kit.toLowerCase(Locale.ROOT), 0L); }
-    private void setNextClaim(UUID uuid, String kit, long ts) { data.set("players." + uuid + "." + kit.toLowerCase(Locale.ROOT), ts); saveData(); }
+    private long nextClaim(UUID uuid, String kit) { return data.getLong("cooldowns.players." + uuid + "." + kit.toLowerCase(Locale.ROOT), 0L); }
+    private void setNextClaim(UUID uuid, String kit, long ts) { data.set("cooldowns.players." + uuid + "." + kit.toLowerCase(Locale.ROOT), ts); saveData(); }
+    private boolean hasClaimedOneTime(UUID uuid, String kit) { return data.getBoolean("one_time.players." + uuid + "." + kit.toLowerCase(Locale.ROOT), false); }
+    private void markClaimedOneTime(UUID uuid, String kit) { data.set("one_time.players." + uuid + "." + kit.toLowerCase(Locale.ROOT), true); saveData(); }
+    private boolean parseBooleanInput(String raw, boolean fallback) {
+        if (raw == null) return fallback;
+        String v = raw.trim().toLowerCase(Locale.ROOT);
+        return switch (v) {
+            case "true", "on", "yes", "si", "1" -> true;
+            case "false", "off", "no", "0" -> false;
+            default -> fallback;
+        };
+    }
     private void saveData() { try { data.save(file); } catch (IOException e) { plugin.getLogger().warning("[Kits] No se pudo guardar " + COOLDOWN_FILE + ": " + e.getMessage()); } }
     private String duration(long ms) { long s = Math.max(0L, ms / 1000L), d = s / 86400L, h = (s % 86400L) / 3600L, m = (s % 3600L) / 60L; if (d > 0) return d + "d " + h + "h " + m + "m"; if (h > 0) return h + "h " + m + "m"; return m + "m"; }
 
@@ -848,7 +935,7 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
             }
         }
         if (cfg.getBoolean("claim-effects.title.enabled", true)) {
-            String title = cfg.getString("claim-effects.title.title", "&#77DD77ᴋɪᴛ ʀᴇᴄʟᴀᴍᴀᴅᴏ");
+            String title = cfg.getString("claim-effects.title.title", "&#77DD77á´‹Éªá´› Ê€á´‡á´„ÊŸá´€á´á´€á´…á´");
             String subtitle = cfg.getString("claim-effects.title.subtitle", "&fDisfruta tu recompensa");
             int in = Math.max(0, cfg.getInt("claim-effects.title.fade-in", 5));
             int stay = Math.max(0, cfg.getInt("claim-effects.title.stay", 30));
@@ -895,30 +982,38 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
     }
 
     private void sendHelp(CommandSender sender) {
-        sender.sendMessage(plugin.translateColors("&8&m       &r &#FFEE8Cᴋɪᴛꜱ ꜱʏꜱᴛᴇᴍ &8&m       "));
-        sender.sendMessage(plugin.translateColors(" &e/kits &7- Abrir menú de kits"));
-        sender.sendMessage(plugin.translateColors(" &e/vukits preview <nombre> &7- Ver contenido"));
-        sender.sendMessage(plugin.translateColors(" &e/vukits list &7- Ver lista de kits"));
+        sender.sendMessage(plugin.translateColors("&8&m       &r &#FFEE8Cá´‹Éªá´›êœ± êœ±Êêœ±á´›á´‡á´ &8&m       "));
+        sender.sendMessage(plugin.translateColors(" &e/kit &7- Abrir menu de kits"));
+        sender.sendMessage(plugin.translateColors(" &e/kit <nombre> &7- Reclamar kit"));
+        sender.sendMessage(plugin.translateColors(" &e/kit preview <nombre> &7- Ver contenido"));
+        sender.sendMessage(plugin.translateColors(" &e/kit list &7- Ver lista de kits"));
         sender.sendMessage(plugin.translateColors(" &e/kit inicial &7- Reclamar kit inicial (5min)"));
         if (sender.hasPermission("valerinutils.kits.admin")) {
-            sender.sendMessage(plugin.translateColors(" &e/vukits create <nombre> [permiso] [cooldown] &7- Crear desde la mano"));
-            sender.sendMessage(plugin.translateColors(" &e/vukits editor <nombre> &7- Editar contenido del kit"));
-            sender.sendMessage(plugin.translateColors(" &e/vukits order <nombre> <posicion> &7- Ordenar kit en la GUI"));
-            sender.sendMessage(plugin.translateColors(" &e/vukits give <jugador> <nombre> &7- Dar kit"));
-            sender.sendMessage(plugin.translateColors(" &e/vukits reset <jugador> &7- Reset flag inicial"));
-            sender.sendMessage(plugin.translateColors(" &e/vukits delete <nombre> &7- Eliminar kit"));
-            sender.sendMessage(plugin.translateColors(" &e/vukits debug &7- Toggle debug del módulo"));
+            sender.sendMessage(plugin.translateColors(" &e/kit create <nombre> [permiso] [dias|-1] [nombre_shulker] &7- Crear kit"));
+            sender.sendMessage(plugin.translateColors(" &e/kit editor <nombre> &7- Editar contenido del kit"));
+            sender.sendMessage(plugin.translateColors(" &e/kit order <nombre> <posicion> &7- Ordenar kit en la GUI"));
+            sender.sendMessage(plugin.translateColors(" &e/kit give <jugador> <nombre> &7- Dar kit"));
+            sender.sendMessage(plugin.translateColors(" &e/kit reset <jugador> [kit|all] &7- Reset cooldown/one-time"));
+            sender.sendMessage(plugin.translateColors(" &e/kit delete <nombre> &7- Eliminar kit"));
+            sender.sendMessage(plugin.translateColors(" &e/kit debug &7- Toggle debug del modulo"));
         }
     }
-
-    private boolean noPerms(Player player) { player.sendMessage(plugin.translateColors(plugin.getConfigManager().getConfig("settings").getString("messages.no-permission", "&cNo tienes permiso."))); return true; }
+private boolean noPerms(Player player) { player.sendMessage(plugin.translateColors(plugin.getConfigManager().getConfig("settings").getString("messages.no-permission", "&cNo tienes permiso."))); return true; }
 
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("menu", "preview", "list", "inicial"));
             if (sender.hasPermission("valerinutils.kits.admin")) subs.addAll(List.of("create", "give", "delete", "reset", "editor", "order", "debug"));
-            return subs.stream().filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT))).collect(Collectors.toList());
+            String partial = args[0].toLowerCase(Locale.ROOT);
+            List<String> out = new ArrayList<>(subs.stream().filter(s -> s.startsWith(partial)).collect(Collectors.toList()));
+            ConfigurationSection kits = module.getConfig().getConfigurationSection("kits");
+            if (kits != null) {
+                out.addAll(kits.getKeys(false).stream()
+                        .filter(s -> s.toLowerCase(Locale.ROOT).startsWith(partial))
+                        .collect(Collectors.toList()));
+            }
+            return out.stream().distinct().collect(Collectors.toList());
         }
         if (args.length == 2) {
             if (args[0].equalsIgnoreCase("preview") || args[0].equalsIgnoreCase("delete") || args[0].equalsIgnoreCase("editor") || args[0].equalsIgnoreCase("order")) {
@@ -929,6 +1024,16 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
                 String p = args[1].toLowerCase(Locale.ROOT);
                 return Bukkit.getOnlinePlayers().stream().map(Player::getName).filter(n -> n != null && n.toLowerCase(Locale.ROOT).startsWith(p)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList());
             }
+            if (args[0].equalsIgnoreCase("create")) {
+                List<String> defaults = List.of("vip", "elite", "legend", "starter");
+                String p = args[1].toLowerCase(Locale.ROOT);
+                return defaults.stream().filter(s -> s.startsWith(p)).collect(Collectors.toList());
+            }
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("create")) {
+            String kitName = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "kit";
+            String generated = "kits." + kitName;
+            return generated.startsWith(args[2].toLowerCase(Locale.ROOT)) ? List.of(generated) : Collections.emptyList();
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("order")) {
             ConfigurationSection kits = module.getConfig().getConfigurationSection("kits");
@@ -943,6 +1048,22 @@ final class KitsCommandHandler implements CommandExecutor, TabCompleter {
             ConfigurationSection kits = module.getConfig().getConfigurationSection("kits");
             if (kits != null) return kits.getKeys(false).stream().filter(s -> s.toLowerCase(Locale.ROOT).startsWith(args[2].toLowerCase(Locale.ROOT))).collect(Collectors.toList());
         }
+        if (args.length == 3 && args[0].equalsIgnoreCase("reset")) {
+            List<String> out = new ArrayList<>(List.of("all"));
+            ConfigurationSection kits = module.getConfig().getConfigurationSection("kits");
+            if (kits != null) out.addAll(kits.getKeys(false));
+            String p = args[2].toLowerCase(Locale.ROOT);
+            return out.stream().filter(s -> s.toLowerCase(Locale.ROOT).startsWith(p)).collect(Collectors.toList());
+        }
+        if (args.length == 4 && args[0].equalsIgnoreCase("create")) {
+            List<String> cds = List.of("-1", "0", "1", "7", "15", "30");
+            return cds.stream().filter(s -> s.startsWith(args[3])).collect(Collectors.toList());
+        }
+        if (args.length == 5 && args[0].equalsIgnoreCase("create")) {
+            List<String> names = List.of("<b><gradient:#e26d5c:#472d30>ᴀʀᴍᴏʀ ᴏᴛᴏñᴏ</gradient></b>", "&8Kit " + args[1]);
+            return names.stream().filter(s -> s.toLowerCase(Locale.ROOT).startsWith(args[4].toLowerCase(Locale.ROOT))).collect(Collectors.toList());
+        }
         return Collections.emptyList();
     }
 }
+

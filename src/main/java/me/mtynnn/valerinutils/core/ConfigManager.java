@@ -331,6 +331,11 @@ public class ConfigManager {
                     "%prefix%<green>Has reclamado el kit: <white>%kit%");
             changed = true;
         }
+        if (!config.contains("messages.kit-one-time-used")) {
+            config.set("messages.kit-one-time-used",
+                    "%prefix%<red>Este kit solo se puede reclamar una vez.");
+            changed = true;
+        }
         if (!config.contains("sounds.menu-open")) {
             config.set("sounds.menu-open", "BLOCK_CHEST_OPEN");
             config.set("sounds.menu-click", "UI_BUTTON_CLICK");
@@ -463,6 +468,11 @@ public class ConfigManager {
         ConfigurationSection kitsSection = config.getConfigurationSection("kits");
         if (kitsSection != null) {
             for (String kitId : kitsSection.getKeys(false)) {
+                String oneTimePath = "kits." + kitId + ".one-time";
+                if (!config.contains(oneTimePath)) {
+                    config.set(oneTimePath, false);
+                    changed = true;
+                }
                 String displayPath = "kits." + kitId + ".display_name";
                 String display = config.getString(displayPath, "");
                 if (display != null && display.contains("&x<")) {
