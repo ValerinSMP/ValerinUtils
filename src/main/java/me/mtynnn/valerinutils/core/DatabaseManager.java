@@ -17,6 +17,8 @@ public class DatabaseManager {
     private Connection connection;
     private final String url;
 
+    private static final String COLUMN_EXISTS_MSG = "duplicate column name";
+
     public DatabaseManager(ValerinUtils plugin) {
         this.plugin = plugin;
         this.url = "jdbc:sqlite:" + new File(plugin.getDataFolder(), "ValerinUtils.db").getAbsolutePath();
@@ -95,28 +97,11 @@ public class DatabaseManager {
             stmt.execute(sql);
 
             // Attempt to add columns if missing (simple schema migration)
-            try {
-                stmt.execute("ALTER TABLE player_data ADD COLUMN menu_disabled BOOLEAN DEFAULT 0;");
-            } catch (SQLException ignored) {
-                // Column likely exists
-            }
-            try {
-                stmt.execute("ALTER TABLE player_data ADD COLUMN royal_pay_disabled BOOLEAN DEFAULT 0;");
-            } catch (SQLException ignored) {
-                // Column likely exists
-            }
-            try {
-                stmt.execute("ALTER TABLE player_data ADD COLUMN death_messages_disabled BOOLEAN DEFAULT 0;");
-            } catch (SQLException ignored) {
-            }
-            try {
-                stmt.execute("ALTER TABLE player_data ADD COLUMN starter_kit_received BOOLEAN DEFAULT 0;");
-            } catch (SQLException ignored) {
-            }
-            try {
-                stmt.execute("ALTER TABLE player_data ADD COLUMN nickname TEXT;");
-            } catch (SQLException ignored) {
-            }
+            addColumnIfMissing(stmt, "player_data", "menu_disabled", "BOOLEAN DEFAULT 0");
+            addColumnIfMissing(stmt, "player_data", "royal_pay_disabled", "BOOLEAN DEFAULT 0");
+            addColumnIfMissing(stmt, "player_data", "death_messages_disabled", "BOOLEAN DEFAULT 0");
+            addColumnIfMissing(stmt, "player_data", "starter_kit_received", "BOOLEAN DEFAULT 0");
+            addColumnIfMissing(stmt, "player_data", "nickname", "TEXT");
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not create tables", e);
         }
@@ -167,12 +152,16 @@ public class DatabaseManager {
     }
 
     private void migratePlayerDataDropTikTokColumn() {
+        Connection conn = getConnection();
+        if (conn == null) {
+            plugin.getLogger().warning("No se pudo migrar player_data: conexion a DB no disponible");
+            return;
+        }
         try {
             if (!hasColumn("player_data", "tiktok_claimed")) {
                 return;
             }
 
-            Connection conn = getConnection();
             boolean previousAutoCommit = conn.getAutoCommit();
             conn.setAutoCommit(false);
 
@@ -211,10 +200,26 @@ public class DatabaseManager {
             plugin.getLogger().info("Database migration: removed legacy column player_data.tiktok_claimed.");
         } catch (SQLException e) {
             try {
-                getConnection().rollback();
+                conn.rollback();
+            } catch (SQLException ignored) {
+                plugin.getLogger().warning("No se pudo hacer rollback durante la migracion de player_data");
+            }
+            try {
+                conn.setAutoCommit(true);
             } catch (SQLException ignored) {
             }
             plugin.getLogger().log(Level.SEVERE, "Could not migrate player_data to remove tiktok_claimed", e);
+        }
+    }
+
+    private void addColumnIfMissing(Statement stmt, String table, String column, String type) throws SQLException {
+        try {
+            stmt.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + type + ";");
+        } catch (SQLException e) {
+            if (e.getMessage() != null && e.getMessage().toLowerCase().contains(COLUMN_EXISTS_MSG)) {
+                return;
+            }
+            throw e;
         }
     }
 
@@ -257,6 +262,18 @@ public class DatabaseManager {
             ps.executeUpdate();
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Error marking code as used", e);
+        }
+    }
+
+    public boolean tryMarkCodeUsed(String uuid, String code) {
+        String sql = "INSERT OR IGNORE INTO player_codes (uuid, code) VALUES (?, ?)";
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
+            ps.setString(1, uuid);
+            ps.setString(2, code.toUpperCase());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Error marking code as used", e);
+            return false;
         }
     }
 

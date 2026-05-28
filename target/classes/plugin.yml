@@ -136,10 +136,6 @@ commands:
     usage: /itemedit <name|lore> ...
     aliases: [iedit, edititem, itemeditor]
     permission: valerinutils.itemeditor.use
-  geode:
-    description: Comando interno para manejar apertura de geodas
-    permission: valerinutils.geodes.admin
-
   sign:
     description: Firma el item en la mano con una dedicatoria
     usage: "/sign <texto>"

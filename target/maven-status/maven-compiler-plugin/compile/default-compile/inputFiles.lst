@@ -2,6 +2,7 @@ C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinuti
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\commands\ValerinUtilsCommand.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\core\AbstractModule.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\core\BaseModule.java
+C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\core\CommandHousekeeper.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\core\CommandRegistry.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\core\ConfigManager.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\core\DatabaseManager.java
@@ -9,9 +10,9 @@ C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinuti
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\core\Module.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\core\ModuleManager.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\core\PlayerData.java
+C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\core\PlayerDataManager.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\codes\CodesModule.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\deathmessages\DeathMessagesModule.java
-C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\geodes\GeodesModule.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\itemeditor\ItemEditorModule.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\itemsign\ItemSignCommandHandler.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\itemsign\ItemSignModule.java

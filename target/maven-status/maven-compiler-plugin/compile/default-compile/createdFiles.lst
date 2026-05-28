@@ -1,7 +1,6 @@
 me\mtynnn\valerinutils\core\BaseModule.class
 me\mtynnn\valerinutils\modules\utility\UtilityBroadcastCommand.class
 me\mtynnn\valerinutils\utils\SignMenuFactory$SignListener$1.class
-me\mtynnn\valerinutils\modules\geodes\GeodesModule.class
 me\mtynnn\valerinutils\modules\utility\UtilitySellCommand$SellResult.class
 me\mtynnn\valerinutils\modules\kits\KitsListener.class
 me\mtynnn\valerinutils\modules\utility\UtilitySellCommand.class
@@ -12,6 +11,7 @@ me\mtynnn\valerinutils\utils\SignMenuFactory$1.class
 me\mtynnn\valerinutils\ValerinUtils.class
 me\mtynnn\valerinutils\modules\utility\UtilityNickManager.class
 me\mtynnn\valerinutils\utils\SignMenuFactory.class
+me\mtynnn\valerinutils\core\PlayerDataManager.class
 me\mtynnn\valerinutils\modules\utility\UtilityModule.class
 me\mtynnn\valerinutils\modules\kits\KitsPreviewHolder.class
 me\mtynnn\valerinutils\modules\itemsign\ItemSignCommandHandler$WrapResult.class
@@ -20,6 +20,7 @@ me\mtynnn\valerinutils\modules\codes\CodesModule.class
 me\mtynnn\valerinutils\modules\menuitem\MenuItemModule.class
 me\mtynnn\valerinutils\modules\kits\KitsAutoKitService.class
 me\mtynnn\valerinutils\modules\utility\UtilityNickCommand$1.class
+me\mtynnn\valerinutils\core\CommandHousekeeper.class
 me\mtynnn\valerinutils\utils\SignMenuFactory$2.class
 me\mtynnn\valerinutils\modules\utility\UtilityPersonalWorldCommands.class
 me\mtynnn\valerinutils\core\PlayerData.class

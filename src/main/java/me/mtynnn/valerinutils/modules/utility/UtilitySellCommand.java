@@ -13,6 +13,8 @@ import java.util.Locale;
 final class UtilitySellCommand {
 
     private final UtilityModule module;
+    private Economy economy;
+    private boolean economyChecked;
 
     UtilitySellCommand(UtilityModule module) {
         this.module = module;
@@ -140,8 +142,12 @@ final class UtilitySellCommand {
     }
 
     private Economy getEconomy() {
-        var rsp = Bukkit.getServicesManager().getRegistration(Economy.class);
-        return rsp == null ? null : rsp.getProvider();
+        if (!economyChecked) {
+            var rsp = Bukkit.getServicesManager().getRegistration(Economy.class);
+            economy = rsp == null ? null : rsp.getProvider();
+            economyChecked = true;
+        }
+        return economy;
     }
 
     private boolean isEmpty(ItemStack item) {

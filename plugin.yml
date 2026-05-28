@@ -137,10 +137,6 @@ commands:
     usage: /itemedit <name|lore> ...
     aliases: [iedit, edititem, itemeditor]
     permission: valerinutils.itemeditor.use
-  geode:
-    description: Comando interno para manejar apertura de geodas
-    permission: valerinutils.geodes.admin
-
   vukits:
     description: Sistema de kits basados en Shulker Boxes
   kits:

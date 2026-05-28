@@ -2,12 +2,14 @@ package me.mtynnn.valerinutils;
 
 import me.mtynnn.valerinutils.commands.MenuItemCommand;
 import me.mtynnn.valerinutils.commands.ValerinUtilsCommand;
+import me.mtynnn.valerinutils.core.CommandHousekeeper;
 import me.mtynnn.valerinutils.core.CommandRegistry;
 import me.mtynnn.valerinutils.core.ConfigManager;
 import me.mtynnn.valerinutils.core.DatabaseManager;
 import me.mtynnn.valerinutils.core.ModuleManager;
 import me.mtynnn.valerinutils.core.MessageService;
 import me.mtynnn.valerinutils.core.PlayerData;
+import me.mtynnn.valerinutils.core.PlayerDataManager;
 import me.mtynnn.valerinutils.modules.joinquit.JoinQuitModule;
 import me.mtynnn.valerinutils.modules.killrewards.KillRewardsModule;
 import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
@@ -15,25 +17,19 @@ import me.mtynnn.valerinutils.modules.codes.CodesModule;
 import me.mtynnn.valerinutils.modules.utility.UtilityModule;
 import me.mtynnn.valerinutils.modules.itemeditor.ItemEditorModule;
 import me.mtynnn.valerinutils.modules.deathmessages.DeathMessagesModule;
-import me.mtynnn.valerinutils.modules.geodes.GeodesModule;
+
 import me.mtynnn.valerinutils.modules.itemsign.ItemSignModule;
 import me.mtynnn.valerinutils.placeholders.ValerinUtilsExpansion;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
-import org.bukkit.command.Command;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
-
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -43,13 +39,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,7 +50,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private static final Pattern LEGACY_HEX_PATTERN = Pattern.compile("(?i)&#([0-9a-f]{6})");
     private static final Pattern LEGACY_BUNGEE_HEX_AMPERSAND = Pattern.compile("(?i)&x(&[0-9a-f]){6}");
     private static final Pattern LEGACY_BUNGEE_HEX_SECTION = Pattern.compile("(?i)§x(§[0-9a-f]){6}");
-        private static final Pattern URL_PATTERN = Pattern.compile(
+    private static final Pattern URL_PATTERN = Pattern.compile(
             "(?i)\\b((?:https?://)?(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,}(?:/[\\p{Alnum}\\-._~:/?#\\[\\]@!$&'()*+,;=%]*)?)(?<![.,;:!?])");
 
     private static ValerinUtils instance;
@@ -72,15 +65,14 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private KillRewardsModule killRewardsModule;
     private CodesModule codesModule;
     private DeathMessagesModule deathMessagesModule;
-    private GeodesModule geodesModule;
     private ItemSignModule itemSignModule;
     private me.mtynnn.valerinutils.modules.kits.KitsModule kitsModule;
     private UtilityModule utilityModule;
     private ItemEditorModule itemEditorModule;
     private ValerinUtilsExpansion placeholderExpansion;
 
-    // Cache
-    private final Map<UUID, PlayerData> playerDataCache = new ConcurrentHashMap<>();
+    private PlayerDataManager playerDataManager;
+    private CommandHousekeeper commandHousekeeper;
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
@@ -108,40 +100,25 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
         // 1. Initialize Managers
         configManager = new ConfigManager(this);
-        configManager.loadAll(); // Detects and migrates configs
+        configManager.loadAll();
         messageService = new MessageService(this);
         commandRegistry = new CommandRegistry(this);
 
         databaseManager = new DatabaseManager(this);
         databaseManager.initialize();
 
+        playerDataManager = new PlayerDataManager(this);
+        commandHousekeeper = new CommandHousekeeper(this);
+
         // 2. Data Migration (v1 -> v2)
         performDataMigration();
 
         // 3. Reload Support: Load data for online players (Pre-load before modules)
-        if (!Bukkit.getOnlinePlayers().isEmpty()) {
-            getLogger().info("Loading data for " + Bukkit.getOnlinePlayers().size() + " online players...");
-            // We need to do this synchronously to ensure data is available for modules
-            // enabling
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                try {
-                    UUID uuid = p.getUniqueId();
-                    PlayerData data = loadPlayerDataFromDB(uuid);
-                    if (data == null) {
-                        data = new PlayerData(uuid, p.getName());
-                    } else {
-                        data.setName(p.getName());
-                    }
-                    playerDataCache.put(uuid, data);
-                } catch (SQLException e) {
-                    getLogger().severe("Failed to load data for " + p.getName() + " during reload.");
-                    e.printStackTrace();
-                }
-            }
-        }
+        playerDataManager.reloadOnlinePlayers();
 
         // 4. Register Events
         getServer().getPluginManager().registerEvents(this, this);
+        getServer().getPluginManager().registerEvents(playerDataManager, this);
 
         // 4. Initialize Modules
         moduleManager = new ModuleManager(this);
@@ -161,9 +138,6 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         deathMessagesModule = new DeathMessagesModule(this);
         moduleManager.registerModule(deathMessagesModule);
 
-        geodesModule = new GeodesModule(this);
-        moduleManager.registerModule(geodesModule);
-
         itemSignModule = new ItemSignModule(this);
         moduleManager.registerModule(itemSignModule);
 
@@ -176,22 +150,23 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         itemEditorModule = new ItemEditorModule(this);
         moduleManager.registerModule(itemEditorModule);
 
-        reinstatePluginCommands();
+        commandHousekeeper.reinstateAll();
         moduleManager.enableAll();
 
         // Sync the Brigadier dispatcher immediately so stale BukkitCommandNodes
         // are rebuilt before any player can issue a command after a PlugManX reload.
-        try {
-            syncCommandsSafe();
-        } catch (Throwable ignored) {
-        }
+        commandHousekeeper.syncNow();
 
-        scheduleCommandHousekeeping();
+        commandHousekeeper.schedule();
+
+        // Cleanup periodico de cache: elimina entradas de jugadores ya desconectados
+        // Previene acumulacion por crashes o QuitEvent perdidos tras PlugMan reload
+        Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
+            playerDataManager.removeStaleEntries();
+        }, 6000L, 6000L);
 
         // 5. Hooks & Commands
-        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
-
-        {
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             placeholderExpansion = new ValerinUtilsExpansion(this);
             placeholderExpansion.register();
         }
@@ -232,7 +207,6 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         boolean joinQuitEnabled = moduleManager.isModuleEnabled("joinquit");
         boolean killRewardsEnabled = moduleManager.isModuleEnabled("killrewards");
         boolean codesEnabled = moduleManager.isModuleEnabled("codes");
-        boolean geodesEnabled = moduleManager.isModuleEnabled("geodes");
         boolean itemSignEnabled = moduleManager.isModuleEnabled("itemsign");
         boolean kitsEnabled = moduleManager.isModuleEnabled("kits");
         boolean utilityEnabled = moduleManager.isModuleEnabled("utility");
@@ -249,7 +223,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
                 + " | JoinQuit " + (joinQuitEnabled ? "✔" : "✘")
                 + " | KillRewards " + (killRewardsEnabled ? "✔" : "✘")
                 + " | Codes " + (codesEnabled ? "✔" : "✘")
-                + " | Geodes " + (geodesEnabled ? "✔" : "✘")
+
                 + " | ItemSign " + (itemSignEnabled ? "✔" : "✘")
                 + " | Kits " + (kitsEnabled ? "✔" : "✘")
                 + " | Utility " + (utilityEnabled ? "✔" : "✘")
@@ -260,15 +234,12 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
-        // Save all online players
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            savePlayerDataSync(p.getUniqueId());
-        }
+        playerDataManager.saveAllAndClear();
 
         if (moduleManager != null) {
             moduleManager.disableAll();
         }
-        clearCoreCommandBindings();
+        commandHousekeeper.clearBindings();
 
         if (placeholderExpansion != null) {
             try {
@@ -284,467 +255,8 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         getLogger().info("ValerinUtils disabled");
     }
 
-    @SuppressWarnings("unchecked")
-    private void purgeRegisteredCommands(boolean currentOnly) {
-        try {
-            Object commandMap = resolveCommandMap();
-            if (commandMap == null) {
-                return;
-            }
-
-            Map<String, Command> knownCommands = getKnownCommands(commandMap);
-            if (knownCommands == null) {
-                return;
-            }
-
-            int removed = 0;
-            Set<String> keysToRemove = new HashSet<>();
-            for (Map.Entry<String, Command> entry : knownCommands.entrySet()) {
-                Command command = entry.getValue();
-                if (!(command instanceof PluginCommand pluginCommand) || pluginCommand.getPlugin() == null) {
-                    continue;
-                }
-                if (!pluginCommand.getPlugin().getName().equalsIgnoreCase(getName())) {
-                    continue;
-                }
-
-                boolean shouldRemove = currentOnly
-                        ? pluginCommand.getPlugin() == this
-                        : pluginCommand.getPlugin() != this;
-                if (shouldRemove) {
-                    keysToRemove.add(entry.getKey());
-                }
-            }
-
-            for (String key : keysToRemove) {
-                if (knownCommands.remove(key) != null) {
-                    removed++;
-                }
-            }
-
-            if (removed > 0) {
-                String scope = currentOnly ? "current instance" : "stale instances";
-                getLogger().info("Purged " + removed + " command map entries for " + getName() + " (" + scope + ").");
-            }
-        } catch (UnsupportedOperationException ignored) {
-            // Some Paper builds expose an unmodifiable command map view during reload.
-            // In that case we skip purge safely; command executors are still rebound on enable.
-        } catch (Throwable t) {
-            getLogger().warning(
-                    "Could not purge command map entries: " + t.getClass().getSimpleName() + " - " + t.getMessage());
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private void adoptCurrentPluginCommands() {
-        try {
-            Object commandMap = resolveCommandMap();
-            if (commandMap == null) {
-                return;
-            }
-
-            Map<String, Command> knownCommands = getKnownCommands(commandMap);
-            if (knownCommands == null) {
-                return;
-            }
-
-            int replaced = 0;
-            for (Map.Entry<String, Command> entry : knownCommands.entrySet()) {
-                Command existing = entry.getValue();
-                if (!(existing instanceof PluginCommand oldCmd) || oldCmd.getPlugin() == null) {
-                    continue;
-                }
-                if (!oldCmd.getPlugin().getName().equalsIgnoreCase(getName()) || oldCmd.getPlugin() == this) {
-                    continue;
-                }
-
-                PluginCommand current = getCommand(oldCmd.getName());
-                if (current == null) {
-                    String key = entry.getKey();
-                    int namespaceSplit = key.indexOf(':');
-                    String raw = namespaceSplit >= 0 && namespaceSplit + 1 < key.length()
-                            ? key.substring(namespaceSplit + 1)
-                            : key;
-                    current = getCommand(raw);
-                    if (current == null) {
-                        String primary = resolvePrimaryCommandFromLabel(raw);
-                        if (primary != null) {
-                            current = getCommand(primary);
-                        }
-                    }
-                }
-                if (current == null) {
-                    continue;
-                }
-
-                entry.setValue(current);
-                replaced++;
-            }
-
-            if (replaced > 0) {
-                getLogger()
-                        .info("Rebound " + replaced + " stale command aliases to current " + getName() + " instance.");
-            }
-        } catch (UnsupportedOperationException ignored) {
-            // Unmodifiable command-map views cannot be rewritten directly on this server build.
-        } catch (Throwable t) {
-            getLogger().warning(
-                    "Could not adopt command map entries: " + t.getClass().getSimpleName() + " - " + t.getMessage());
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Command> getKnownCommands(Object commandMap) {
-        try {
-            java.lang.reflect.Field field = findField(commandMap.getClass(), "knownCommands");
-            if (field == null) {
-                for (java.lang.reflect.Field candidate : getAllFields(commandMap.getClass())) {
-                    if (!Map.class.isAssignableFrom(candidate.getType())) {
-                        continue;
-                    }
-                    candidate.setAccessible(true);
-                    Object raw = candidate.get(commandMap);
-                    if (raw instanceof Map<?, ?> rawMap && mapLooksLikeCommandMap(rawMap)) {
-                        return (Map<String, Command>) rawMap;
-                    }
-                }
-                return null;
-            }
-            field.setAccessible(true);
-            Object rawKnown = field.get(commandMap);
-            if (!(rawKnown instanceof Map<?, ?> rawMap)) {
-                return null;
-            }
-            return unwrapIfUnmodifiable((Map<String, Command>) rawMap);
-        } catch (Throwable t) {
-            return null;
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Command> unwrapIfUnmodifiable(Map<String, Command> map) {
-        if (map == null || !map.getClass().getName().contains("nmodifiable")) {
-            return map;
-        }
-        for (java.lang.reflect.Field f : getAllFields(map.getClass())) {
-            if (!Map.class.isAssignableFrom(f.getType())) {
-                continue;
-            }
-            try {
-                f.setAccessible(true);
-                Object inner = f.get(map);
-                if (inner instanceof Map<?, ?> innerMap && innerMap != map) {
-                    return (Map<String, Command>) innerMap;
-                }
-            } catch (Throwable ignored) {
-            }
-        }
-        return map;
-    }
-
-    private java.lang.reflect.Field findField(Class<?> type, String fieldName) {
-        Class<?> current = type;
-        while (current != null) {
-            try {
-                return current.getDeclaredField(fieldName);
-            } catch (NoSuchFieldException ignored) {
-                current = current.getSuperclass();
-            }
-        }
-        return null;
-    }
-
-    private List<java.lang.reflect.Field> getAllFields(Class<?> type) {
-        List<java.lang.reflect.Field> fields = new ArrayList<>();
-        Class<?> current = type;
-        while (current != null) {
-            Collections.addAll(fields, current.getDeclaredFields());
-            current = current.getSuperclass();
-        }
-        return fields;
-    }
-
-    private boolean mapLooksLikeCommandMap(Map<?, ?> map) {
-        if (map.isEmpty()) {
-            return false;
-        }
-        int inspected = 0;
-        for (Object value : map.values()) {
-            inspected++;
-            if (value instanceof Command) {
-                return true;
-            }
-            if (inspected >= 20) {
-                break;
-            }
-        }
-        return false;
-    }
-
-    private Object resolveCommandMap() {
-        Object server = Bukkit.getServer();
-        try {
-            return server.getClass().getMethod("getCommandMap").invoke(server);
-        } catch (Throwable ignored) {
-        }
-        try {
-            java.lang.reflect.Field field = findField(server.getClass(), "commandMap");
-            if (field != null) {
-                field.setAccessible(true);
-                return field.get(server);
-            }
-        } catch (Throwable ignored) {
-        }
-        return null;
-    }
-
-    @SuppressWarnings("unchecked")
-    private void reinstatePluginCommands() {
-        if (getDescription() == null || getDescription().getCommands() == null
-                || getDescription().getCommands().isEmpty()) {
-            return;
-        }
-        try {
-            Object commandMap = resolveCommandMap();
-            if (commandMap == null) {
-                return;
-            }
-            Map<String, Command> knownCommands = getKnownCommands(commandMap);
-            if (knownCommands == null) {
-                return;
-            }
-            java.lang.reflect.Constructor<PluginCommand> ctor =
-                    PluginCommand.class.getDeclaredConstructor(String.class, Plugin.class);
-            ctor.setAccessible(true);
-            String namespace = getName().toLowerCase(Locale.ROOT);
-            int reinstated = 0;
-            for (String cmdName : getDescription().getCommands().keySet()) {
-                String lower = cmdName.toLowerCase(Locale.ROOT);
-                Command existing = knownCommands.get(lower);
-                if (existing instanceof PluginCommand pc && pc.getPlugin() == this) {
-                    continue;
-                }
-                PluginCommand fresh = ctor.newInstance(lower, this);
-                knownCommands.put(lower, fresh);
-                knownCommands.put(namespace + ":" + lower, fresh);
-
-                for (String alias : getAliasesForCommand(cmdName)) {
-                    String aliasLower = alias.toLowerCase(Locale.ROOT);
-                    Command aliasExisting = knownCommands.get(aliasLower);
-                    if (aliasExisting == null || (aliasExisting instanceof PluginCommand pc && isStaleValerinCommand(pc))) {
-                        knownCommands.put(aliasLower, fresh);
-                        knownCommands.put(namespace + ":" + aliasLower, fresh);
-                    }
-                }
-                reinstated++;
-            }
-            if (reinstated > 0) {
-                getLogger().info("Reinstated " + reinstated + " stale command entries for reload.");
-            }
-        } catch (UnsupportedOperationException ignored) {
-            // Map still immutable after unwrap attempt
-        } catch (Throwable t) {
-            getLogger().warning("Could not reinstate command entries: " + t.getClass().getSimpleName()
-                    + " - " + t.getMessage());
-        }
-    }
-
-    private void clearCoreCommandBindings() {
-        clearCommandBinding("valerinutils");
-        clearCommandBinding("menuitem");
-    }
-
-    private void clearCommandBinding(String name) {
-        PluginCommand cmd = getCommand(name);
-        if (cmd == null) {
-            return;
-        }
-        cmd.setExecutor(null);
-        cmd.setTabCompleter(null);
-    }
-
-    private void syncCommandsSafe() {
-        try {
-            Object server = getServer();
-            server.getClass().getMethod("syncCommands").invoke(server);
-        } catch (NoSuchMethodException ignored) {
-            // Not supported on this server implementation.
-        } catch (Throwable t) {
-            throw new RuntimeException(t);
-        }
-    }
-
-    private void scheduleCommandHousekeeping() {
-        // Delay housekeeping to avoid races with Paper's async command build on reload.
-        Bukkit.getScheduler().runTaskLater(this, () -> {
-            try {
-                purgeRegisteredCommands(false);
-                adoptCurrentPluginCommands();
-                // Patch stale PluginCommand.owningPlugin refs in the Brigadier tree (PlugManX compat).
-                repairBrigadierDispatcher();
-                logCommandRegistrationState();
-            } catch (Throwable t) {
-                getLogger().warning("Command housekeeping failed: " + t.getClass().getSimpleName() + " - " + t.getMessage());
-            }
-        }, 20L);
-
-        // Sync dispatcher a bit after housekeeping, with a retry to reduce race risk.
-        Bukkit.getScheduler().runTaskLater(this, () -> {
-            try {
-                syncCommandsSafe();
-                getLogger().info("Command dispatcher synced.");
-            } catch (Throwable t) {
-                getLogger().warning("Command dispatcher sync failed: " + t.getClass().getSimpleName() + " - " + t.getMessage());
-                Bukkit.getScheduler().runTaskLater(this, () -> {
-                    try {
-                        syncCommandsSafe();
-                        getLogger().info("Command dispatcher synced (retry).");
-                    } catch (Throwable retry) {
-                        getLogger().warning("Command dispatcher sync retry failed: " + retry.getClass().getSimpleName() + " - " + retry.getMessage());
-                    }
-                }, 20L);
-            }
-        }, 40L);
-    }
-
-    // -------------------------------------------------------------------------
-    // Brigadier dispatcher repair (PlugManX hot-reload compat)
-    //
-    // universe-1.21.10 does not rebuild BukkitCommandNode objects during
-    // syncCommands(), so the Brigadier tree retains stale PluginCommand
-    // instances whose owningPlugin points to the old (disabled) plugin
-    // instance.  We walk the tree and patch every such reference using
-    // sun.misc.Unsafe, which can overwrite final fields at runtime.
-    // -------------------------------------------------------------------------
-
-    private void repairBrigadierDispatcher() {
-        try {
-            // On universe-1.21.10, Brigadier nodes cache stale PluginCommand instances.
-            // Since we can't patch the fields directly (they're not exposed), we patch
-            // the command map so that getCommand() returns fresh instances.
-            Object commandMap = resolveCommandMap();
-            if (commandMap == null) return;
-
-            Map<String, Command> knownCommands = getKnownCommands(commandMap);
-            if (knownCommands == null) return;
-
-            int patched = 0;
-            for (String label : getAllDeclaredCommandLabels()) {
-                String lower = label.toLowerCase(Locale.ROOT);
-                PluginCommand fresh = getCommand(lower);
-                if (fresh == null) {
-                    String primary = resolvePrimaryCommandFromLabel(lower);
-                    if (primary != null) {
-                        fresh = getCommand(primary);
-                    }
-                }
-                if (fresh != null) {
-                    Command existing = knownCommands.get(lower);
-                    if (existing instanceof PluginCommand pc && isStaleValerinCommand(pc)) {
-                        knownCommands.put(lower, fresh);
-                        knownCommands.put(getName().toLowerCase(Locale.ROOT) + ":" + lower, fresh);
-                        patched++;
-                    }
-                }
-            }
-            if (patched > 0) {
-                getLogger().info("[BrigadierRepair] Patched " + patched + " stale command map entries.");
-            }
-        } catch (Throwable t) {
-            getLogger().warning("[BrigadierRepair] " + t.getClass().getSimpleName() + ": " + t.getMessage());
-        }
-    }
-
-    private boolean isStaleValerinCommand(PluginCommand pc) {
-        Plugin owner = pc.getPlugin();
-        return owner != null && owner.getName().equalsIgnoreCase(getName()) && owner != this;
-    }
-
-    @SuppressWarnings("unchecked")
-    private String resolvePrimaryCommandFromLabel(String label) {
-        if (label == null || label.isBlank() || getDescription() == null || getDescription().getCommands() == null) {
-            return null;
-        }
-
-        String probe = label.toLowerCase(Locale.ROOT);
-        if (getDescription().getCommands().containsKey(probe)) {
-            return probe;
-        }
-
-        for (Map.Entry<String, Map<String, Object>> entry : getDescription().getCommands().entrySet()) {
-            Object aliasesRaw = entry.getValue().get("aliases");
-            if (aliasesRaw instanceof String aliasSingle) {
-                if (aliasSingle.equalsIgnoreCase(probe)) {
-                    return entry.getKey().toLowerCase(Locale.ROOT);
-                }
-                continue;
-            }
-
-            if (aliasesRaw instanceof List<?> aliasList) {
-                for (Object aliasObj : aliasList) {
-                    if (aliasObj != null && probe.equalsIgnoreCase(aliasObj.toString())) {
-                        return entry.getKey().toLowerCase(Locale.ROOT);
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
-    private List<String> getAliasesForCommand(String commandName) {
-        if (getDescription() == null || getDescription().getCommands() == null) {
-            return Collections.emptyList();
-        }
-        Map<String, Object> meta = getDescription().getCommands().get(commandName);
-        if (meta == null) {
-            return Collections.emptyList();
-        }
-
-        Object aliasesRaw = meta.get("aliases");
-        if (aliasesRaw instanceof String aliasSingle) {
-            return List.of(aliasSingle);
-        }
-        if (aliasesRaw instanceof List<?> aliasList) {
-            List<String> out = new ArrayList<>();
-            for (Object aliasObj : aliasList) {
-                if (aliasObj != null) {
-                    out.add(aliasObj.toString());
-                }
-            }
-            return out;
-        }
-        return Collections.emptyList();
-    }
-
-    private Set<String> getAllDeclaredCommandLabels() {
-        Set<String> labels = new HashSet<>();
-        if (getDescription() == null || getDescription().getCommands() == null) {
-            return labels;
-        }
-
-        for (String cmdName : getDescription().getCommands().keySet()) {
-            labels.add(cmdName.toLowerCase(Locale.ROOT));
-            for (String alias : getAliasesForCommand(cmdName)) {
-                labels.add(alias.toLowerCase(Locale.ROOT));
-            }
-        }
-        return labels;
-    }
-
-    private void logCommandRegistrationState() {
-        if (getDescription() == null || getDescription().getCommands() == null) {
-            return;
-        }
-        int missing = 0;
-        for (String name : getDescription().getCommands().keySet()) {
-            if (getCommand(name) == null) {
-                getLogger().warning("Command not registered: /" + name);
-                missing++;
-            }
-        }
-        if (missing == 0) {
-            getLogger().info("Command registration check: OK (" + getDescription().getCommands().size() + " commands).");
-        }
+    public CommandHousekeeper getCommandHousekeeper() {
+        return commandHousekeeper;
     }
 
     public static ValerinUtils getInstance() {
@@ -763,106 +275,12 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         return databaseManager;
     }
 
-    // --- Data Logic (Centralized here or in a DataManager, keeping here for
-    // simplicity access) ---
-
-    // Async Load
-    @EventHandler
-    public void onAsyncLogin(AsyncPlayerPreLoginEvent event) {
-        UUID uuid = event.getUniqueId();
-        String name = event.getName();
-
-        try {
-            PlayerData data = loadPlayerDataFromDB(uuid);
-            if (data == null) {
-                data = new PlayerData(uuid, name);
-            } else {
-                data.setName(name); // update name
-            }
-            playerDataCache.put(uuid, data);
-        } catch (Exception e) {
-            getLogger().severe("Error loading data for " + name);
-            e.printStackTrace();
-        }
-    }
-
-    @EventHandler
-    public void onQuit(PlayerQuitEvent event) {
-        UUID uuid = event.getPlayer().getUniqueId();
-        PlayerData data = playerDataCache.remove(uuid);
-        if (data != null && data.isDirty()) {
-            // Save Async
-            CompletableFuture.runAsync(() -> savePlayerDataToDB(data));
-        }
-    }
-
     public PlayerData getPlayerData(UUID uuid) {
-        return playerDataCache.get(uuid);
+        return playerDataManager.get(uuid);
     }
 
-    private PlayerData loadPlayerDataFromDB(UUID uuid) throws SQLException {
-        String sql = "SELECT * FROM player_data WHERE uuid = ?";
-        try (PreparedStatement ps = databaseManager.getConnection().prepareStatement(sql)) {
-            ps.setString(1, uuid.toString());
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    PlayerData pd = new PlayerData(uuid, rs.getString("name"));
-                    pd.setKills(rs.getInt("kills"));
-                    pd.setDeaths(rs.getInt("deaths"));
-                    pd.setDailyRewardsCount(rs.getInt("daily_kills"));
-                    pd.setLastDailyReset(rs.getLong("last_daily_reset"));
-                    pd.setMenuDisabled(rs.getBoolean("menu_disabled"));
-                    pd.setRoyalPayDisabled(rs.getBoolean("royal_pay_disabled"));
-                    pd.setDeathMessagesDisabled(rs.getBoolean("death_messages_disabled"));
-                    pd.setStarterKitReceived(rs.getBoolean("starter_kit_received"));
-                    pd.setNickname(rs.getString("nickname"));
-                    pd.setDirty(false);
-                    return pd;
-                }
-            }
-        }
-        return null;
-    }
-
-    private void savePlayerDataToDB(PlayerData data) {
-        if (data == null)
-            return;
-        String sql = "INSERT INTO player_data (uuid, name, kills, deaths, daily_kills, last_daily_reset, menu_disabled, royal_pay_disabled, death_messages_disabled, starter_kit_received, nickname) "
-                +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
-                "ON CONFLICT(uuid) DO UPDATE SET " +
-                "name=excluded.name, kills=excluded.kills, " +
-                "deaths=excluded.deaths, daily_kills=excluded.daily_kills, last_daily_reset=excluded.last_daily_reset, "
-                +
-                "menu_disabled=excluded.menu_disabled, royal_pay_disabled=excluded.royal_pay_disabled, " +
-                "death_messages_disabled=excluded.death_messages_disabled, starter_kit_received=excluded.starter_kit_received, "
-                +
-                "nickname=excluded.nickname";
-
-        try (PreparedStatement ps = databaseManager.getConnection().prepareStatement(sql)) {
-            ps.setString(1, data.getUuid().toString());
-            ps.setString(2, data.getName());
-            ps.setInt(3, data.getKills());
-            ps.setInt(4, data.getDeaths());
-            ps.setInt(5, data.getDailyRewardsCount());
-            ps.setLong(6, data.getLastDailyReset());
-            ps.setBoolean(7, data.isMenuDisabled());
-            ps.setBoolean(8, data.isRoyalPayDisabled());
-            ps.setBoolean(9, data.isDeathMessagesDisabled());
-            ps.setBoolean(10, data.isStarterKitReceived());
-            ps.setString(11, data.getNickname());
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            getLogger().severe("Could not save data for " + data.getName());
-            e.printStackTrace();
-        }
-    }
-
-    private void savePlayerDataSync(UUID uuid) {
-        PlayerData data = playerDataCache.get(uuid);
-        if (data != null && data.isDirty()) {
-            savePlayerDataToDB(data);
-        }
+    public PlayerDataManager getPlayerDataManager() {
+        return playerDataManager;
     }
 
     // --- Migration Logic (Data) ---
@@ -1009,10 +427,6 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
     public DeathMessagesModule getDeathMessagesModule() {
         return deathMessagesModule;
-    }
-
-    public GeodesModule getGeodesModule() {
-        return geodesModule;
     }
 
     // --- Debug flags (per-module) ---

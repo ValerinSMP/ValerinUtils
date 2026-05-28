@@ -48,12 +48,11 @@ public class JoinQuitModule extends BaseModule implements Listener {
 
     @Override
     protected void onEnableModule() {
-        // Solo registrar eventos si LuckPerms está disponible
+        registerListener(this);
         if (Bukkit.getPluginManager().getPlugin("LuckPerms") != null) {
-            registerListener(this);
-            plugin.getLogger().info("[JoinQuit] LuckPerms hooked, events enabled");
+            plugin.getLogger().info("[JoinQuit] LuckPerms detectado, integracion de grupos activa");
         } else {
-            plugin.getLogger().warning("[JoinQuit] LuckPerms not found, module will not work properly");
+            plugin.getLogger().info("[JoinQuit] LuckPerms no detectado, usando solo permisos");
         }
     }
 
@@ -376,25 +375,26 @@ public class JoinQuitModule extends BaseModule implements Listener {
         return uniquePlayerCount;
     }
 
-    // Logic extracted to LuckPermsHelper
     private boolean hasGroup(Player player, String groupName) {
-        // return me.mtynnn.valerinutils.utils.LuckPermsHelper.hasGroup(player,
-        // groupName, plugin);
-        // Temporarily disabled due to external dependencies check or simpler logic
-        return false;
+        if (Bukkit.getPluginManager().getPlugin("LuckPerms") == null) {
+            return false;
+        }
+        try {
+            net.luckperms.api.LuckPerms lp = net.luckperms.api.LuckPermsProvider.get();
+            net.luckperms.api.model.user.User user = lp.getUserManager().getUser(player.getUniqueId());
+            if (user == null) {
+                return false;
+            }
+            String primaryGroup = user.getPrimaryGroup();
+            return primaryGroup != null && primaryGroup.equalsIgnoreCase(groupName);
+        } catch (Exception e) {
+            plugin.debug(getId(), "Error verificando grupo LuckPerms para " + player.getName() + ": " + e.getMessage());
+            return false;
+        }
     }
 
     @Override
     protected void onDisableModule() {
-        try {
-            org.bukkit.event.HandlerList.unregisterAll(this);
-        } catch (Exception ignored) {}
-        // unique-players data logic remains in flat file joinquit_data.yml for now
-        // as migrating it to global player DB implies tracking every single offline
-        // player ever joined?
-        // SQLite is capable, but "unique-players" is a global counter.
-        // It's fine to keep it in a small YAML or a settings table.
-        // For now, leaving it as is (optimized enough, only 1 loaded int).
         saveData();
     }
 }

@@ -66,7 +66,7 @@ public class ConfigManager {
         registerConfig("joinquit", "modules/joinquit.yml");
         registerConfig("menuitem", "modules/menuitem.yml");
         registerConfig("deathmessages", "modules/deathmessages.yml");
-        registerConfig("geodes", "modules/geodes.yml");
+
         registerConfig("itemsign", "modules/itemsign.yml");
         registerConfig("kits", "modules/kits.yml");
         registerConfig("codes", "modules/codes.yml");
@@ -816,11 +816,10 @@ public class ConfigManager {
         }
 
         if (!settings.contains("messages.aesthetic-theme-enabled")) {
-            settings.set("messages.aesthetic-theme-enabled", true);
-            saveConfig("settings");
+            settings.set("messages.aesthetic-theme-enabled", false);
         }
 
-        if (!settings.getBoolean("messages.aesthetic-theme-enabled", true)) {
+        if (!settings.getBoolean("messages.aesthetic-theme-enabled", false)) {
             return;
         }
 
@@ -831,13 +830,12 @@ public class ConfigManager {
                 continue;
             }
             if (applyAestheticThemeToMessages(cfg, cfg, "messages")) {
-                saveConfig(id);
                 anyChanged = true;
             }
         }
 
         if (anyChanged) {
-            plugin.getLogger().info("Aesthetic theme applied to module messages.");
+            plugin.getLogger().info("Aesthetic theme applied to module messages (in memory).");
         }
     }
 
@@ -921,7 +919,7 @@ public class ConfigManager {
         boolean changed = false;
         String[] modules = {
             "menuitem", "joinquit",
-            "killrewards", "codes", "deathmessages", "geodes", "itemsign", "kits", "utility", "itemeditor"
+            "killrewards", "codes", "deathmessages", "itemsign", "kits", "utility", "itemeditor"
         };
         for (String moduleId : modules) {
             String path = "modules." + moduleId + ".enabled";

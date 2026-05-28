@@ -18,8 +18,6 @@ modules:
     enabled: false
   deathmessages:
     enabled: false
-  geodes:
-    enabled: false
   kits:
     enabled: false
   utility:

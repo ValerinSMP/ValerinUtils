@@ -186,34 +186,50 @@ public class CodesModule extends BaseModule implements CommandExecutor, TabCompl
         ConfigurationSection codeSec = cfg.getConfigurationSection("codes." + upperCode);
 
         if (codeSec == null) {
-            plugin.debug(getId(), "Código inválido '" + upperCode + "' por " + player.getName());
-            player.sendMessage(plugin.messages().legacy(cfg.getString("messages.invalid-code", "<red>Código inválido.")
+            plugin.debug(getId(), "Codigo invalido '" + upperCode + "' por " + player.getName());
+            player.sendMessage(plugin.messages().legacy(cfg.getString("messages.invalid-code", "<red>Codigo invalido.")
                     .replace("%code%", code)));
             return;
         }
 
         boolean once = codeSec.getBoolean("once", true);
-        if (once && plugin.getDatabaseManager().hasUsedCode(player.getUniqueId().toString(), upperCode)) {
-            plugin.debug(getId(), "Código ya usado '" + upperCode + "' por " + player.getName());
-            player.sendMessage(plugin.messages().legacy(cfg.getString("messages.already-used",
-                    "<red>Ya has usado este código.")));
+        String uuid = player.getUniqueId().toString();
+        String playerName = player.getName();
+
+        if (once) {
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                boolean marked = plugin.getDatabaseManager().tryMarkCodeUsed(uuid, upperCode);
+                if (!marked) {
+                    plugin.debug(getId(), "Codigo ya usado '" + upperCode + "' por " + playerName);
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        player.sendMessage(plugin.messages().legacy(cfg.getString("messages.already-used",
+                                "<red>Ya has usado este codigo.")));
+                    });
+                    return;
+                }
+                Bukkit.getScheduler().runTask(plugin, () -> redeemCode(player, playerName, code, upperCode, codeSec));
+            });
+        } else {
+            redeemCode(player, playerName, code, upperCode, codeSec);
+        }
+    }
+
+    private void redeemCode(Player player, String playerName, String code, String upperCode,
+                            ConfigurationSection codeSec) {
+        FileConfiguration cfg = getConfig();
+
+        List<String> commands = codeSec.getStringList("commands");
+        for (String cmd : commands) {
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd.replace("%player%", playerName));
+        }
+        plugin.debug(getId(), "Codigo '" + upperCode + "' reclamado por " + playerName + " | comandos="
+                + commands.size());
+
+        if (!player.isOnline()) {
             return;
         }
 
-        // Ejecutar recompensas
-        List<String> commands = codeSec.getStringList("commands");
-        for (String cmd : commands) {
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd.replace("%player%", player.getName()));
-        }
-        plugin.debug(getId(), "Código '" + upperCode + "' reclamado por " + player.getName() + " | comandos="
-                + commands.size());
-
-        // Marcar como usado si es de un solo uso
-        if (once) {
-            plugin.getDatabaseManager().markCodeUsed(player.getUniqueId().toString(), upperCode);
-        }
-
-        player.sendMessage(plugin.messages().legacy(cfg.getString("messages.success", "<green>¡Código reclamado!")
+        player.sendMessage(plugin.messages().legacy(cfg.getString("messages.success", "<green>¡Codigo reclamado!")
                 .replace("%code%", code)));
     }
 }

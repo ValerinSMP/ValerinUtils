@@ -1,14 +1,8 @@
 enabled: true
 
 prices:
-  coal: 7.0
-  iron_ingot: 5.0
-  gold_ingot: 40.0
-  redstone: 3.0
   lapis_lazuli: 17.0
   diamond: 50.0
-  emerald: 1.0
-  copper_ingot: 10.0
   coal_ore: 13.0
   iron_ore: 33.0
   gold_ore: 50.0
@@ -90,7 +84,7 @@ prices:
   mangrove_log: 5.0
   cherry_log: 5.0
   pale_oak_log: 7.0
-  bamboo_block: 3.0
+  bamboo_block: 1.0
   crimson_stem: 5.0
   warped_stem: 5.0
   oak_leaves: 2.0
@@ -110,31 +104,13 @@ prices:
   ochre_froglight: 83.0
   verdant_froglight: 83.0
   pearlescent_froglight: 83.0
-  rotten_flesh: 1.67
-  spider_eye: 6.67
-  bone: 3.33
-  gunpowder: 8.33
-  phantom_membrane: 66.67
-  slime_ball: 1.0
-  ender_pearl: 1.0
   heart_of_the_sea: 500.0
-  nautilus_shell: 83.33
-  blaze_rod: 26.67
-  magma_cream: 30.0
-  ghast_tear: 133.33
-  shulker_shell: 200.0
-  leather: 10.0
-  ink_sac: 5.0
-  glow_ink_sac: 13.33
-  turtle_scute: 266.67
-  armadillo_scute: 166.67
-  feather: 3.33
-  pufferfish: 11.67
-  nether_star: 8333.33
-  honeycomb: 8.33
-  rabbit_hide: 6.67
-  cobweb: 26.67
-  string: 20.0
+  nautilus_shell: 83.3
+  turtle_scute: 266.7
+  armadillo_scute: 166.7
+  nether_star: 8333.3
+  honeycomb: 8.3
+  cobweb: 26.7
   oak_sapling: 5.0
   spruce_sapling: 5.0
   birch_sapling: 5.0
@@ -146,8 +122,6 @@ prices:
   pale_oak_sapling: 11.0
   wheat: 2.0
   sugar_cane: 3.0
-  carrot: 3.0
-  potato: 3.0
   wheat_seeds: 1.0
   pumpkin_seeds: 2.0
   melon_seeds: 2.0
@@ -159,13 +133,6 @@ prices:
   bamboo: 2.0
   brown_mushroom: 3.0
   red_mushroom: 3.0
-  beef: 5.0
-  porkchop: 5.0
-  mutton: 5.0
-  chicken: 4.0
-  rabbit: 6.0
-  cod: 4.0
-  salmon: 4.0
   cooked_beef: 8.0
   cooked_porkchop: 8.0
   cooked_mutton: 8.0
@@ -179,7 +146,6 @@ prices:
   pumpkin_pie: 6.0
   apple: 4.0
   golden_apple: 100.0
-  saddle: 167.0
   clock: 50.0
   compass: 40.0
   name_tag: 133.0
@@ -198,7 +164,6 @@ prices:
   shears: 20.0
   flint_and_steel: 17.0
   bucket: 27.0
-  totem_of_undying: 833.0
   end_crystal: 333.0
   torch: 2.0
   lantern: 13.0
@@ -212,18 +177,13 @@ prices:
   white_banner: 27.0
   slime_block: 9.0
   milk_bucket: 20.0
-  turtle_helmet: 333.33
+  turtle_helmet: 333.3
   golden_carrot: 40.0
-  breeze_rod: 200.0
-  glass_bottle: 2.67
-  glowstone_dust: 8.33
-  dragon_breath: 266.67
-  fermented_spider_eye: 16.67
+  dragon_breath: 266.7
+  fermented_spider_eye: 16.7
   blaze_powder: 30.0
-  sugar: 3.33
-  rabbit_foot: 100.0
   glistering_melon_slice: 50.0
-  experience_bottle: 83.33
+  experience_bottle: 83.3
   iron_door: 20.0
   iron_trapdoor: 27.0
   waxed_copper_bulb: 40.0
@@ -242,7 +202,7 @@ prices:
   daylight_detector: 17.0
   piston: 13.0
   sticky_piston: 27.0
-  dispenser: 67.0
+  dispenser: 17.0
   dropper: 12.0
   crafter: 67.0
   hopper: 50.0
@@ -257,7 +217,6 @@ prices:
   furnace_minecart: 60.0
   tnt_minecart: 100.0
   tnt: 40.0
-  white_wool: 5.0
   light_gray_wool: 5.0
   gray_wool: 5.0
   black_wool: 5.0
@@ -333,7 +292,6 @@ prices:
   brown_dye: 5.0
   rose_bush: 3.0
   red_tulip: 3.0
-  poppy: 3.0
   torchflower: 3.0
   orange_tulip: 3.0
   open_eyeblossom: 3.0
@@ -357,7 +315,6 @@ prices:
   gilded_blackstone: 35.0
   nether_quartz_ore: 15.0
   quartz: 4.0
-  wither_skeleton_skull: 1500.0
   chorus_fruit: 8.0
   popped_chorus_fruit: 12.0
   chorus_flower: 25.0
@@ -368,7 +325,6 @@ prices:
   zombie_head: 150.0
   creeper_head: 200.0
   piglin_head: 300.0
-  trident: 2500.0
   enchanted_golden_apple: 5000.0
   music_disc_13: 500.0
   music_disc_cat: 500.0
@@ -390,12 +346,9 @@ prices:
   charcoal: 5.0
   brick: 4.0
   nether_brick: 3.0
-  prismarine_shard: 5.0
-  prismarine_crystals: 8.0
   amethyst_shard: 7.0
   echo_shard: 300.0
-  wet_sponge: 70.0
-  egg: 2.0
+  egg: 1.0
   turtle_egg: 100.0
   sniffer_egg: 800.0
   frogspawn: 150.0
@@ -409,7 +362,6 @@ prices:
   rooted_dirt: 4.0
   sculk: 15.0
   sculk_vein: 8.0
-  sculk_catalyst: 200.0
   reinforced_deepslate: 500.0
   budding_amethyst: 250.0
   player_head: 100.0
@@ -432,7 +384,6 @@ prices:
   glow_lichen: 5.0
   kelp: 2.0
   sea_pickle: 8.0
-  tropical_fish: 10.0
   hay_block: 18.0
   honey_bottle: 15.0
   honeycomb_block: 33.0
@@ -450,7 +401,6 @@ prices:
   raw_gold: 45.0
   raw_copper: 10.0
   iron_nugget: 0.5
-  gold_nugget: 4.5
   candle: 5.0
   amethyst_cluster: 20.0
   pointed_dripstone: 10.0
@@ -460,7 +410,6 @@ prices:
   tall_grass: 1.0
   vine: 3.0
   lily_pad: 5.0
-  seagrass: 2.0
   tube_coral_block: 20.0
   brain_coral_block: 20.0
   bubble_coral_block: 20.0
@@ -476,262 +425,55 @@ prices:
   bubble_coral_fan: 15.0
   fire_coral_fan: 15.0
   horn_coral_fan: 15.0
-  ironingot: 5.0
-  goldingot: 40.0
-  lapislazuli: 17.0
-  copperingot: 10.0
-  coalore: 13.0
-  ironore: 33.0
-  goldore: 50.0
-  redstoneore: 20.0
-  lapisore: 27.0
-  diamondore: 25.0
-  emeraldore: 833.0
-  coalblock: 60.0
-  ironblock: 233.0
-  goldblock: 360.0
-  redstoneblock: 30.0
-  lapisblock: 150.0
-  diamondblock: 450.0
-  emeraldblock: 9.0
-  copperblock: 90.0
-  grassblock: 5.0
-  coarsedirt: 2.0
-  packedmud: 1.0
-  smoothsandstone: 10.0
-  redsand: 3.0
-  packedice: 20.0
-  blueice: 60.0
-  snowblock: 25.0
-  mossblock: 8.0
-  stonebricks: 7.0
-  mossystonebricks: 10.0
-  crackedstonebricks: 8.0
-  cobbleddeepslate: 3.0
-  amethystblock: 27.0
-  dripstoneblock: 7.0
-  darkprismarine: 25.0
-  sealantern: 33.0
-  magmablock: 10.0
-  cryingobsidian: 87.0
-  crimsonnylium: 13.0
-  warpednylium: 13.0
-  netherbricks: 10.0
-  rednetherbricks: 20.0
-  quartzblock: 17.0
-  smoothquartz: 20.0
-  quartzbricks: 18.0
-  soulsand: 3.0
-  soulsoil: 4.0
-  polishedblackstone: 7.0
-  chiseledpolishedblackstone: 8.0
-  endstone: 8.0
-  purpurblock: 12.0
-  oaklog: 4.0
-  birchlog: 4.0
-  sprucelog: 4.0
-  acacialog: 4.0
-  junglelog: 4.0
-  darkoaklog: 5.0
-  mangrovelog: 5.0
-  cherrylog: 5.0
-  paleoaklog: 7.0
-  bambooblock: 3.0
-  crimsonstem: 5.0
-  warpedstem: 5.0
-  oakleaves: 2.0
-  spruceleaves: 2.0
-  birchleaves: 2.0
-  jungleleaves: 2.0
-  acacialeaves: 2.0
-  darkoakleaves: 2.0
-  mangroveleaves: 2.0
-  cherryleaves: 2.0
-  paleoakleaves: 3.0
-  azalealeaves: 3.0
-  floweringazalealeaves: 4.0
-  brownmushroomblock: 8.0
-  redmushroomblock: 8.0
-  mangroveroots: 3.0
-  ochrefroglight: 83.0
-  verdantfroglight: 83.0
-  pearlescentfroglight: 83.0
-  rottenflesh: 1.67
-  spidereye: 6.67
-  phantommembrane: 66.67
-  slimeball: 1.0
-  enderpearl: 1.0
-  heartofthesea: 500.0
-  nautilusshell: 83.33
-  blazerod: 26.67
-  magmacream: 30.0
-  ghasttear: 133.33
-  shulkershell: 200.0
-  inksac: 5.0
-  glowinksac: 13.33
-  turtlescute: 266.67
-  armadilloscute: 166.67
-  netherstar: 8333.33
-  rabbithide: 6.67
-  oaksapling: 5.0
-  sprucesapling: 5.0
-  birchsapling: 5.0
-  junglesapling: 6.0
-  acaciasapling: 6.0
-  darkoaksapling: 8.0
-  mangrovepropagule: 8.0
-  cherrysapling: 10.0
-  paleoaksapling: 11.0
-  sugarcane: 3.0
-  wheatseeds: 1.0
-  pumpkinseeds: 2.0
-  melonseeds: 2.0
-  cocoabeans: 4.0
-  netherwart: 8.0
-  melonslice: 1.0
-  brownmushroom: 3.0
-  redmushroom: 3.0
-  cookedbeef: 8.0
-  cookedporkchop: 8.0
-  cookedmutton: 8.0
-  cookedchicken: 6.0
-  cookedrabbit: 10.0
-  cookedcod: 6.0
-  cookedsalmon: 6.0
-  pumpkinpie: 6.0
-  goldenapple: 100.0
-  nametag: 133.0
-  itemframe: 20.0
-  glowitemframe: 40.0
-  flowerpot: 7.0
-  armorstand: 13.0
-  windcharge: 5.0
-  arrow: 5.0
-  carrotonastick: 27.0
-  warpedfungusonastick: 27.0
-  oakboat: 17.0
-  fishingrod: 33.0
-  flintandsteel: 17.0
-  totemofundying: 833.0
-  endcrystal: 333.0
-  soultorch: 3.0
-  soullantern: 17.0
-  ironchain: 10.0
-  endrod: 20.0
-  decoratedpot: 50.0
-  whitebanner: 27.0
-  slimeblock: 50.0
-  milkbucket: 20.0
-  turtlehelmet: 333.33
-  goldencarrot: 40.0
-  breezerod: 200.0
-  glassbottle: 2.67
-  glowstonedust: 8.33
-  dragonbreath: 266.67
-  fermentedspidereye: 16.67
-  blazepowder: 30.0
-  rabbitfoot: 100.0
-  glisteringmelonslice: 50.0
-  experiencebottle: 83.33
-  irondoor: 20.0
-  irontrapdoor: 27.0
-  waxedcopperbulb: 40.0
-  honeyblock: 50.0
-  sculkshrieker: 133.0
-  sculksensor: 83.0
-  redstonetorch: 5.0
-  redstonelamp: 17.0
-  noteblock: 13.0
-  calibratedsculksensor: 133.0
-  tripwirehook: 7.0
-  daylightdetector: 17.0
-  stickypiston: 27.0
-  poweredrail: 13.0
-  detectorrail: 10.0
-  activatorrail: 10.0
-  hopperminecart: 83.0
-  chestminecart: 67.0
-  furnaceminecart: 60.0
-  tntminecart: 100.0
-  whitewool: 5.0
-  lightgraywool: 5.0
-  graywool: 5.0
-  lightbluewool: 5.0
-  blackwool: 5.0
-  brownwool: 5.0
-  redwool: 5.0
-  orangewool: 5.0
-  yellowwool: 5.0
-  limewool: 5.0
-  greenwool: 5.0
-  cyanwool: 5.0
-  bluewool: 5.0
-  purplewool: 5.0
-  magentawool: 5.0
-  pinkwool: 5.0
-  whiteterracotta: 7.0
-  lightgrayterracotta: 7.0
-  grayterracotta: 7.0
-  blackterracotta: 7.0
-  brownterracotta: 7.0
-  redterracotta: 7.0
-  orangeterracotta: 7.0
-  yellowterracotta: 7.0
-  limeterracotta: 7.0
-  greenterracotta: 7.0
-  cyanterracotta: 7.0
-  lightblueterracotta: 7.0
-  blueterracotta: 7.0
-  purpleterracotta: 7.0
-  magentaterracotta: 7.0
-  pinkterracotta: 7.0
-  whiteconcrete: 8.0
-  lightgrayconcrete: 8.0
-  grayconcrete: 8.0
-  blackconcrete: 8.0
-  brownconcrete: 8.0
-  redconcrete: 8.0
-  orangeconcrete: 8.0
-  yellowconcrete: 8.0
-  limeconcrete: 8.0
-  greenconcrete: 8.0
-  cyanconcrete: 8.0
-  lightblueconcrete: 8.0
-  blueconcrete: 8.0
-  purpleconcrete: 8.0
-  magentaconcrete: 8.0
-  pinkconcrete: 8.0
-  tintedglass: 7.0
-  whitestainedglass: 4.0
-  lightgraystainedglass: 4.0
-  graystainedglass: 4.0
-  blackstainedglass: 4.0
-  brownstainedglass: 4.0
-  redstainedglass: 4.0
-  orangestainedglass: 4.0
-  yellowstainedglass: 4.0
-  limestainedglass: 4.0
-  greenstainedglass: 4.0
-  cyanstainedglass: 4.0
-  lightbluestainedglass: 4.0
-  bluestainedglass: 4.0
-  purplestainedglass: 4.0
-  magentastainedglass: 4.0
-  pinkstainedglass: 4.0
-  whitetulip: 3.0
-  oxeyedaisy: 3.0
-  azurebluet: 3.0
-  closedeyeblossom: 3.0
-  witherrose: 5.0
-  browndye: 5.0
-  rosebush: 3.0
-  redtulip: 3.0
-  orangetulip: 3.0
-  openeyeblossom: 3.0
-  limedye: 3.0
-  greendye: 5.0
-  pitcherplant: 5.0
-  blueorchid: 3.0
-  purpledye: 5.0
-  pinktulip: 3.0
-  pinkpetals: 3.0
+  coal: 5.0
+  iron_ingot: 12.0
+  gold_ingot: 40.0
+  redstone: 5.0
+  emerald: 1.0
+  copper_ingot: 10.0
+  rotten_flesh: 1.5
+  spider_eye: 5.0
+  bone: 3.0
+  gunpowder: 7.0
+  phantom_membrane: 60.0
+  slime_ball: 2.5
+  ender_pearl: 8.0
+  blaze_rod: 18.0
+  magma_cream: 3.0
+  ghast_tear: 80.0
+  shulker_shell: 120.0
+  leather: 10.0
+  ink_sac: 5.0
+  glow_ink_sac: 13.0
+  feather: 3.0
+  pufferfish: 11.0
+  rabbit_hide: 6.0
+  string: 8.0
+  carrot: 3.0
+  potato: 3.0
+  beef: 5.0
+  porkchop: 5.0
+  mutton: 5.0
+  chicken: 4.0
+  rabbit: 6.0
+  cod: 4.0
+  salmon: 4.0
+  saddle: 20.0
+  totem_of_undying: 150.0
+  breeze_rod: 35.0
+  glass_bottle: 2.0
+  glowstone_dust: 8.0
+  sugar: 3.0
+  rabbit_foot: 100.0
+  white_wool: 5.0
+  poppy: 3.0
+  wither_skeleton_skull: 150.0
+  trident: 50.0
+  prismarine_shard: 5.0
+  prismarine_crystals: 8.0
+  wet_sponge: 70.0
+  sculk_catalyst: 10.0
+  tropical_fish: 10.0
+  gold_nugget: 4.5
+  seagrass: 2.0
+  arrow: 0.5
