@@ -255,7 +255,8 @@ public class DeathMessagesModule extends BaseModule implements Listener, Command
                 sendConfigMessage(sender, "messages.no_permission.module");
                 return true;
             }
-            plugin.getConfigManager().reloadConfigs();
+            plugin.getConfigManager().reloadConfig(getId());
+            plugin.getModuleManager().reloadModule(getId());
             sendConfigMessage(sender, "messages.reload_success.module");
             return true;
         }

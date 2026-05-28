@@ -1,6 +1,7 @@
 package me.mtynnn.valerinutils.commands;
 
 import me.mtynnn.valerinutils.ValerinUtils;
+import me.mtynnn.valerinutils.core.ModuleManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -33,15 +34,7 @@ public class ValerinUtilsCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args[0].equalsIgnoreCase("reload")) {
-            // 1. Reload config files first
-            plugin.getConfigManager().reloadConfigs();
-            plugin.updateConfig();
-
-            // 2. Reload all modules (disable → re-enable based on config)
-            plugin.getModuleManager().reloadAll();
-
-            sender.sendMessage(plugin.getMessage("valerinutils-reload-ok"));
-            return true;
+            return handleReload(sender, args);
         }
 
         if (args[0].equalsIgnoreCase("debug")) {
@@ -54,7 +47,7 @@ public class ValerinUtilsCommand implements CommandExecutor, TabCompleter {
             Set<String> known = plugin.getModuleManager().getRegisteredModuleIds();
             if (!known.contains(moduleId)) {
                 sender.sendMessage(plugin.translateColors(
-                        "%prefix%&cMódulo desconocido: &e" + moduleId + "&c. Usa tab para ver opciones."));
+                        "%prefix%&cModulo desconocido: &e" + moduleId + "&c. Usa tab para ver opciones."));
                 return true;
             }
 
@@ -91,6 +84,61 @@ public class ValerinUtilsCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleReload(CommandSender sender, String[] args) {
+        String target = args.length >= 2 ? args[1].toLowerCase() : "all";
+
+        if (target.equals("all")) {
+            plugin.getConfigManager().reloadConfigs();
+            plugin.updateConfig();
+            plugin.getModuleManager().reloadAll();
+            sender.sendMessage(plugin.getMessage("valerinutils-reload-ok"));
+            return true;
+        }
+
+        Set<String> known = plugin.getModuleManager().getRegisteredModuleIds();
+        if (!known.contains(target)) {
+            sender.sendMessage(message("valerinutils-reload-unknown",
+                    "%prefix%<red>Modulo desconocido: <yellow>%module%<red>.")
+                    .replace("%module%", target));
+            return true;
+        }
+
+        if (!plugin.getConfigManager().reloadConfig(target)) {
+            sender.sendMessage(message("valerinutils-reload-config-missing",
+                    "%prefix%<red>No se pudo recargar la config de <yellow>%module%<red>.")
+                    .replace("%module%", target));
+            return true;
+        }
+
+        if (target.equals("utility") && !plugin.getConfigManager().reloadConfig("sellprice")) {
+            sender.sendMessage(message("valerinutils-reload-config-missing",
+                    "%prefix%<red>No se pudo recargar la config de <yellow>%module%<red>.")
+                    .replace("%module%", "sellprice"));
+            return true;
+        }
+
+        ModuleManager.ReloadResult result = plugin.getModuleManager().reloadModule(target);
+        switch (result) {
+            case RELOADED -> sender.sendMessage(message("valerinutils-reload-module-ok",
+                    "%prefix%<green>Modulo <yellow>%module% <green>recargado correctamente.")
+                    .replace("%module%", target));
+            case DISABLED_BY_CONFIG -> sender.sendMessage(message("valerinutils-reload-module-disabled",
+                    "%prefix%<yellow>Modulo <gold>%module% <yellow>recargado y dejado desactivado por config.")
+                    .replace("%module%", target));
+            case UNKNOWN_MODULE -> sender.sendMessage(message("valerinutils-reload-unknown",
+                    "%prefix%<red>Modulo desconocido: <yellow>%module%<red>.")
+                    .replace("%module%", target));
+            case FAILED -> sender.sendMessage(plugin.translateColors("%prefix%<red>No se pudo recargar el modulo <yellow>"
+                    + target + "<red>. Revisa consola."));
+        }
+        return true;
+    }
+
+    private String message(String key, String fallback) {
+        return plugin.translateColors(plugin.getConfigManager().getConfig("settings")
+                .getString("messages." + key, fallback));
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
 
@@ -100,12 +148,25 @@ public class ValerinUtilsCommand implements CommandExecutor, TabCompleter {
 
         if (args.length == 1) {
             List<String> completions = new ArrayList<>();
-            if ("reload".startsWith(args[0].toLowerCase())) {
+            String partial = args[0].toLowerCase();
+            if ("reload".startsWith(partial)) {
                 completions.add("reload");
             }
-            if ("debug".startsWith(args[0].toLowerCase())) {
+            if ("debug".startsWith(partial)) {
                 completions.add("debug");
             }
+            return completions;
+        }
+
+        if (args.length == 2 && args[0].equalsIgnoreCase("reload")) {
+            String partial = args[1].toLowerCase();
+            List<String> completions = new ArrayList<>();
+            if ("all".startsWith(partial)) {
+                completions.add("all");
+            }
+            completions.addAll(plugin.getModuleManager().getRegisteredModuleIds().stream()
+                    .filter(m -> m.startsWith(partial))
+                    .toList());
             return completions;
         }
 

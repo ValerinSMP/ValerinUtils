@@ -72,6 +72,7 @@ public class ConfigManager {
         registerConfig("codes", "modules/codes.yml");
         registerConfig("utility", "modules/utilities.yml");
         registerConfig("itemeditor", "modules/itemeditor.yml");
+        registerConfig("customdrops", "modules/customdrops.yml");
         migrateSellPriceConfigLocation();
         registerConfig("sellprice", "sellprice.yml");
 
@@ -98,6 +99,33 @@ public class ConfigManager {
         FileConfiguration settings = getConfig("settings");
         if (settings == null)
             return;
+
+        boolean changed = false;
+        changed |= setIfMissing(settings, "messages.valerinutils-usage",
+                "%prefix%<gray>Uso: <yellow>/valerinutils reload [all|modulo]");
+        changed |= setIfMissing(settings, "messages.valerinutils-reload-ok",
+                "%prefix%<green>Configuracion y modulos recargados correctamente.");
+        changed |= setIfMissing(settings, "messages.valerinutils-reload-module-ok",
+                "%prefix%<green>Modulo <yellow>%module% <green>recargado correctamente.");
+        changed |= setIfMissing(settings, "messages.valerinutils-reload-module-disabled",
+                "%prefix%<yellow>Modulo <gold>%module% <yellow>recargado y dejado desactivado por config.");
+        changed |= setIfMissing(settings, "messages.valerinutils-reload-unknown",
+                "%prefix%<red>Modulo desconocido: <yellow>%module%<red>.");
+        changed |= setIfMissing(settings, "messages.valerinutils-reload-config-missing",
+                "%prefix%<red>No se pudo recargar la config de <yellow>%module%<red>.");
+
+        if (changed) {
+            saveConfig("settings");
+            plugin.getLogger().info("[Settings] Config updated with reload messages.");
+        }
+    }
+
+    private boolean setIfMissing(FileConfiguration config, String path, Object value) {
+        if (config.contains(path)) {
+            return false;
+        }
+        config.set(path, value);
+        return true;
     }
 
     /**
@@ -114,6 +142,7 @@ public class ConfigManager {
         updateKillRewardsConfig();
         updateItemEditorConfig();
         updateDeathMessagesConfig();
+        updateCustomDropsConfig();
             // updateCodesConfig();
     }
 
@@ -809,6 +838,50 @@ public class ConfigManager {
         plugin.getLogger().info("All configuration files reloaded.");
     }
 
+    private void updateCustomDropsConfig() {
+        FileConfiguration config = getConfig("customdrops");
+        if (config == null) {
+            return;
+        }
+
+        boolean changed = false;
+        if (!config.contains("enabled")) {
+            config.set("enabled", false);
+            changed = true;
+        }
+        if (!config.contains("defaults.anti-farm.radius")) {
+            config.set("defaults.anti-farm.radius", 16);
+            changed = true;
+        }
+        if (!config.contains("defaults.anti-farm.max-same-type")) {
+            config.set("defaults.anti-farm.max-same-type", 6);
+            changed = true;
+        }
+        if (!config.contains("defaults.sound.radius")) {
+            config.set("defaults.sound.radius", 16);
+            changed = true;
+        }
+        if (changed) {
+            saveConfig("customdrops");
+            plugin.getLogger().info("[CustomDrops] Config updated with new keys.");
+        }
+    }
+
+    public boolean reloadConfig(String id) {
+        File file = files.get(id);
+        if (file == null || !file.exists()) {
+            return false;
+        }
+
+        configs.put(id, YamlConfiguration.loadConfiguration(file));
+        mergeMissingKeysFromDefaults(id);
+        updateConfig(id);
+        migrateLegacyFormattingToMiniMessage(id);
+        applyAestheticThemeToMessages(id);
+        plugin.getLogger().info("Configuration reloaded: " + id);
+        return true;
+    }
+
     private void applyAestheticThemeToAllMessages() {
         FileConfiguration settings = getConfig("settings");
         if (settings == null) {
@@ -888,6 +961,40 @@ public class ConfigManager {
         return changed;
     }
 
+    private void applyAestheticThemeToMessages(String id) {
+        FileConfiguration settings = getConfig("settings");
+        if (settings == null || !settings.getBoolean("messages.aesthetic-theme-enabled", false)) {
+            return;
+        }
+
+        FileConfiguration cfg = configs.get(id);
+        if (cfg == null || !cfg.contains("messages")) {
+            return;
+        }
+        if (applyAestheticThemeToMessages(cfg, cfg, "messages")) {
+            plugin.getLogger().info("Aesthetic theme applied to " + id + " messages (in memory).");
+        }
+    }
+
+    private void updateConfig(String id) {
+        switch (id) {
+            case "settings" -> updateSettingsConfig();
+            case "debug" -> updateDebugConfig();
+            case "menuitem" -> updateMenuItemConfig();
+            case "joinquit" -> updateJoinQuitConfig();
+            case "killrewards" -> updateKillRewardsConfig();
+            case "codes" -> updateCodesConfig();
+            case "deathmessages" -> updateDeathMessagesConfig();
+            case "itemsign" -> updateItemSignConfig();
+            case "kits" -> updateKitsConfig();
+            case "utility" -> updateUtilitiesConfig();
+            case "itemeditor" -> updateItemEditorConfig();
+            case "customdrops" -> updateCustomDropsConfig();
+            default -> {
+            }
+        }
+    }
+
     private String applyAestheticPalette(String input) {
         if (input == null || input.isEmpty()) {
             return input;
@@ -919,7 +1026,7 @@ public class ConfigManager {
         boolean changed = false;
         String[] modules = {
             "menuitem", "joinquit",
-            "killrewards", "codes", "deathmessages", "itemsign", "kits", "utility", "itemeditor"
+            "killrewards", "codes", "deathmessages", "itemsign", "kits", "utility", "itemeditor", "customdrops"
         };
         for (String moduleId : modules) {
             String path = "modules." + moduleId + ".enabled";
@@ -994,6 +1101,34 @@ public class ConfigManager {
             } catch (IOException e) {
                 plugin.getLogger().warning("Could not merge defaults for config '" + id + "': " + e.getMessage());
             }
+        }
+    }
+
+    private void mergeMissingKeysFromDefaults(String id) {
+        if ("sellprice".equals(id)) {
+            return;
+        }
+
+        String path = configPaths.get(id);
+        FileConfiguration target = configs.get(id);
+        if (path == null || target == null) {
+            return;
+        }
+
+        try (InputStream in = plugin.getResource(path)) {
+            if (in == null) {
+                return;
+            }
+
+            FileConfiguration defaults = YamlConfiguration
+                    .loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
+            boolean changed = mergeSectionMissing(target, defaults, "");
+            if (changed) {
+                saveConfig(id);
+                plugin.getLogger().info("[" + id + "] Config updated with missing keys from defaults.");
+            }
+        } catch (IOException e) {
+            plugin.getLogger().warning("Could not merge defaults for config '" + id + "': " + e.getMessage());
         }
     }
 
@@ -1109,6 +1244,19 @@ public class ConfigManager {
                 saveConfig(id);
                 plugin.getLogger().info("[" + id + "] migrated legacy formatting to MiniMessage.");
             }
+        }
+    }
+
+    private void migrateLegacyFormattingToMiniMessage(String id) {
+        FileConfiguration cfg = configs.get(id);
+        if (cfg == null) {
+            return;
+        }
+
+        boolean changed = migrateSectionStrings(cfg, cfg);
+        if (changed) {
+            saveConfig(id);
+            plugin.getLogger().info("[" + id + "] migrated legacy formatting to MiniMessage.");
         }
     }
 

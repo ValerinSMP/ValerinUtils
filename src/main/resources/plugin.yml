@@ -9,7 +9,7 @@ softdepend: [PlaceholderAPI, RoyaleEconomy, Vault, LuckPerms]
 commands:
   valerinutils:
     description: Comandos de administración de ValerinUtils
-    usage: "/valerinutils reload"
+    usage: "/valerinutils reload [all|modulo]"
     aliases: [vu, vutils]
     permission: valerinutils.admin
     permission-message: "&cNo tienes permiso para usar este comando."

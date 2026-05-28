@@ -14,6 +14,7 @@ import me.mtynnn.valerinutils.modules.joinquit.JoinQuitModule;
 import me.mtynnn.valerinutils.modules.killrewards.KillRewardsModule;
 import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
 import me.mtynnn.valerinutils.modules.codes.CodesModule;
+import me.mtynnn.valerinutils.modules.customdrops.CustomDropsModule;
 import me.mtynnn.valerinutils.modules.utility.UtilityModule;
 import me.mtynnn.valerinutils.modules.itemeditor.ItemEditorModule;
 import me.mtynnn.valerinutils.modules.deathmessages.DeathMessagesModule;
@@ -69,6 +70,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private me.mtynnn.valerinutils.modules.kits.KitsModule kitsModule;
     private UtilityModule utilityModule;
     private ItemEditorModule itemEditorModule;
+    private CustomDropsModule customDropsModule;
     private ValerinUtilsExpansion placeholderExpansion;
 
     private PlayerDataManager playerDataManager;
@@ -150,6 +152,9 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         itemEditorModule = new ItemEditorModule(this);
         moduleManager.registerModule(itemEditorModule);
 
+        customDropsModule = new CustomDropsModule(this);
+        moduleManager.registerModule(customDropsModule);
+
         commandHousekeeper.reinstateAll();
         moduleManager.enableAll();
 
@@ -211,6 +216,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         boolean kitsEnabled = moduleManager.isModuleEnabled("kits");
         boolean utilityEnabled = moduleManager.isModuleEnabled("utility");
         boolean itemEditorEnabled = moduleManager.isModuleEnabled("itemeditor");
+        boolean customDropsEnabled = moduleManager.isModuleEnabled("customdrops");
 
         getLogger().info("");
         getLogger().info("  ValerinUtils v" + version);
@@ -227,7 +233,8 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
                 + " | ItemSign " + (itemSignEnabled ? "✔" : "✘")
                 + " | Kits " + (kitsEnabled ? "✔" : "✘")
                 + " | Utility " + (utilityEnabled ? "✔" : "✘")
-                + " | ItemEditor " + (itemEditorEnabled ? "✔" : "✘"));
+                + " | ItemEditor " + (itemEditorEnabled ? "✔" : "✘")
+                + " | CustomDrops " + (customDropsEnabled ? "✔" : "✘"));
         getLogger().info("");
         getLogger().info("  ValerinUtils has been enabled successfully!");
     }

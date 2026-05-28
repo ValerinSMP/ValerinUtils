@@ -4,9 +4,13 @@ messages:
   prefix: '<dark_gray>[<color:#FFEE8C>ᴠᴀʟᴇʀɪɴ<dark_gray>]<reset> '
   no-permission: '%prefix%<red>No tienes permiso para usar este comando.'
   only-players: '%prefix%<red>Solo jugadores pueden usar este comando.'
-  valerinutils-usage: '%prefix%<gray>Uso: <yellow>/valerinutils reload'
-  valerinutils-reload-ok: '%prefix%<green>Configuración y módulos recargados correctamente.'
-  
+  valerinutils-usage: '%prefix%<gray>Uso: <yellow>/valerinutils reload [all|modulo]'
+  valerinutils-reload-ok: '%prefix%<green>Configuracion y modulos recargados correctamente.'
+  valerinutils-reload-module-ok: '%prefix%<green>Modulo <yellow>%module% <green>recargado correctamente.'
+  valerinutils-reload-module-disabled: '%prefix%<yellow>Modulo <gold>%module% <yellow>recargado y dejado desactivado por config.'
+  valerinutils-reload-unknown: '%prefix%<red>Modulo desconocido: <yellow>%module%<red>.'
+  valerinutils-reload-config-missing: '%prefix%<red>No se pudo recargar la config de <yellow>%module%<red>.'
+
 database:
   # sqlite is the only optimized option for now
   type: sqlite
