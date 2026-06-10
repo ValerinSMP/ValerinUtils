@@ -1,0 +1,50 @@
+enabled: true
+
+gui:
+  title: "<dark_gray>Canjear voucher: <white>%voucher%"
+  size: 27
+  confirm:
+    slot: 11
+    material: GREEN_STAINED_GLASS_PANE
+    name: "<green><bold>SI, CANJEAR"
+    lore:
+      - "<gray>Aplica el beneficio ahora."
+  cancel:
+    slot: 15
+    material: RED_STAINED_GLASS_PANE
+    name: "<red><bold>NO, CANCELAR"
+    lore:
+      - "<gray>Volver y guardar para despues."
+
+messages:
+  no-permission: "%prefix%<red>No tienes permiso."
+  usage: "%prefix%<gray>Uso: <yellow>/voucher give <jugador> <tipo> [cantidad] <gray>| <yellow>/voucher reload"
+  give-usage: "%prefix%<gray>Uso: <yellow>/voucher give <jugador> <tipo> [cantidad]"
+  player-not-found: "%prefix%<red>Jugador no encontrado."
+  unknown-type: "%prefix%<red>Tipo de voucher desconocido: <white>%type%"
+  give-ok-sender: "%prefix%<green>Entregado <white>%amount%x %voucher% <green>a <white>%player%"
+  give-ok-target: "%prefix%<green>Has recibido <white>%amount%x %voucher%"
+  redeemed: "%prefix%<green>Voucher canjeado: <white>%voucher%"
+  redeemed-extended: "%prefix%<green>Voucher canjeado: <white>%voucher% <green>(tiempo total restante: <white>%remaining%<green>)"
+  reload-ok: "%prefix%<green>Vouchers recargado correctamente."
+  reload-failed: "%prefix%<red>No se pudo recargar vouchers.yml"
+  voucher-not-found: "%prefix%<red>No tienes ese voucher en la mano."
+  invalid-voucher-type: "%prefix%<red>Este voucher ya no es valido."
+  redeem-failed: "%prefix%<red>No se pudo canjear el voucher."
+
+types:
+  fly_1h:
+    item:
+      # Soporta cualquier material. Para cabezas usa PLAYER_HEAD + head-owner.
+      material: PAPER
+      head-owner: ""
+      name: "<aqua><bold>Voucher Fly 1h"
+      lore:
+        - "<gray>Click derecho para canjear."
+        - "<dark_gray>Canjea 1 hora de fly en survival."
+    redeem-command: "lp user %player% permission settemp protectionblocks.fly true 1h server=survival"
+    luckperms-stacking:
+      enabled: true
+      permission: "protectionblocks.fly"
+      server: "survival"
+      duration-seconds: 3600

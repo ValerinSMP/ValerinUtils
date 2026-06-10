@@ -5,6 +5,10 @@ import me.mtynnn.valerinutils.core.BaseModule;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -25,15 +29,19 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
-public class CustomDropsModule extends BaseModule implements Listener {
+public class CustomDropsModule extends BaseModule implements Listener, CommandExecutor, TabCompleter {
 
     private final Map<EntityType, DropRule> rulesByType = new HashMap<>();
+    private final Map<String, DropRule> mythicRulesByType = new HashMap<>();
     private final Map<String, Template> templates = new HashMap<>();
     private NexoBridge nexoBridge;
+    private MythicBridge mythicBridge;
     private double defaultNearbyRadius;
     private int defaultNearbyMax;
     private int soundRadius;
+    private boolean ignoreMythicForVanillaDrops;
 
     public CustomDropsModule(ValerinUtils plugin) {
         super(plugin);
@@ -54,17 +62,22 @@ public class CustomDropsModule extends BaseModule implements Listener {
         if (nexoBridge == null) {
             throw new IllegalStateException("Nexo API no disponible");
         }
+        this.mythicBridge = MythicBridge.tryCreate();
 
         loadRules();
         registerListener(this);
-        plugin.getLogger().info("[CustomDrops] Modulo habilitado con " + rulesByType.size() + " drops.");
+        registerCommand("customdrops", this, this);
+        plugin.getLogger().info("[CustomDrops] Modulo habilitado con " + rulesByType.size()
+                + " drops vanilla y " + mythicRulesByType.size() + " drops mythic.");
     }
 
     @Override
     protected void onDisableModule() {
         rulesByType.clear();
+        mythicRulesByType.clear();
         templates.clear();
         nexoBridge = null;
+        mythicBridge = null;
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -74,7 +87,17 @@ public class CustomDropsModule extends BaseModule implements Listener {
         }
 
         LivingEntity dead = event.getEntity();
-        DropRule rule = rulesByType.get(dead.getType());
+        String mythicType = mythicBridge == null ? null : mythicBridge.getMythicType(dead);
+        DropRule rule = null;
+        if (mythicType != null) {
+            rule = mythicRulesByType.get(mythicType.toLowerCase(Locale.ROOT));
+            if (rule == null && ignoreMythicForVanillaDrops) {
+                return;
+            }
+        }
+        if (rule == null) {
+            rule = rulesByType.get(dead.getType());
+        }
         if (rule == null) {
             return;
         }
@@ -96,9 +119,115 @@ public class CustomDropsModule extends BaseModule implements Listener {
             return;
         }
 
+        grantDrop(dead, killer, rule, mythicType);
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!sender.hasPermission("valerinutils.admin")) {
+            sender.sendMessage(comp("<red>No tienes permiso."));
+            return true;
+        }
+
+        if (args.length < 2 || !"test".equalsIgnoreCase(args[0])) {
+            sender.sendMessage(comp("<yellow>Uso: /customdrops test <entity|mythic> <tipo> [jugador]"));
+            return true;
+        }
+
+        boolean mythicTest = "mythic".equalsIgnoreCase(args[1]);
+        EntityType type;
+        DropRule rule;
+        String mythicType = null;
+        if (mythicTest) {
+            if (args.length < 3) {
+                sender.sendMessage(comp("<yellow>Uso: /customdrops test mythic <mobType> [jugador]"));
+                return true;
+            }
+            mythicType = args[2];
+            rule = mythicRulesByType.get(mythicType.toLowerCase(Locale.ROOT));
+            if (rule == null) {
+                sender.sendMessage(comp("<red>No hay drop mythic configurado para: <white>" + mythicType));
+                return true;
+            }
+            type = null;
+        } else {
+            try {
+                type = EntityType.valueOf(args[1].toUpperCase(Locale.ROOT));
+            } catch (Exception ex) {
+                sender.sendMessage(comp("<red>Entity invalida: <white>" + args[1]));
+                return true;
+            }
+            rule = rulesByType.get(type);
+            if (rule == null) {
+                sender.sendMessage(comp("<red>No hay drop configurado para: <white>" + type.name()));
+                return true;
+            }
+        }
+
+        Player target;
+        int playerArgIndex = mythicTest ? 3 : 2;
+        if (args.length > playerArgIndex) {
+            target = Bukkit.getPlayerExact(args[playerArgIndex]);
+        } else if (sender instanceof Player player) {
+            target = player;
+        } else {
+            sender.sendMessage(comp("<red>Desde consola debes indicar jugador."));
+            return true;
+        }
+
+        if (target == null || !target.isOnline()) {
+            sender.sendMessage(comp("<red>Jugador no encontrado."));
+            return true;
+        }
+
+        grantDrop(null, target, rule, mythicType);
+        String kind = mythicTest ? ("mythic:" + mythicType) : type.name();
+        sender.sendMessage(comp("<green>Test ejecutado para <white>" + target.getName() + "<green> con <white>" + kind));
+        return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (!sender.hasPermission("valerinutils.admin")) {
+            return Collections.emptyList();
+        }
+        if (args.length == 1) {
+            return "test".startsWith(args[0].toLowerCase(Locale.ROOT))
+                    ? List.of("test")
+                    : Collections.emptyList();
+        }
+        if (args.length == 2) {
+            String q = args[1].toUpperCase(Locale.ROOT);
+            if ("MYTHIC".startsWith(q)) {
+                return List.of("mythic");
+            }
+            return rulesByType.keySet().stream()
+                    .map(Enum::name)
+                    .filter(n -> n.startsWith(q))
+                    .sorted()
+                    .collect(Collectors.toList());
+        }
+        if (args.length == 3) {
+            if ("mythic".equalsIgnoreCase(args[1])) {
+                String q = args[2].toLowerCase(Locale.ROOT);
+                return mythicRulesByType.keySet().stream()
+                        .filter(n -> n.startsWith(q))
+                        .sorted()
+                        .collect(Collectors.toList());
+            }
+            String q = args[2].toLowerCase(Locale.ROOT);
+            return Bukkit.getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .filter(n -> n.toLowerCase(Locale.ROOT).startsWith(q))
+                    .sorted()
+                    .collect(Collectors.toList());
+        }
+        return Collections.emptyList();
+    }
+
+    private void grantDrop(LivingEntity dead, Player killer, DropRule rule, String mythicType) {
         ItemStack item = nexoBridge.buildItem(rule.itemId, 1);
         if (item == null) {
-            // Pedido explicito: si Nexo falla, se apaga modulo por seguridad.
             throw new IllegalStateException("No se pudo construir item Nexo: " + rule.itemId);
         }
 
@@ -111,7 +240,7 @@ public class CustomDropsModule extends BaseModule implements Listener {
         }
 
         if (rule.broadcastEnabled) {
-            String msg = applyPlaceholders(rule.broadcastMessage, killer, dead, rule);
+            String msg = applyPlaceholders(rule.broadcastMessage, killer, dead, rule, mythicType);
             if (!msg.isBlank()) {
                 Bukkit.broadcast(comp(msg));
             }
@@ -162,17 +291,19 @@ public class CustomDropsModule extends BaseModule implements Listener {
         }
     }
 
-    private String applyPlaceholders(String text, Player killer, LivingEntity dead, DropRule rule) {
+    private String applyPlaceholders(String text, Player killer, LivingEntity dead, DropRule rule, String mythicType) {
         if (text == null || text.isBlank()) {
             return "";
         }
-        Location l = dead.getLocation();
+        Location l = dead != null ? dead.getLocation() : killer.getLocation();
+        String entityName = dead != null ? dead.getType().name() : "TEST";
         return text
                 .replace("%player%", killer.getName())
-                .replace("%entity%", dead.getType().name())
+                .replace("%entity%", entityName)
                 .replace("%item%", rule.itemId)
                 .replace("%display%", rule.displayName)
                 .replace("%number%", String.valueOf(rule.number))
+                .replace("%mythic_type%", mythicType == null ? "" : mythicType)
                 .replace("%world%", l.getWorld() == null ? "world" : l.getWorld().getName())
                 .replace("%x%", String.valueOf(l.getBlockX()))
                 .replace("%y%", String.valueOf(l.getBlockY()))
@@ -191,6 +322,7 @@ public class CustomDropsModule extends BaseModule implements Listener {
         defaultNearbyRadius = Math.max(0.0d, cfg.getDouble("defaults.anti-farm.radius", 16.0d));
         defaultNearbyMax = Math.max(0, cfg.getInt("defaults.anti-farm.max-same-type", 6));
         soundRadius = Math.max(1, cfg.getInt("defaults.sound.radius", 16));
+        ignoreMythicForVanillaDrops = cfg.getBoolean("defaults.mythic.ignore-mythic-for-vanilla-drops", true);
 
         var templatesSec = cfg.getConfigurationSection("templates");
         if (templatesSec != null) {
@@ -271,6 +403,58 @@ public class CustomDropsModule extends BaseModule implements Listener {
 
             rulesByType.put(type, new DropRule(itemId, display, number, chance, killerRequired,
                     broadcastEnabled, broadcast == null ? "" : broadcast, nearbyRadius, nearbyMax, soundSeq));
+        }
+
+        var mythicDropsSec = cfg.getConfigurationSection("mythic-drops");
+        if (mythicDropsSec == null) {
+            return;
+        }
+
+        for (String mythicType : mythicDropsSec.getKeys(false)) {
+            var sec = mythicDropsSec.getConfigurationSection(mythicType);
+            if (sec == null) {
+                continue;
+            }
+
+            String templateId = sec.getString("template", "").toLowerCase(Locale.ROOT);
+            Template template = templates.get(templateId);
+            if (template == null) {
+                plugin.getLogger().warning("[CustomDrops] Template no encontrado para mythic " + mythicType + ": " + templateId);
+                continue;
+            }
+
+            String itemId = sec.getString("item-id", "").trim();
+            if (itemId.isEmpty()) {
+                plugin.getLogger().warning("[CustomDrops] item-id vacio para mythic " + mythicType);
+                continue;
+            }
+
+            String display = sec.getString("display-name", itemId);
+            int number = Math.max(1, sec.getInt("number", 0));
+
+            double chance = sec.contains("chance-percent")
+                    ? Math.max(0.0d, sec.getDouble("chance-percent", template.chancePercent))
+                    : template.chancePercent;
+            boolean killerRequired = sec.contains("killer-required")
+                    ? sec.getBoolean("killer-required", template.killerRequired)
+                    : template.killerRequired;
+            boolean broadcastEnabled = sec.contains("broadcast-enabled")
+                    ? sec.getBoolean("broadcast-enabled", template.broadcastEnabled)
+                    : template.broadcastEnabled;
+            String broadcast = sec.contains("broadcast")
+                    ? sec.getString("broadcast", template.broadcastMessage)
+                    : template.broadcastMessage;
+            double nearbyRadius = sec.getDouble("anti-farm.radius", defaultNearbyRadius);
+            int nearbyMax = sec.getInt("anti-farm.max-same-type", defaultNearbyMax);
+            List<SoundStep> soundSeq = template.soundSequence;
+            var seqSec = sec.getConfigurationSection("sound-sequence");
+            if (seqSec != null) {
+                soundSeq = parseSoundSequence(seqSec);
+            }
+
+            mythicRulesByType.put(mythicType.toLowerCase(Locale.ROOT), new DropRule(
+                    itemId, display, number, chance, killerRequired, broadcastEnabled,
+                    broadcast == null ? "" : broadcast, nearbyRadius, nearbyMax, soundSeq));
         }
     }
 
@@ -403,6 +587,60 @@ public class CustomDropsModule extends BaseModule implements Listener {
                 }
             }
             return null;
+        }
+    }
+
+    private static final class MythicBridge {
+        private final Object mobManager;
+        private final Method isMythicMobMethod;
+        private final Method getActiveMobMethod;
+        private final Method getMobTypeMethod;
+        private final Method getInternalNameMethod;
+
+        private MythicBridge(Object mobManager, Method isMythicMobMethod, Method getActiveMobMethod, Method getMobTypeMethod, Method getInternalNameMethod) {
+            this.mobManager = mobManager;
+            this.isMythicMobMethod = isMythicMobMethod;
+            this.getActiveMobMethod = getActiveMobMethod;
+            this.getMobTypeMethod = getMobTypeMethod;
+            this.getInternalNameMethod = getInternalNameMethod;
+        }
+
+        static MythicBridge tryCreate() {
+            try {
+                Class<?> mythicBukkitClass = Class.forName("io.lumine.mythic.bukkit.MythicBukkit");
+                Object inst = mythicBukkitClass.getMethod("inst").invoke(null);
+                Object mobManager = mythicBukkitClass.getMethod("getMobManager").invoke(inst);
+
+                Method isMythicMob = mobManager.getClass().getMethod("isMythicMob", Entity.class);
+                Method getActiveMob = mobManager.getClass().getMethod("getActiveMob", java.util.UUID.class);
+
+                Class<?> activeMobClass = Class.forName("io.lumine.mythic.core.mobs.ActiveMob");
+                Method getMobType = activeMobClass.getMethod("getMobType");
+                Method getInternalName = getMobType.getReturnType().getMethod("getInternalName");
+
+                return new MythicBridge(mobManager, isMythicMob, getActiveMob, getMobType, getInternalName);
+            } catch (Throwable ignored) {
+                return null;
+            }
+        }
+
+        String getMythicType(Entity entity) {
+            try {
+                boolean isMythic = (boolean) isMythicMobMethod.invoke(mobManager, entity);
+                if (!isMythic) {
+                    return null;
+                }
+                Object optional = getActiveMobMethod.invoke(mobManager, entity.getUniqueId());
+                if (!(optional instanceof Optional<?> opt) || opt.isEmpty()) {
+                    return null;
+                }
+                Object activeMob = opt.get();
+                Object mobType = getMobTypeMethod.invoke(activeMob);
+                Object internalName = getInternalNameMethod.invoke(mobType);
+                return internalName == null ? null : internalName.toString();
+            } catch (Throwable ignored) {
+                return null;
+            }
         }
     }
 }

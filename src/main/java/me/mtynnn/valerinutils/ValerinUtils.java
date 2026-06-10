@@ -15,6 +15,7 @@ import me.mtynnn.valerinutils.modules.killrewards.KillRewardsModule;
 import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
 import me.mtynnn.valerinutils.modules.codes.CodesModule;
 import me.mtynnn.valerinutils.modules.customdrops.CustomDropsModule;
+import me.mtynnn.valerinutils.modules.vouchers.VouchersModule;
 import me.mtynnn.valerinutils.modules.utility.UtilityModule;
 import me.mtynnn.valerinutils.modules.itemeditor.ItemEditorModule;
 import me.mtynnn.valerinutils.modules.deathmessages.DeathMessagesModule;
@@ -71,6 +72,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private UtilityModule utilityModule;
     private ItemEditorModule itemEditorModule;
     private CustomDropsModule customDropsModule;
+    private VouchersModule vouchersModule;
     private ValerinUtilsExpansion placeholderExpansion;
 
     private PlayerDataManager playerDataManager;
@@ -155,6 +157,9 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         customDropsModule = new CustomDropsModule(this);
         moduleManager.registerModule(customDropsModule);
 
+        vouchersModule = new VouchersModule(this);
+        moduleManager.registerModule(vouchersModule);
+
         commandHousekeeper.reinstateAll();
         moduleManager.enableAll();
 
@@ -217,6 +222,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         boolean utilityEnabled = moduleManager.isModuleEnabled("utility");
         boolean itemEditorEnabled = moduleManager.isModuleEnabled("itemeditor");
         boolean customDropsEnabled = moduleManager.isModuleEnabled("customdrops");
+        boolean vouchersEnabled = moduleManager.isModuleEnabled("vouchers");
 
         getLogger().info("");
         getLogger().info("  ValerinUtils v" + version);
@@ -235,6 +241,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
                 + " | Utility " + (utilityEnabled ? "✔" : "✘")
                 + " | ItemEditor " + (itemEditorEnabled ? "✔" : "✘")
                 + " | CustomDrops " + (customDropsEnabled ? "✔" : "✘"));
+        getLogger().info("  Vouchers " + (vouchersEnabled ? "âœ”" : "âœ˜"));
         getLogger().info("");
         getLogger().info("  ValerinUtils has been enabled successfully!");
     }

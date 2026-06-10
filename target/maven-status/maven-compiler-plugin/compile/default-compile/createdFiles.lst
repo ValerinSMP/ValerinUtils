@@ -4,6 +4,7 @@ me\mtynnn\valerinutils\utils\SignMenuFactory$SignListener$1.class
 me\mtynnn\valerinutils\modules\utility\UtilitySellCommand$SellResult.class
 me\mtynnn\valerinutils\modules\kits\KitsListener.class
 me\mtynnn\valerinutils\modules\utility\UtilitySellCommand.class
+me\mtynnn\valerinutils\modules\customdrops\CustomDropsModule$Template.class
 me\mtynnn\valerinutils\modules\deathmessages\DeathMessagesModule.class
 me\mtynnn\valerinutils\utils\SignMenuFactory$SignListener.class
 me\mtynnn\valerinutils\core\ConfigManager.class
@@ -13,10 +14,14 @@ me\mtynnn\valerinutils\modules\utility\UtilityNickManager.class
 me\mtynnn\valerinutils\utils\SignMenuFactory.class
 me\mtynnn\valerinutils\core\PlayerDataManager.class
 me\mtynnn\valerinutils\modules\utility\UtilityModule.class
+me\mtynnn\valerinutils\modules\customdrops\CustomDropsModule$MythicBridge.class
 me\mtynnn\valerinutils\modules\kits\KitsPreviewHolder.class
 me\mtynnn\valerinutils\modules\itemsign\ItemSignCommandHandler$WrapResult.class
 me\mtynnn\valerinutils\modules\kits\KitsEditorHolder.class
+me\mtynnn\valerinutils\modules\vouchers\VouchersModule.class
 me\mtynnn\valerinutils\modules\codes\CodesModule.class
+me\mtynnn\valerinutils\modules\vouchers\VouchersModule$VoucherType.class
+me\mtynnn\valerinutils\modules\vouchers\VouchersModule$GuiButton.class
 me\mtynnn\valerinutils\modules\menuitem\MenuItemModule.class
 me\mtynnn\valerinutils\modules\kits\KitsAutoKitService.class
 me\mtynnn\valerinutils\modules\utility\UtilityNickCommand$1.class
@@ -28,9 +33,14 @@ me\mtynnn\valerinutils\modules\utility\UtilityWorkbenchCommands.class
 me\mtynnn\valerinutils\core\ModuleManager.class
 me\mtynnn\valerinutils\modules\killrewards\KillRewardsModule.class
 me\mtynnn\valerinutils\core\MessageService.class
+me\mtynnn\valerinutils\modules\customdrops\CustomDropsModule$NexoBridge.class
 me\mtynnn\valerinutils\modules\itemsign\ItemSignCommandHandler.class
 me\mtynnn\valerinutils\placeholders\ValerinUtilsExpansion.class
+me\mtynnn\valerinutils\modules\itemsign\ItemSignCommandHandler$SignatureRecord.class
 me\mtynnn\valerinutils\core\AbstractModule.class
+me\mtynnn\valerinutils\modules\customdrops\CustomDropsModule$DropRule.class
+me\mtynnn\valerinutils\core\ModuleManager$ReloadResult.class
+me\mtynnn\valerinutils\commands\ValerinUtilsCommand$1.class
 me\mtynnn\valerinutils\modules\itemsign\ItemSignModule.class
 me\mtynnn\valerinutils\modules\utility\UtilityDisposalHolder.class
 me\mtynnn\valerinutils\modules\utility\UtilityNickCommand.class
@@ -42,6 +52,9 @@ me\mtynnn\valerinutils\modules\kits\KitsCommandHandler.class
 me\mtynnn\valerinutils\modules\kits\KitsMenuHolder.class
 me\mtynnn\valerinutils\modules\itemeditor\ItemEditorModule.class
 me\mtynnn\valerinutils\commands\MenuItemCommand.class
+me\mtynnn\valerinutils\modules\itemsign\ItemSignCommandHandler$RemovalResult.class
+me\mtynnn\valerinutils\modules\customdrops\CustomDropsModule$SoundStep.class
+me\mtynnn\valerinutils\modules\customdrops\CustomDropsModule.class
 me\mtynnn\valerinutils\core\CommandRegistry.class
 me\mtynnn\valerinutils\modules\joinquit\JoinQuitModule.class
 me\mtynnn\valerinutils\core\Module.class

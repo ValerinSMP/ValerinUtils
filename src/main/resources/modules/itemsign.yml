@@ -6,19 +6,23 @@ limits:
   max-lines: 4
 
 signature:
-  format: "&8Firmado por: &f%luckperms_prefix%%player% &8| &7%date%"
+  format: "&8Firma #%number% por: &f%luckperms_prefix%%player% &8| &7%date%"
 
 messages:
   only-player: "%prefix%&cSolo jugadores pueden usar este comando."
   no-permission: "%prefix%&cNo tienes permiso para usar este comando."
   item-required: "%prefix%&cDebes tener un item en la mano."
-  already-signed: "%prefix%&cEste item ya fue firmado. Usa &e/itemsign remove &cpara quitarle la firma."
+  already-signed: "%prefix%&cYa firmaste este item."
   signed: "%prefix%&aItem firmado."
-  removed: "%prefix%&aFirma removida de &f%player%&a."
-  removed-target: "%prefix%&cUn admin quitó la firma de tu item."
+  updated: "%prefix%&aTu firma fue actualizada."
+  removed: "%prefix%&aFirma removida."
+  removed-own: "%prefix%&aTu firma fue removida."
   not-signed: "%prefix%&cEse item no tiene firma."
+  not-signed-by-you: "%prefix%&cEste item no tiene una firma tuya."
+  signature-not-found: "%prefix%&cNo se encontro esa firma."
   usage-sign: "%prefix%&7Uso: &e/sign <texto...>"
-  usage-remove: "%prefix%&7Uso: &e/itemsign remove <usuario>"
+  usage-remove: "%prefix%&7Uso: &e/itemsign remove &7o &e/itemsign remove <numero|nombre>"
+  usage-remove-admin: "%prefix%&7Uso: &e/itemsign remove <numero|nombre>"
   player-not-found: "%prefix%&cJugador no encontrado."
-  too-long: "%prefix%&cTexto demasiado largo. Máximo: &e%max% &cchars."
-  too-many-lines: "%prefix%&cTexto genera demasiadas líneas. Máximo: &e%max%&c."
+  too-long: "%prefix%&cTexto demasiado largo. Maximo: &e%max% &cchars."
+  too-many-lines: "%prefix%&cTexto genera demasiadas lineas. Maximo: &e%max%&c."

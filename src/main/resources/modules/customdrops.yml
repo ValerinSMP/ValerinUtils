@@ -6,6 +6,10 @@ defaults:
     max-same-type: 6
   sound:
     radius: 16
+  mythic:
+    # Si es true, los mobs de MythicMobs NO usan drops vanilla por EntityType.
+    # Solo dropean si tienen regla en mythic-drops.
+    ignore-mythic-for-vanilla-drops: true
 
 templates:
   figure:
@@ -205,3 +209,14 @@ drops:
     item-id: nm_figure_wither_skeleton
     display-name: Funko Esqueleto Wither
     number: 30
+
+# Reglas por internalName de MythicMobs (case-insensitive).
+# Ejemplo:
+# mythic-drops:
+#   SkeletalKnight:
+#     template: figure
+#     item-id: nm_figure_skeleton
+#     display-name: Funko Esqueleto Mythic
+#     number: 999
+#     chance-percent: 1.0
+mythic-drops: {}

@@ -12,6 +12,7 @@ C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinuti
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\core\PlayerData.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\core\PlayerDataManager.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\codes\CodesModule.java
+C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\customdrops\CustomDropsModule.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\deathmessages\DeathMessagesModule.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\itemeditor\ItemEditorModule.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\itemsign\ItemSignCommandHandler.java
@@ -36,6 +37,7 @@ C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinuti
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\utility\UtilitySeenCommand.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\utility\UtilitySellCommand.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\utility\UtilityWorkbenchCommands.java
+C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\modules\vouchers\VouchersModule.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\placeholders\ValerinUtilsExpansion.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\utils\SignMenuFactory.java
 C:\Users\Martin\Documents\GitHub\ValerinUtils\src\main\java\me\mtynnn\valerinutils\ValerinUtils.java

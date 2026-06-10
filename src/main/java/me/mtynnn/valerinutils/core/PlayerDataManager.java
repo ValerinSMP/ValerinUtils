@@ -66,8 +66,7 @@ public class PlayerDataManager implements Listener {
     }
 
     public void saveAllAndClear() {
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            PlayerData data = cache.remove(p.getUniqueId());
+        for (PlayerData data : cache.values()) {
             if (data != null && data.isDirty()) {
                 saveToDB(data);
             }

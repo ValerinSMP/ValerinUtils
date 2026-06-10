@@ -4,7 +4,7 @@ main: me.mtynnn.valerinutils.ValerinUtils
 api-version: "1.21"
 author: Mtynnn
 description: Utilidades varias para ValerinSMP
-softdepend: [PlaceholderAPI, RoyaleEconomy, Vault, LuckPerms]
+softdepend: [PlaceholderAPI, RoyaleEconomy, Vault, LuckPerms, MythicMobs]
 
 commands:
   valerinutils:
@@ -143,8 +143,7 @@ commands:
 
   itemsign:
     description: Administra firmas de items
-    usage: "/itemsign remove <jugador>"
-    permission: valerinutils.itemsign.admin
+    usage: "/itemsign remove | /itemsign remove <numero|nombre>"
 
   vukits:
     description: Sistema de kits basados en Shulker Boxes
@@ -153,6 +152,16 @@ commands:
     description: Comando principal del sistema de kits
     usage: "/kit <nombre>|/kit list|/kit preview <nombre>"
     aliases: [kit]
+
+  customdrops:
+    description: Herramientas internas del modulo CustomDrops
+    usage: "/customdrops test <entity|mythic> <tipo> [jugador]"
+    permission: valerinutils.admin
+
+  voucher:
+    description: Gestion de vouchers
+    usage: "/voucher give <jugador> <tipo> [cantidad] | /voucher reload"
+    permission: valerinutils.admin
 
 permissions:
   valerinutils.itemsign.use:
@@ -166,4 +175,13 @@ permissions:
     default: op
   valerinutils.kits.cooldown.bypass:
     description: Permite reclamar kits sin cooldown (ilimitado)
+    default: op
+  valerinutils.admin:
+    description: Acceso administrativo general
+    default: op
+  valerinutils.vouchers.give:
+    description: Entregar vouchers
+    default: op
+  valerinutils.vouchers.reload:
+    description: Recargar modulo vouchers
     default: op

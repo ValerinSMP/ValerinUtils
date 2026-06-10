@@ -73,6 +73,7 @@ public class ConfigManager {
         registerConfig("utility", "modules/utilities.yml");
         registerConfig("itemeditor", "modules/itemeditor.yml");
         registerConfig("customdrops", "modules/customdrops.yml");
+        registerConfig("vouchers", "modules/vouchers.yml");
         migrateSellPriceConfigLocation();
         registerConfig("sellprice", "sellprice.yml");
 
@@ -143,6 +144,7 @@ public class ConfigManager {
         updateItemEditorConfig();
         updateDeathMessagesConfig();
         updateCustomDropsConfig();
+        updateVouchersConfig();
             // updateCodesConfig();
     }
 
@@ -861,9 +863,41 @@ public class ConfigManager {
             config.set("defaults.sound.radius", 16);
             changed = true;
         }
+        if (!config.contains("defaults.mythic.ignore-mythic-for-vanilla-drops")) {
+            config.set("defaults.mythic.ignore-mythic-for-vanilla-drops", true);
+            changed = true;
+        }
+        if (!config.contains("mythic-drops")) {
+            config.createSection("mythic-drops");
+            changed = true;
+        }
         if (changed) {
             saveConfig("customdrops");
             plugin.getLogger().info("[CustomDrops] Config updated with new keys.");
+        }
+    }
+
+    private void updateVouchersConfig() {
+        FileConfiguration config = getConfig("vouchers");
+        if (config == null) {
+            return;
+        }
+        boolean changed = false;
+        if (!config.contains("enabled")) {
+            config.set("enabled", true);
+            changed = true;
+        }
+        if (!config.contains("gui.size")) {
+            config.set("gui.size", 27);
+            changed = true;
+        }
+        if (!config.contains("types")) {
+            config.createSection("types");
+            changed = true;
+        }
+        if (changed) {
+            saveConfig("vouchers");
+            plugin.getLogger().info("[Vouchers] Config updated with new keys.");
         }
     }
 
@@ -990,6 +1024,7 @@ public class ConfigManager {
             case "utility" -> updateUtilitiesConfig();
             case "itemeditor" -> updateItemEditorConfig();
             case "customdrops" -> updateCustomDropsConfig();
+            case "vouchers" -> updateVouchersConfig();
             default -> {
             }
         }
@@ -1026,7 +1061,7 @@ public class ConfigManager {
         boolean changed = false;
         String[] modules = {
             "menuitem", "joinquit",
-            "killrewards", "codes", "deathmessages", "itemsign", "kits", "utility", "itemeditor", "customdrops"
+            "killrewards", "codes", "deathmessages", "itemsign", "kits", "utility", "itemeditor", "customdrops", "vouchers"
         };
         for (String moduleId : modules) {
             String path = "modules." + moduleId + ".enabled";
