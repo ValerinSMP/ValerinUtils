@@ -131,11 +131,6 @@ commands:
   vtop:
     description: Te teletransporta al bloque más alto
     usage: /vtop
-  itemedit:
-    description: Edita nombre y lore del item en mano
-    usage: /itemedit <name|lore> ...
-    aliases: [iedit, edititem, itemeditor]
-    permission: valerinutils.itemeditor.use
   sign:
     description: Firma el item en la mano con una dedicatoria
     usage: "/sign <texto>"
@@ -144,19 +139,6 @@ commands:
   itemsign:
     description: Administra firmas de items
     usage: "/itemsign remove | /itemsign remove <numero|nombre>"
-
-  vukits:
-    description: Sistema de kits basados en Shulker Boxes
-    usage: "/kit <nombre>|/kit list|/kit preview <nombre>"
-  kits:
-    description: Comando principal del sistema de kits
-    usage: "/kit <nombre>|/kit list|/kit preview <nombre>"
-    aliases: [kit]
-
-  customdrops:
-    description: Herramientas internas del modulo CustomDrops
-    usage: "/customdrops test <entity|mythic> <tipo> [jugador]"
-    permission: valerinutils.admin
 
   voucher:
     description: Gestion de vouchers
@@ -169,12 +151,6 @@ permissions:
     default: false
   valerinutils.itemsign.admin:
     description: Permite quitar firmas de items
-    default: op
-  valerinutils.kits.admin:
-    description: Acceso a comandos admin de kits
-    default: op
-  valerinutils.kits.cooldown.bypass:
-    description: Permite reclamar kits sin cooldown (ilimitado)
     default: op
   valerinutils.admin:
     description: Acceso administrativo general

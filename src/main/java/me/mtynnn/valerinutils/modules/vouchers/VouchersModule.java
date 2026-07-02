@@ -7,9 +7,12 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.LuckPermsProvider;
 import net.luckperms.api.model.user.User;
+import net.luckperms.api.node.Node;
 import net.luckperms.api.node.NodeType;
+import net.luckperms.api.node.types.InheritanceNode;
 import net.luckperms.api.node.types.PermissionNode;
 import net.luckperms.api.query.QueryOptions;
+import net.luckperms.api.track.Track;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -32,6 +35,11 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.profile.PlayerProfile;
+
+import java.net.URL;
+import java.util.Base64;
+import java.util.UUID;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -152,14 +160,8 @@ public final class VouchersModule extends BaseModule implements Listener, Comman
         }
 
         if ("confirm".equals(action)) {
-            if (!consumeOneVoucher(player, voucherType)) {
-                player.closeInventory();
-                player.sendMessage(comp(msg("messages.voucher-not-found",
-                        "%prefix%<red>No tienes ese voucher en la mano.")));
-                return;
-            }
             player.closeInventory();
-            redeemVoucher(player, type);
+            redeemVoucher(player, type, voucherType);
             return;
         }
 
@@ -356,11 +358,17 @@ public final class VouchersModule extends BaseModule implements Listener, Comman
         ItemStack item = new ItemStack(material, Math.max(1, amount));
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            if (meta instanceof SkullMeta skullMeta && material == Material.PLAYER_HEAD && type.headOwner != null && !type.headOwner.isBlank()) {
-                skullMeta.setOwner(type.headOwner);
+            if (meta instanceof SkullMeta skullMeta && material == Material.PLAYER_HEAD) {
+                if (type.headTexture != null && !type.headTexture.isBlank()) {
+                    applyHeadTexture(skullMeta, type.headTexture);
+                } else if (type.headOwner != null && !type.headOwner.isBlank()) {
+                    skullMeta.setOwner(type.headOwner);
+                }
                 meta = skullMeta;
             }
-
+            if (type.customModelData > 0) {
+                meta.setCustomModelData(type.customModelData);
+            }
             meta.displayName(noItalic(comp(type.displayName)));
             List<Component> lore = type.lore.stream().map(this::comp).map(this::noItalic).toList();
             meta.lore(lore);
@@ -368,6 +376,19 @@ public final class VouchersModule extends BaseModule implements Listener, Comman
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    private void applyHeadTexture(SkullMeta meta, String textureBase64) {
+        try {
+            String decoded = new String(Base64.getDecoder().decode(textureBase64));
+            int urlStart = decoded.indexOf("\"url\":\"") + 7;
+            int urlEnd = decoded.indexOf('"', urlStart);
+            if (urlStart < 7 || urlEnd <= urlStart) return;
+            URL skinUrl = new URL(decoded.substring(urlStart, urlEnd));
+            PlayerProfile profile = Bukkit.createPlayerProfile(UUID.randomUUID());
+            profile.getTextures().setSkin(skinUrl);
+            meta.setOwnerProfile(profile);
+        } catch (Exception ignored) {}
     }
 
     private Component noItalic(Component component) {
@@ -381,7 +402,7 @@ public final class VouchersModule extends BaseModule implements Listener, Comman
         return hours + "h " + minutes + "m";
     }
 
-    private void redeemVoucher(Player player, VoucherType type) {
+    private void redeemVoucher(Player player, VoucherType type, String voucherTypeId) {
         if (type.lpStackingEnabled) {
             if (luckPerms == null) {
                 player.sendMessage(comp(msg("messages.redeem-failed",
@@ -394,6 +415,21 @@ public final class VouchersModule extends BaseModule implements Listener, Comman
                     if (user == null) {
                         throw new IllegalStateException("User LP null");
                     }
+
+                    if (type.lpTrack != null && !type.lpTrack.isBlank() && isGroupPermission(type.lpPermission)) {
+                        String targetGroup = type.lpPermission.substring("group.".length());
+                        int block = trackBlockReason(user, type.lpTrack, targetGroup, type.lpServer);
+                        if (block != 0) {
+                            String msgKey = block > 0 ? "messages.rank-too-high" : "messages.already-has-rank";
+                            String def = block > 0
+                                    ? "%prefix%<red>Ya tienes un rango superior a <white>%voucher%<red>."
+                                    : "%prefix%<red>Ya tienes el rango <white>%voucher%<red>.";
+                            Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(comp(
+                                    msg(msgKey, def).replace("%voucher%", type.displayName))));
+                            return;
+                        }
+                    }
+
                     long now = System.currentTimeMillis() / 1000L;
                     long currentExpiry = findCurrentExpiry(user, type.lpPermission, type.lpServer, now);
                     long base = Math.max(now, currentExpiry);
@@ -401,21 +437,23 @@ public final class VouchersModule extends BaseModule implements Listener, Comman
 
                     removeTempNodes(user, type.lpPermission, type.lpServer);
 
-                    PermissionNode.Builder builder = PermissionNode.builder(type.lpPermission).value(true)
-                            .expiry(java.time.Instant.ofEpochSecond(newExpiry));
-                    if (type.lpServer != null && !type.lpServer.isBlank()) {
-                        builder.withContext("server", type.lpServer);
-                    }
-                    user.data().add(builder.build());
+                    Node node = buildLpNode(type.lpPermission, type.lpServer, newExpiry);
+                    user.data().add(node);
                     luckPerms.getUserManager().saveUser(user);
 
                     long remainingSeconds = newExpiry - now;
-                    Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(comp(
-                            msg("messages.redeemed-extended",
-                                    "%prefix%<green>Voucher canjeado: <white>%voucher% <green>(tiempo total: <white>%remaining%<green>)")
-                                    .replace("%voucher%", type.displayName)
-                                    .replace("%remaining%", formatHoursMinutes(remainingSeconds))
-                    )));
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        if (!consumeOneVoucher(player, voucherTypeId)) {
+                            // LP already updated — log warning but don't crash
+                            plugin.getLogger().warning("[Vouchers] No se pudo consumir voucher " + voucherTypeId + " de " + player.getName() + " post-LP");
+                        }
+                        player.sendMessage(comp(
+                                msg("messages.redeemed-extended",
+                                        "%prefix%<green>Voucher canjeado: <white>%voucher% <green>(tiempo total: <white>%remaining%<green>)")
+                                        .replace("%voucher%", type.displayName)
+                                        .replace("%remaining%", formatHoursMinutes(remainingSeconds))
+                        ));
+                    });
                 } catch (Throwable ex) {
                     Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(comp(
                             msg("messages.redeem-failed", "%prefix%<red>No se pudo canjear el voucher.")
@@ -425,6 +463,11 @@ public final class VouchersModule extends BaseModule implements Listener, Comman
             return;
         }
 
+        if (!consumeOneVoucher(player, voucherTypeId)) {
+            player.sendMessage(comp(msg("messages.voucher-not-found",
+                    "%prefix%<red>No tienes ese voucher en la mano.")));
+            return;
+        }
         String command = type.redeemCommand.replace("%player%", player.getName());
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
         player.sendMessage(comp(msg("messages.redeemed",
@@ -432,14 +475,31 @@ public final class VouchersModule extends BaseModule implements Listener, Comman
                 .replace("%voucher%", type.displayName)));
     }
 
-    private long findCurrentExpiry(User user, String permission, String server, long nowSeconds) {
-        QueryOptions options = luckPerms.getContextManager().getQueryOptions(user).orElse(null);
-        if (options == null) {
-            return 0L;
+    private boolean isGroupPermission(String permission) {
+        return permission != null && permission.toLowerCase(Locale.ROOT).startsWith("group.");
+    }
+
+    private Node buildLpNode(String permission, String server, long expiryEpoch) {
+        java.time.Instant expiry = java.time.Instant.ofEpochSecond(expiryEpoch);
+        if (isGroupPermission(permission)) {
+            String groupName = permission.substring("group.".length());
+            InheritanceNode.Builder b = InheritanceNode.builder(groupName).value(true).expiry(expiry);
+            if (server != null && !server.isBlank()) b.withContext("server", server);
+            return b.build();
         }
-        OptionalLong max = user.getNodes(NodeType.PERMISSION).stream()
-                .filter(n -> n.getKey().equalsIgnoreCase(permission))
-                .filter(PermissionNode::hasExpiry)
+        PermissionNode.Builder b = PermissionNode.builder(permission).value(true).expiry(expiry);
+        if (server != null && !server.isBlank()) b.withContext("server", server);
+        return b.build();
+    }
+
+    private long findCurrentExpiry(User user, String permission, String server, long nowSeconds) {
+        boolean isGroup = isGroupPermission(permission);
+        String key = isGroup ? permission.substring("group.".length()) : permission;
+        @SuppressWarnings("unchecked")
+        var nodeType = (NodeType<? extends Node>) (isGroup ? NodeType.INHERITANCE : NodeType.PERMISSION);
+        OptionalLong max = user.getNodes(nodeType).stream()
+                .filter(n -> n.getKey().equalsIgnoreCase(isGroup ? "group." + key : key))
+                .filter(Node::hasExpiry)
                 .filter(n -> !n.hasExpired())
                 .filter(n -> server == null || server.isBlank() || server.equalsIgnoreCase(n.getContexts().getAnyValue("server").orElse(null)))
                 .mapToLong(n -> nowSeconds + n.getExpiryDuration().toSeconds())
@@ -448,12 +508,39 @@ public final class VouchersModule extends BaseModule implements Listener, Comman
     }
 
     private void removeTempNodes(User user, String permission, String server) {
-        var toRemove = user.getNodes(NodeType.PERMISSION).stream()
+        boolean isGroup = isGroupPermission(permission);
+        @SuppressWarnings("unchecked")
+        var nodeType = (NodeType<? extends Node>) (isGroup ? NodeType.INHERITANCE : NodeType.PERMISSION);
+        var toRemove = user.getNodes(nodeType).stream()
                 .filter(n -> n.getKey().equalsIgnoreCase(permission))
-                .filter(PermissionNode::hasExpiry)
+                .filter(Node::hasExpiry)
                 .filter(n -> server == null || server.isBlank() || server.equalsIgnoreCase(n.getContexts().getAnyValue("server").orElse(null)))
                 .toList();
         toRemove.forEach(user.data()::remove);
+    }
+
+    /**
+     * Returns 0 if the player can redeem, -1 if they already have the exact group,
+     * +1 if they have a higher group on the track.
+     */
+    private int trackBlockReason(User user, String trackName, String targetGroup, String server) {
+        Track track = luckPerms.getTrackManager().getTrack(trackName);
+        if (track == null) return 0;
+        List<String> groups = track.getGroups();
+        int targetPos = groups.indexOf(targetGroup.toLowerCase(Locale.ROOT));
+        if (targetPos < 0) return 0;
+
+        int playerPos = user.getNodes(NodeType.INHERITANCE).stream()
+                .filter(n -> server == null || server.isBlank()
+                        || server.equalsIgnoreCase(n.getContexts().getAnyValue("server").orElse(null)))
+                .mapToInt(n -> groups.indexOf(n.getGroupName().toLowerCase(Locale.ROOT)))
+                .filter(pos -> pos >= 0)
+                .max()
+                .orElse(-1);
+
+        if (playerPos == targetPos) return -1;
+        if (playerPos > targetPos) return 1;
+        return 0;
     }
 
     private boolean hasPermission(CommandSender sender, String node) {
@@ -499,13 +586,16 @@ public final class VouchersModule extends BaseModule implements Listener, Comman
                     id.toLowerCase(Locale.ROOT),
                     t.getString("item.material", "PAPER"),
                     t.getString("item.head-owner", ""),
+                    t.getString("item.head-texture", ""),
+                    t.getInt("item.custom-model-data", 0),
                     t.getString("item.name", "<white>Voucher"),
                     t.getStringList("item.lore"),
                     command,
                     t.getBoolean("luckperms-stacking.enabled", false),
                     t.getString("luckperms-stacking.permission", ""),
                     t.getString("luckperms-stacking.server", "survival"),
-                    Math.max(1L, t.getLong("luckperms-stacking.duration-seconds", 3600L))
+                    Math.max(1L, t.getLong("luckperms-stacking.duration-seconds", 3600L)),
+                    t.getString("luckperms-stacking.track", "")
             );
             voucherTypes.put(type.id, type);
         }
@@ -530,9 +620,10 @@ public final class VouchersModule extends BaseModule implements Listener, Comman
         return slot;
     }
 
-    private record VoucherType(String id, String material, String headOwner, String displayName, List<String> lore,
+    private record VoucherType(String id, String material, String headOwner, String headTexture,
+                               int customModelData, String displayName, List<String> lore,
                                String redeemCommand, boolean lpStackingEnabled, String lpPermission, String lpServer,
-                               long lpDurationSeconds) {
+                               long lpDurationSeconds, String lpTrack) {
     }
 
     private record GuiButton(String material, String name, List<String> lore) {

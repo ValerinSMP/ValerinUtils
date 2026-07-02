@@ -28,11 +28,8 @@ import java.util.List;
 
 public class DeathMessagesModule extends BaseModule implements Listener, CommandExecutor, TabCompleter {
 
-    private final ValerinUtils plugin;
-
     public DeathMessagesModule(ValerinUtils plugin) {
         super(plugin);
-        this.plugin = plugin;
     }
 
     @Override

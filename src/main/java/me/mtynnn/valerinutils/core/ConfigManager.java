@@ -4,8 +4,6 @@ import me.mtynnn.valerinutils.ValerinUtils;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.io.File;
 import java.io.IOException;
@@ -63,16 +61,11 @@ public class ConfigManager {
         registerConfig("settings", "settings.yml");
         registerConfig("debug", "debug.yml");
         registerConfig("killrewards", "modules/killrewards.yml");
-        registerConfig("joinquit", "modules/joinquit.yml");
         registerConfig("menuitem", "modules/menuitem.yml");
         registerConfig("deathmessages", "modules/deathmessages.yml");
-
         registerConfig("itemsign", "modules/itemsign.yml");
-        registerConfig("kits", "modules/kits.yml");
         registerConfig("codes", "modules/codes.yml");
         registerConfig("utility", "modules/utilities.yml");
-        registerConfig("itemeditor", "modules/itemeditor.yml");
-        registerConfig("customdrops", "modules/customdrops.yml");
         registerConfig("vouchers", "modules/vouchers.yml");
         migrateSellPriceConfigLocation();
         registerConfig("sellprice", "sellprice.yml");
@@ -134,16 +127,11 @@ public class ConfigManager {
      * This ensures users coming from older versions get new features.
      */
     private void updateModuleConfigs() {
-        // JoinQuit - Add MOTD section if missing
-        updateJoinQuitConfig();
-        updateKitsConfig();
         updateItemSignConfig();
         updateUtilitiesConfig();
         updateMenuItemConfig();
         updateKillRewardsConfig();
-        updateItemEditorConfig();
         updateDeathMessagesConfig();
-        updateCustomDropsConfig();
         updateVouchersConfig();
             // updateCodesConfig();
     }
@@ -281,250 +269,6 @@ public class ConfigManager {
         }
     }
 
-    private void updateJoinQuitConfig() {
-        FileConfiguration config = getConfig("joinquit");
-        if (config == null)
-            return;
-
-        boolean changed = false;
-
-        // Add MOTD section keys individually (so partial configs get updated too)
-        if (!config.contains("join.motd.enabled")) {
-            config.set("join.motd.enabled", false);
-            changed = true;
-        }
-        if (!config.contains("join.motd.clear-chat")) {
-            config.set("join.motd.clear-chat", true);
-            changed = true;
-        }
-        if (!config.contains("join.motd.lines")) {
-            config.set("join.motd.lines", java.util.Arrays.asList(
-                    "",
-                    "<gold>╔══════════════════════════════════════╗",
-                    "<gold>║  <aqua><bold>BIENVENIDO A TU SERVIDOR  <gold>║",
-                    "<gold>╠══════════════════════════════════════╣",
-                    "<gold>║  <gray>❯ <white>Jugadores Online: <green>%server_online%/%server_max_players%",
-                    "<gold>║  <gray>❯ <white>Tu Rango: <green>%luckperms_prefix%",
-                    "<gold>╚══════════════════════════════════════╝",
-                    ""));
-            changed = true;
-        }
-
-        if (changed) {
-            saveConfig("joinquit");
-            plugin.getLogger().info("[JoinQuit] Config updated with new keys.");
-        }
-    }
-
-    private void updateKitsConfig() {
-        FileConfiguration config = getConfig("kits");
-        if (config == null)
-            return;
-
-        boolean changed = false;
-
-        if (!config.contains("settings.debug_command_spam")) {
-            config.set("settings.debug_command_spam", false);
-            changed = true;
-        }
-        if (!config.contains("settings.respawn_kit_only_on_death")) {
-            config.set("settings.respawn_kit_only_on_death", true);
-            changed = true;
-        }
-        if (!config.contains("settings.respawn_kit_overwrite")) {
-            config.set("settings.respawn_kit_overwrite", false);
-            changed = true;
-        }
-        if (!config.contains("settings.respawn_kit_disabled_worlds")) {
-            config.set("settings.respawn_kit_disabled_worlds", java.util.Collections.emptyList());
-            changed = true;
-        }
-        if (!config.contains("settings.default_claim_cooldown_days")) {
-            config.set("settings.default_claim_cooldown_days", 15);
-            changed = true;
-        }
-        if (!config.contains("settings.default_required_permission_pattern")) {
-            config.set("settings.default_required_permission_pattern", "kits.%kit%");
-            changed = true;
-        }
-        if (!config.contains("messages.kit-no-permission")) {
-            config.set("messages.kit-no-permission",
-                    "%prefix%<red>No cumples el rango/permiso requerido para este kit.");
-            changed = true;
-        }
-        if (!config.contains("messages.kit-on-cooldown")) {
-            config.set("messages.kit-on-cooldown",
-                    "%prefix%<red>Debes esperar <yellow>%time% <red>para volver a reclamar este kit.");
-            changed = true;
-        }
-        if (!config.contains("messages.kit-claimed")) {
-            config.set("messages.kit-claimed",
-                    "%prefix%<green>Has reclamado el kit: <white>%kit%");
-            changed = true;
-        }
-        if (!config.contains("messages.kit-one-time-used")) {
-            config.set("messages.kit-one-time-used",
-                    "%prefix%<red>Este kit solo se puede reclamar una vez.");
-            changed = true;
-        }
-        if (!config.contains("sounds.menu-open")) {
-            config.set("sounds.menu-open", "BLOCK_CHEST_OPEN");
-            config.set("sounds.menu-click", "UI_BUTTON_CLICK");
-            config.set("sounds.menu-page", "ITEM_BOOK_PAGE_TURN");
-            config.set("sounds.menu-close", "BLOCK_CHEST_CLOSE");
-            config.set("sounds.menu-back", "BLOCK_NOTE_BLOCK_BASS");
-            config.set("sounds.preview-open", "BLOCK_ENDER_CHEST_OPEN");
-            config.set("sounds.claim-success", "ENTITY_PLAYER_LEVELUP");
-            config.set("sounds.claim-fail", "BLOCK_NOTE_BLOCK_BASS");
-            changed = true;
-        }
-        if (!config.contains("claim-effects.enabled")) {
-            config.set("claim-effects.enabled", true);
-            config.set("claim-effects.particles.enabled", true);
-            config.set("claim-effects.particles.type", "TOTEM_OF_UNDYING");
-            config.set("claim-effects.particles.amount", 25);
-            config.set("claim-effects.particles.offset", 0.35);
-            config.set("claim-effects.particles.speed", 0.05);
-            config.set("claim-effects.title.enabled", true);
-            config.set("claim-effects.title.title", "&#77DD77ᴋɪᴛ ʀᴇᴄʟᴀᴍᴀᴅᴏ");
-            config.set("claim-effects.title.subtitle", "&fDisfruta tu recompensa");
-            config.set("claim-effects.title.fade-in", 5);
-            config.set("claim-effects.title.stay", 30);
-            config.set("claim-effects.title.fade-out", 8);
-            config.set("claim-effects.actionbar", "&#77DD77+ Kit recibido");
-            config.set("claim-effects.extra-sound.enabled", true);
-            config.set("claim-effects.extra-sound.name", "BLOCK_AMETHYST_BLOCK_CHIME");
-            config.set("claim-effects.extra-sound.volume", 0.8);
-            config.set("claim-effects.extra-sound.pitch", 1.4);
-            changed = true;
-        }
-        if (!config.contains("menu") && config.contains("casual-kit-menu")) {
-            config.set("menu", config.get("casual-kit-menu"));
-            changed = true;
-        }
-        if (!config.contains("menu.title")) {
-            config.set("menu.title", "&8sᴇʟᴇᴄᴄɪᴏɴᴀ ᴋɪᴛ ᴄᴀsᴜᴀʟ");
-            changed = true;
-        }
-        if (!config.contains("menu.rows")) {
-            config.set("menu.rows", 6);
-            changed = true;
-        }
-        if (!config.contains("menu.kit-slots")) {
-            config.set("menu.kit-slots", java.util.Arrays.asList(
-                    10, 11, 12, 13, 14, 15, 16,
-                    19, 20, 21, 22, 23, 24, 25,
-                    28, 29, 30, 31, 32, 33, 34));
-            changed = true;
-        }
-        if (!config.contains("menu.filler-slots")) {
-            config.set("menu.filler-slots", java.util.Arrays.asList(
-                    "0-3", "5-9", "17-18", "26-27", "35-36", "44", "46-47", "51-53"));
-            changed = true;
-        }
-        if (!config.contains("menu.kit-lore")) {
-            config.set("menu.kit-lore", java.util.Arrays.asList(
-                    "&8• &fItems dentro: &#FF6961%items%",
-                    "&8• &fCooldown: &#FF6961%days%d",
-                    "&8• &fPermiso: &#FF6961%perm%",
-                    "&8• &fEstado: &#FF6961%status%",
-                    "&8• &fClick izq: &#77DD77Reclamar",
-                    "&8• &fClick der: &#FFB347Preview"));
-            changed = true;
-        }
-        if (!config.contains("menu.items.filler.material")) {
-            config.set("menu.items.filler.material", "BLACK_STAINED_GLASS_PANE");
-            config.set("menu.items.filler.name", " ");
-            config.set("menu.items.filler.lore", java.util.Collections.emptyList());
-            changed = true;
-        }
-        if (!config.contains("menu.items.info.slot")) {
-            config.set("menu.items.info.slot", 4);
-            config.set("menu.items.info.material", "GLOBE_BANNER_PATTERN");
-            config.set("menu.items.info.name", "&#FF6961ɪɴғᴏ");
-            config.set("menu.items.info.lore", java.util.Arrays.asList(
-                    "&fAquí puedes reclamar kits por rango.",
-                    "&fCada kit tiene su propio cooldown.",
-                    "&fClick izquierdo: &#77DD77Reclamar kit",
-                    "&fClick derecho: &#FFB347Ver contenido",
-                    "&fPágina: &#FF6961%page%&7/&#FF6961%max_page%"));
-            changed = true;
-        }
-        if (!config.contains("menu.items.back.slot")) {
-            config.set("menu.items.back.slot", 45);
-            config.set("menu.items.back.material", "ARROW");
-            config.set("menu.items.back.name", "&#FF6961ᴀᴛʀᴀs");
-            config.set("menu.items.back.lore", java.util.List.of("&fVolver al menú principal"));
-            config.set("menu.items.back.command-mode", "console");
-            config.set("menu.items.back.command", "dm open menu %player%");
-            changed = true;
-        }
-        if (!config.contains("menu.items.back.command-mode")) {
-            config.set("menu.items.back.command-mode", "console");
-            changed = true;
-        }
-        if (!config.contains("menu.items.previous.slot")) {
-            config.set("menu.items.previous.slot", 48);
-            config.set("menu.items.previous.material", "YELLOW_STAINED_GLASS_PANE");
-            config.set("menu.items.previous.name", "&#FFB347ᴘᴀɢɪɴᴀ ᴀɴᴛᴇʀɪᴏʀ");
-            config.set("menu.items.previous.lore", java.util.List.of("&fVer página anterior"));
-            changed = true;
-        }
-        if (!config.contains("menu.items.close.slot")) {
-            config.set("menu.items.close.slot", 49);
-            config.set("menu.items.close.material", "BARRIER");
-            config.set("menu.items.close.name", "&#FF6961ᴄᴇʀʀᴀʀ");
-            config.set("menu.items.close.lore", java.util.List.of("&fCerrar este menú"));
-            changed = true;
-        }
-        if (!config.contains("menu.items.next.slot")) {
-            config.set("menu.items.next.slot", 50);
-            config.set("menu.items.next.material", "LIME_STAINED_GLASS_PANE");
-            config.set("menu.items.next.name", "&#77DD77sɪɢᴜɪᴇɴᴛᴇ");
-            config.set("menu.items.next.lore", java.util.List.of("&fVer siguiente página"));
-            changed = true;
-        }
-
-        ConfigurationSection legacyNestedMessages = config.getConfigurationSection("messages.messages");
-        if (legacyNestedMessages != null) {
-            for (String key : legacyNestedMessages.getKeys(false)) {
-                if (!config.contains("messages." + key)) {
-                    config.set("messages." + key, legacyNestedMessages.get(key));
-                }
-            }
-            config.set("messages.messages", null);
-            changed = true;
-        }
-
-        ConfigurationSection kitsSection = config.getConfigurationSection("kits");
-        if (kitsSection != null) {
-            for (String kitId : kitsSection.getKeys(false)) {
-                String oneTimePath = "kits." + kitId + ".one-time";
-                if (!config.contains(oneTimePath)) {
-                    config.set(oneTimePath, false);
-                    changed = true;
-                }
-                String displayPath = "kits." + kitId + ".display_name";
-                String display = config.getString(displayPath, "");
-                if (display != null && display.contains("&x<")) {
-                    ItemStack shulker = config.getItemStack("kits." + kitId + ".shulker_item");
-                    if (shulker != null) {
-                        ItemMeta meta = shulker.getItemMeta();
-                        if (meta != null && meta.hasDisplayName()) {
-                            config.set(displayPath, meta.getDisplayName());
-                            changed = true;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (changed) {
-            saveConfig("kits");
-            plugin.getLogger().info("[Kits] Config updated with new keys.");
-        }
-    }
-
     private void updateUtilitiesConfig() {
         FileConfiguration config = getConfig("utility");
         if (config == null)
@@ -534,40 +278,6 @@ public class ConfigManager {
         if (changed) {
             saveConfig("utility");
             plugin.getLogger().info("[Utility] Config updated with new keys.");
-        }
-    }
-
-    private void updateItemEditorConfig() {
-        FileConfiguration config = getConfig("itemeditor");
-        if (config == null) {
-            return;
-        }
-
-        boolean changed = false;
-        if (!config.contains("enabled")) {
-            config.set("enabled", true);
-            changed = true;
-        }
-        if (!config.contains("settings.max-lore-lines")) {
-            config.set("settings.max-lore-lines", 20);
-            changed = true;
-        }
-        if (!config.contains("messages.usage")) {
-            config.set("messages.usage", "%prefix%<gray>Uso: <yellow>/itemedit <name|lore> ...");
-            changed = true;
-        }
-        if (!config.contains("messages.no-permission")) {
-            config.set("messages.no-permission", "%prefix%<red>No tienes permisos.");
-            changed = true;
-        }
-        if (!config.contains("messages.only-players")) {
-            config.set("messages.only-players", "%prefix%<red>Solo jugadores pueden usar este comando.");
-            changed = true;
-        }
-
-        if (changed) {
-            saveConfig("itemeditor");
-            plugin.getLogger().info("[ItemEditor] Config updated with new keys.");
         }
     }
 
@@ -692,6 +402,7 @@ public class ConfigManager {
         defaults.put("messages.nick-usage-others", "%prefix%<gray>Uso: <yellow>/nick <jugador> <apodo> <gray>o <yellow>/nick off <jugador>");
         defaults.put("messages.nick-format-not-allowed", "%prefix%<red>No puedes usar ese formato en el nick. <gray>Tu nivel es <yellow>%tier%<gray>. Permitido: <yellow>%allowed%<gray>. Ejemplos: <yellow>&aNombre <gray>o <yellow><red>Nombre<gray>. <red>No se permite texto obfuscado para evitar nombres ilegibles.");
         defaults.put("messages.nick-no-spaces", "%prefix%<red>El nick no puede contener espacios.");
+        defaults.put("messages.nick-too-long", "%prefix%<red>El nick no puede tener más de <yellow>16 <red>caracteres visibles.");
         defaults.put("messages.nick-success", "%prefix%<gray>Tu apodo ahora es: <white>%nick%");
         defaults.put("messages.nick-success-others", "%prefix%<gray>Apodo de <white>%player% <gray>actualizado a: <white>%nick%");
         defaults.put("messages.nick-off", "%prefix%<red>Has desactivado tu apodo.");
@@ -840,43 +551,6 @@ public class ConfigManager {
         plugin.getLogger().info("All configuration files reloaded.");
     }
 
-    private void updateCustomDropsConfig() {
-        FileConfiguration config = getConfig("customdrops");
-        if (config == null) {
-            return;
-        }
-
-        boolean changed = false;
-        if (!config.contains("enabled")) {
-            config.set("enabled", false);
-            changed = true;
-        }
-        if (!config.contains("defaults.anti-farm.radius")) {
-            config.set("defaults.anti-farm.radius", 16);
-            changed = true;
-        }
-        if (!config.contains("defaults.anti-farm.max-same-type")) {
-            config.set("defaults.anti-farm.max-same-type", 6);
-            changed = true;
-        }
-        if (!config.contains("defaults.sound.radius")) {
-            config.set("defaults.sound.radius", 16);
-            changed = true;
-        }
-        if (!config.contains("defaults.mythic.ignore-mythic-for-vanilla-drops")) {
-            config.set("defaults.mythic.ignore-mythic-for-vanilla-drops", true);
-            changed = true;
-        }
-        if (!config.contains("mythic-drops")) {
-            config.createSection("mythic-drops");
-            changed = true;
-        }
-        if (changed) {
-            saveConfig("customdrops");
-            plugin.getLogger().info("[CustomDrops] Config updated with new keys.");
-        }
-    }
-
     private void updateVouchersConfig() {
         FileConfiguration config = getConfig("vouchers");
         if (config == null) {
@@ -1015,15 +689,11 @@ public class ConfigManager {
             case "settings" -> updateSettingsConfig();
             case "debug" -> updateDebugConfig();
             case "menuitem" -> updateMenuItemConfig();
-            case "joinquit" -> updateJoinQuitConfig();
             case "killrewards" -> updateKillRewardsConfig();
             case "codes" -> updateCodesConfig();
             case "deathmessages" -> updateDeathMessagesConfig();
             case "itemsign" -> updateItemSignConfig();
-            case "kits" -> updateKitsConfig();
             case "utility" -> updateUtilitiesConfig();
-            case "itemeditor" -> updateItemEditorConfig();
-            case "customdrops" -> updateCustomDropsConfig();
             case "vouchers" -> updateVouchersConfig();
             default -> {
             }
@@ -1060,8 +730,7 @@ public class ConfigManager {
 
         boolean changed = false;
         String[] modules = {
-            "menuitem", "joinquit",
-            "killrewards", "codes", "deathmessages", "itemsign", "kits", "utility", "itemeditor", "customdrops", "vouchers"
+            "menuitem", "killrewards", "codes", "deathmessages", "itemsign", "utility", "vouchers"
         };
         for (String moduleId : modules) {
             String path = "modules." + moduleId + ".enabled";
@@ -1229,8 +898,6 @@ public class ConfigManager {
 
         // Migrate Modules
         migrateModule(legacy, "modules.killrewards", "modules/killrewards.yml", "killrewards");
-        migrateModule(legacy, "modules.joinquit", "modules/joinquit.yml", "joinquit");
-        migrateModule(legacy, "joinquit", "modules/joinquit.yml", "joinquit");
         migrateModule(legacy, "modules.menuitem", "modules/menuitem.yml", "menuitem");
         migrateModule(legacy, "menuitem", "modules/menuitem.yml", "menuitem");
 
@@ -1350,10 +1017,7 @@ public class ConfigManager {
     }
 
     private boolean shouldSkipLegacyMigration(String path) {
-        if (path == null) {
-            return false;
-        }
-        return path.startsWith("kits.") && path.endsWith(".display_name");
+        return false;
     }
 
     private String legacyToMiniMessage(String text) {

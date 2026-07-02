@@ -10,14 +10,11 @@ import me.mtynnn.valerinutils.core.ModuleManager;
 import me.mtynnn.valerinutils.core.MessageService;
 import me.mtynnn.valerinutils.core.PlayerData;
 import me.mtynnn.valerinutils.core.PlayerDataManager;
-import me.mtynnn.valerinutils.modules.joinquit.JoinQuitModule;
 import me.mtynnn.valerinutils.modules.killrewards.KillRewardsModule;
 import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
 import me.mtynnn.valerinutils.modules.codes.CodesModule;
-import me.mtynnn.valerinutils.modules.customdrops.CustomDropsModule;
 import me.mtynnn.valerinutils.modules.vouchers.VouchersModule;
 import me.mtynnn.valerinutils.modules.utility.UtilityModule;
-import me.mtynnn.valerinutils.modules.itemeditor.ItemEditorModule;
 import me.mtynnn.valerinutils.modules.deathmessages.DeathMessagesModule;
 
 import me.mtynnn.valerinutils.modules.itemsign.ItemSignModule;
@@ -35,15 +32,12 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
-import java.util.Locale;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -63,15 +57,11 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private MessageService messageService;
 
     private MenuItemModule menuItemModule;
-    private JoinQuitModule joinQuitModule;
     private KillRewardsModule killRewardsModule;
     private CodesModule codesModule;
     private DeathMessagesModule deathMessagesModule;
     private ItemSignModule itemSignModule;
-    private me.mtynnn.valerinutils.modules.kits.KitsModule kitsModule;
     private UtilityModule utilityModule;
-    private ItemEditorModule itemEditorModule;
-    private CustomDropsModule customDropsModule;
     private VouchersModule vouchersModule;
     private ValerinUtilsExpansion placeholderExpansion;
 
@@ -130,9 +120,6 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         menuItemModule = new MenuItemModule(this);
         moduleManager.registerModule(menuItemModule);
 
-        joinQuitModule = new JoinQuitModule(this);
-        moduleManager.registerModule(joinQuitModule);
-
         killRewardsModule = new KillRewardsModule(this);
         moduleManager.registerModule(killRewardsModule);
 
@@ -145,17 +132,8 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         itemSignModule = new ItemSignModule(this);
         moduleManager.registerModule(itemSignModule);
 
-        kitsModule = new me.mtynnn.valerinutils.modules.kits.KitsModule(this);
-        moduleManager.registerModule(kitsModule);
-
         utilityModule = new UtilityModule(this);
         moduleManager.registerModule(utilityModule);
-
-        itemEditorModule = new ItemEditorModule(this);
-        moduleManager.registerModule(itemEditorModule);
-
-        customDropsModule = new CustomDropsModule(this);
-        moduleManager.registerModule(customDropsModule);
 
         vouchersModule = new VouchersModule(this);
         moduleManager.registerModule(vouchersModule);
@@ -214,14 +192,10 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
         // Check enabled modules
         boolean menuItemEnabled = moduleManager.isModuleEnabled("menuitem");
-        boolean joinQuitEnabled = moduleManager.isModuleEnabled("joinquit");
         boolean killRewardsEnabled = moduleManager.isModuleEnabled("killrewards");
         boolean codesEnabled = moduleManager.isModuleEnabled("codes");
         boolean itemSignEnabled = moduleManager.isModuleEnabled("itemsign");
-        boolean kitsEnabled = moduleManager.isModuleEnabled("kits");
         boolean utilityEnabled = moduleManager.isModuleEnabled("utility");
-        boolean itemEditorEnabled = moduleManager.isModuleEnabled("itemeditor");
-        boolean customDropsEnabled = moduleManager.isModuleEnabled("customdrops");
         boolean vouchersEnabled = moduleManager.isModuleEnabled("vouchers");
 
         getLogger().info("");
@@ -232,16 +206,11 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
                 + " | LuckPerms " + (luckPermsHooked ? "✔" : "✘")
                 + " | Vault " + (vaultHooked ? "✔" : "✘"));
         getLogger().info("  Modules: MenuItem " + (menuItemEnabled ? "✔" : "✘")
-                + " | JoinQuit " + (joinQuitEnabled ? "✔" : "✘")
                 + " | KillRewards " + (killRewardsEnabled ? "✔" : "✘")
                 + " | Codes " + (codesEnabled ? "✔" : "✘")
-
                 + " | ItemSign " + (itemSignEnabled ? "✔" : "✘")
-                + " | Kits " + (kitsEnabled ? "✔" : "✘")
                 + " | Utility " + (utilityEnabled ? "✔" : "✘")
-                + " | ItemEditor " + (itemEditorEnabled ? "✔" : "✘")
-                + " | CustomDrops " + (customDropsEnabled ? "✔" : "✘"));
-        getLogger().info("  Vouchers " + (vouchersEnabled ? "âœ”" : "âœ˜"));
+                + " | Vouchers " + (vouchersEnabled ? "✔" : "✘"));
         getLogger().info("");
         getLogger().info("  ValerinUtils has been enabled successfully!");
     }
@@ -348,19 +317,6 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             royalFile.renameTo(new File(getDataFolder(), "royaleconomy_data.yml.bak"));
         }
 
-        // 1.7 JoinQuit Data (unique-players)
-        File joinquitFile = new File(getDataFolder(), "joinquit_data.yml");
-        if (joinquitFile.exists()) {
-            getLogger().info("Migrating joinquit_data.yml to database...");
-            FileConfiguration cfg = YamlConfiguration.loadConfiguration(joinquitFile);
-            int uniquePlayers = cfg.getInt("unique-players", 0);
-            if (uniquePlayers > 0) {
-                databaseManager.setServerInt("unique_players", uniquePlayers);
-                getLogger().info("Migrated unique_players: " + uniquePlayers);
-            }
-            joinquitFile.renameTo(new File(getDataFolder(), "joinquit_data.yml.bak"));
-        }
-
         // 2. KillRewards Data
         File killFile = new File(getDataFolder(), "killrewards_data.yml");
         if (killFile.exists()) {
@@ -425,10 +381,6 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
     public MenuItemModule getMenuItemModule() {
         return menuItemModule;
-    }
-
-    public JoinQuitModule getJoinQuitModule() {
-        return joinQuitModule;
     }
 
     public KillRewardsModule getKillRewardsModule() {

@@ -11,7 +11,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.SignChangeEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -62,24 +61,10 @@ public class SignMenuFactory {
         inputHandlers.put(player.getUniqueId(), response);
 
         // Delay para asegurar que el cliente procesó el bloque antes de abrir el editor
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (player.isOnline()) {
-                    player.openSign(sign);
-                }
-            }
-        }.runTaskLater(plugin, 2L);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> { if (player.isOnline()) player.openSign(sign); }, 2L);
 
         // Limpiar después de 5 segundos si algo falla
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (block.getType() == Material.OAK_SIGN) {
-                    block.setType(oldType);
-                }
-            }
-        }.runTaskLater(plugin, 100L);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> { if (block.getType() == Material.OAK_SIGN) block.setType(oldType); }, 100L);
     }
 
     private class SignListener implements Listener {
@@ -94,12 +79,7 @@ public class SignMenuFactory {
                 event.setCancelled(true);
 
                 // Restaurar el bloque inmediatamente
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        event.getBlock().setType(Material.AIR);
-                    }
-                }.runTask(plugin);
+                Bukkit.getScheduler().runTask(plugin, () -> event.getBlock().setType(Material.AIR));
             }
         }
     }

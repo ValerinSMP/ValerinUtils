@@ -11,18 +11,18 @@ import java.util.Collections;
 public class ModuleManager {
 
     private final JavaPlugin plugin;
-    private final Map<String, Module> modules = new LinkedHashMap<>();
+    private final Map<String, BaseModule> modules = new LinkedHashMap<>();
     private final Set<String> enabledModules = new HashSet<>();
 
     public ModuleManager(JavaPlugin plugin) {
         this.plugin = plugin;
     }
 
-    public void registerModule(Module module) {
+    public void registerModule(BaseModule module) {
         modules.put(module.getId(), module);
     }
 
-    public Module getModule(String id) {
+    public BaseModule getModule(String id) {
         return modules.get(id);
     }
 
@@ -34,7 +34,7 @@ public class ModuleManager {
         return enabledModules.contains(id);
     }
 
-    private boolean isEnabledInConfig(me.mtynnn.valerinutils.ValerinUtils vPlugin, Module module) {
+    private boolean isEnabledInConfig(me.mtynnn.valerinutils.ValerinUtils vPlugin, BaseModule module) {
         org.bukkit.configuration.file.FileConfiguration cfg = vPlugin.getConfigManager().getConfig(module.getId());
         if (cfg != null) {
             return cfg.getBoolean("enabled", true);
@@ -47,7 +47,7 @@ public class ModuleManager {
         if (!(plugin instanceof me.mtynnn.valerinutils.ValerinUtils vPlugin))
             return;
 
-        for (Module module : modules.values()) {
+        for (BaseModule module : modules.values()) {
             boolean enabled = isEnabledInConfig(vPlugin, module);
 
             if (!enabled) {
@@ -66,7 +66,7 @@ public class ModuleManager {
 
     public void disableAll() {
         me.mtynnn.valerinutils.ValerinUtils vPlugin = plugin instanceof me.mtynnn.valerinutils.ValerinUtils vp ? vp : null;
-        for (Module module : modules.values()) {
+        for (BaseModule module : modules.values()) {
             if (enabledModules.contains(module.getId())) {
                 if (vPlugin != null) {
                     safeDisable(vPlugin, module, "shutdown");
@@ -89,7 +89,7 @@ public class ModuleManager {
         Set<String> alreadyDisabled = new java.util.HashSet<>();
 
         // First, disable all currently enabled modules
-        for (Module module : modules.values()) {
+        for (BaseModule module : modules.values()) {
             if (enabledModules.contains(module.getId())) {
                 safeDisable(vPlugin, module, "reload-disable");
                 alreadyDisabled.add(module.getId());
@@ -99,7 +99,7 @@ public class ModuleManager {
         enabledModules.clear();
 
         // Then re-enable based on new config
-        for (Module module : modules.values()) {
+        for (BaseModule module : modules.values()) {
             boolean enabled = isEnabledInConfig(vPlugin, module);
 
             if (!enabled) {
@@ -122,7 +122,7 @@ public class ModuleManager {
             return ReloadResult.FAILED;
         }
 
-        Module module = modules.get(id);
+        BaseModule module = modules.get(id);
         if (module == null) {
             return ReloadResult.UNKNOWN_MODULE;
         }
@@ -157,7 +157,7 @@ public class ModuleManager {
         FAILED
     }
 
-    private boolean safeEnable(me.mtynnn.valerinutils.ValerinUtils plugin, Module module, String phase) {
+    private boolean safeEnable(me.mtynnn.valerinutils.ValerinUtils plugin, BaseModule module, String phase) {
         try {
             module.enable();
             return true;
@@ -168,7 +168,7 @@ public class ModuleManager {
         }
     }
 
-    private void safeDisable(me.mtynnn.valerinutils.ValerinUtils plugin, Module module, String phase) {
+    private void safeDisable(me.mtynnn.valerinutils.ValerinUtils plugin, BaseModule module, String phase) {
         try {
             module.disable();
         } catch (Throwable t) {

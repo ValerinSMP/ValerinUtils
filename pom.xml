@@ -63,14 +63,7 @@
             <id>BenCodez Repo</id>
             <url>https://nexus.bencodez.com/repository/maven-public/</url>
         </repository>
-        <repository>
-            <id>auxilor-repo</id>
-            <url>https://repo.auxilor.io/repository/maven-public/</url>
-        </repository>
-        <repository>
-            <id>grimac-snapshots</id>
-            <url>https://repo.grim.ac/snapshots</url>
-        </repository>
+
     </repositories>
 
     <dependencies>

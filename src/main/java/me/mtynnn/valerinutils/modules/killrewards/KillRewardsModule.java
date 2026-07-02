@@ -21,7 +21,6 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 
 public class KillRewardsModule extends BaseModule implements Listener {
 
-    private final ValerinUtils plugin;
     private Economy economy = null;
 
     // Cache para Cooldowns: KillerUUID -> Map<VictimUUID, Timestamp>
@@ -29,7 +28,6 @@ public class KillRewardsModule extends BaseModule implements Listener {
 
     public KillRewardsModule(ValerinUtils plugin) {
         super(plugin);
-        this.plugin = plugin;
     }
 
     @Override

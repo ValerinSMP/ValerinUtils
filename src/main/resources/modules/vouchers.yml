@@ -31,13 +31,20 @@ messages:
   voucher-not-found: "%prefix%<red>No tienes ese voucher en la mano."
   invalid-voucher-type: "%prefix%<red>Este voucher ya no es valido."
   redeem-failed: "%prefix%<red>No se pudo canjear el voucher."
+  already-has-rank: "%prefix%<red>Ya tienes el rango <white>%voucher%<red>."
+  rank-too-high: "%prefix%<red>Ya tienes un rango superior a <white>%voucher%<red>."
 
 types:
   fly_1h:
     item:
-      # Soporta cualquier material. Para cabezas usa PLAYER_HEAD + head-owner.
+      # material: cualquier Material de Bukkit
+      # Cabeza por username:   material: PLAYER_HEAD  +  head-owner: NombreJugador
+      # Cabeza por textura:    material: PLAYER_HEAD  +  head-texture: <base64 de minecraft-heads.com>
+      # custom-model-data: 0 para desactivar, cualquier numero positivo para activar
       material: PAPER
       head-owner: ""
+      head-texture: ""
+      custom-model-data: 0
       name: "<aqua><bold>Voucher Fly 1h"
       lore:
         - "<gray>Click derecho para canjear."
@@ -48,3 +55,4 @@ types:
       permission: "protectionblocks.fly"
       server: "survival"
       duration-seconds: 3600
+      # track: ""  # Si el permission es group.X, poner el nombre del track para bloquear rangos iguales o superiores

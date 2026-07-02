@@ -83,6 +83,11 @@ final class UtilityNickCommand {
             return;
         }
 
+        if (nickManager.visibleLength(nickRaw) > 16) {
+            sender.sendMessage(module.getMessage("nick-too-long"));
+            return;
+        }
+
         UtilityNickManager.NickTier tier = resolveSenderTier(sender);
         if (!nickManager.isFormatAllowed(nickRaw, tier)) {
             sender.sendMessage(module.getMessage("nick-format-not-allowed")

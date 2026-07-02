@@ -41,7 +41,6 @@ import java.util.Locale;
 @SuppressWarnings("deprecation") // Legacy ItemMeta API still required for older server compatibility
 public class MenuItemModule extends BaseModule implements Listener {
 
-    private final ValerinUtils plugin;
     private final NamespacedKey menuItemKey;
 
     // Cached values for performance
@@ -51,7 +50,6 @@ public class MenuItemModule extends BaseModule implements Listener {
 
     public MenuItemModule(ValerinUtils plugin) {
         super(plugin);
-        this.plugin = plugin;
         this.menuItemKey = new NamespacedKey(plugin, "menuitem");
         loadConfigSettings();
     }

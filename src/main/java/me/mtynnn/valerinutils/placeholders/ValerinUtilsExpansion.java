@@ -2,7 +2,6 @@ package me.mtynnn.valerinutils.placeholders;
 
 import me.mtynnn.valerinutils.ValerinUtils;
 import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
-import me.mtynnn.valerinutils.modules.joinquit.JoinQuitModule;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -73,10 +72,6 @@ public class ValerinUtilsExpansion extends PlaceholderExpansion {
         // %valerinutils_player_number%
         // %valerinutils_total_players%
         if (params.equals("player_number") || params.equals("total_players")) {
-            JoinQuitModule jq = plugin.getJoinQuitModule();
-            if (jq != null) {
-                return String.valueOf(jq.getUniquePlayerCount());
-            }
             return String.valueOf(Bukkit.getOfflinePlayers().length);
         }
 

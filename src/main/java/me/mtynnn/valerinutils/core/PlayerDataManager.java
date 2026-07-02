@@ -13,7 +13,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PlayerDataManager implements Listener {
@@ -50,19 +49,10 @@ public class PlayerDataManager implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
-        PlayerData data = cache.get(uuid);
-        if (data == null || !data.isDirty()) {
-            cache.remove(uuid);
-            return;
+        PlayerData data = cache.remove(uuid);
+        if (data != null && data.isDirty()) {
+            saveToDB(data);
         }
-        CompletableFuture.runAsync(() -> saveToDB(data))
-                .thenRun(() -> cache.remove(uuid))
-                .exceptionally(ex -> {
-                    plugin.getLogger().severe("Error al guardar datos de " + data.getName()
-                            + ", mantenidos en cache para reintento");
-                    ex.printStackTrace();
-                    return null;
-                });
     }
 
     public void saveAllAndClear() {
@@ -117,7 +107,6 @@ public class PlayerDataManager implements Listener {
                     pd.setMenuDisabled(rs.getBoolean("menu_disabled"));
                     pd.setRoyalPayDisabled(rs.getBoolean("royal_pay_disabled"));
                     pd.setDeathMessagesDisabled(rs.getBoolean("death_messages_disabled"));
-                    pd.setStarterKitReceived(rs.getBoolean("starter_kit_received"));
                     pd.setNickname(rs.getString("nickname"));
                     pd.setDirty(false);
                     return pd;
@@ -130,8 +119,8 @@ public class PlayerDataManager implements Listener {
     private void saveToDB(PlayerData data) {
         if (data == null) return;
         String sql = "INSERT INTO player_data (uuid, name, kills, deaths, daily_kills, last_daily_reset, menu_disabled, "
-                + "royal_pay_disabled, death_messages_disabled, starter_kit_received, nickname) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                + "royal_pay_disabled, death_messages_disabled, nickname) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 + "ON CONFLICT(uuid) DO UPDATE SET "
                 + "name=excluded.name, kills=excluded.kills, "
                 + "deaths=excluded.deaths, daily_kills=excluded.daily_kills, "
@@ -139,7 +128,6 @@ public class PlayerDataManager implements Listener {
                 + "menu_disabled=excluded.menu_disabled, "
                 + "royal_pay_disabled=excluded.royal_pay_disabled, "
                 + "death_messages_disabled=excluded.death_messages_disabled, "
-                + "starter_kit_received=excluded.starter_kit_received, "
                 + "nickname=excluded.nickname";
         try (PreparedStatement ps = plugin.getDatabaseManager().getConnection().prepareStatement(sql)) {
             ps.setString(1, data.getUuid().toString());
@@ -151,8 +139,7 @@ public class PlayerDataManager implements Listener {
             ps.setBoolean(7, data.isMenuDisabled());
             ps.setBoolean(8, data.isRoyalPayDisabled());
             ps.setBoolean(9, data.isDeathMessagesDisabled());
-            ps.setBoolean(10, data.isStarterKitReceived());
-            ps.setString(11, data.getNickname());
+            ps.setString(10, data.getNickname());
             ps.executeUpdate();
         } catch (SQLException e) {
             plugin.getLogger().severe("Could not save data for " + data.getName());

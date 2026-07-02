@@ -13,6 +13,8 @@ final class UtilityNickManager {
     private static final Pattern LEGACY_HEX_PATTERN = Pattern.compile("(?i)&#[0-9a-f]{6}|&x(?:&[0-9a-f]){6}");
     private static final Pattern MINI_TAG_PATTERN = Pattern.compile("<\\s*/?\\s*([a-zA-Z0-9_:#-]+)[^>]*>");
     private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s");
+    private static final Pattern STRIP_ALL_FORMATTING = Pattern.compile(
+            "(?i)(&#[0-9a-f]{6}|&x(?:&[0-9a-f]){6}|[&§][0-9a-fk-or]|<[^>]+>)");
 
     private static final Set<String> BASIC_MINI_TAGS = Set.of(
             "black", "dark_blue", "dark_green", "dark_aqua", "dark_red", "dark_purple", "gold", "gray",
@@ -185,6 +187,11 @@ final class UtilityNickManager {
 
     boolean containsWhitespace(String raw) {
         return raw != null && WHITESPACE_PATTERN.matcher(raw).find();
+    }
+
+    int visibleLength(String raw) {
+        if (raw == null) return 0;
+        return STRIP_ALL_FORMATTING.matcher(raw).replaceAll("").length();
     }
 
     String withTrailingReset(String raw) {
