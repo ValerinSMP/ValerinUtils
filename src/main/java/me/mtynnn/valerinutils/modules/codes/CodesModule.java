@@ -196,6 +196,18 @@ public class CodesModule extends BaseModule implements CommandExecutor, TabCompl
         String uuid = player.getUniqueId().toString();
         String playerName = player.getName();
 
+        int maxHours = codeSec.getInt("max-hours", -1);
+        if (maxHours >= 0) {
+            long ticksPlayed = player.getStatistic(org.bukkit.Statistic.PLAY_ONE_MINUTE);
+            long hoursPlayed = ticksPlayed / 72000L;
+            if (hoursPlayed > maxHours) {
+                player.sendMessage(plugin.messages().legacy(cfg.getString("messages.too-much-playtime",
+                        "<red>Este código es solo para jugadores con menos de %hours%h de juego.")
+                        .replace("%hours%", String.valueOf(maxHours))));
+                return;
+            }
+        }
+
         if (once) {
             Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
                 boolean marked = plugin.getDatabaseManager().tryMarkCodeUsed(uuid, upperCode);

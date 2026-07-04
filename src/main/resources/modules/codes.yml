@@ -25,4 +25,5 @@ messages:
   usage: "%prefix%<gray>Uso: <yellow>/code [código] <gray>o escríbelo en el cartel."
   invalid-code: "%prefix%<red>El código <yellow>%code% <red>no es válido."
   already-used: "%prefix%<red>Ya has reclamado este código anteriormente."
+  too-much-playtime: "%prefix%<red>Este código es solo para jugadores con menos de <yellow>%hours%h <red>de juego."
   success: "%prefix%<green>¡Código <yellow>%code% <green>reclamado con éxito!"
