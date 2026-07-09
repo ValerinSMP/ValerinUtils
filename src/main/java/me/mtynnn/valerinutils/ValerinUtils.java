@@ -17,6 +17,7 @@ import me.mtynnn.valerinutils.modules.vouchers.VouchersModule;
 import me.mtynnn.valerinutils.modules.utility.UtilityModule;
 import me.mtynnn.valerinutils.modules.deathmessages.DeathMessagesModule;
 
+import me.mtynnn.valerinutils.modules.grace.GraceModule;
 import me.mtynnn.valerinutils.modules.itemsign.ItemSignModule;
 import me.mtynnn.valerinutils.placeholders.ValerinUtilsExpansion;
 import net.kyori.adventure.text.Component;
@@ -63,10 +64,12 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private ItemSignModule itemSignModule;
     private UtilityModule utilityModule;
     private VouchersModule vouchersModule;
+    private GraceModule graceModule;
     private ValerinUtilsExpansion placeholderExpansion;
 
     private PlayerDataManager playerDataManager;
     private CommandHousekeeper commandHousekeeper;
+    private me.mtynnn.valerinutils.core.EarningsTracker earningsTracker;
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
@@ -114,6 +117,11 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getPluginManager().registerEvents(playerDataManager, this);
 
+        if (Bukkit.getPluginManager().isPluginEnabled("RoyaleEconomy")) {
+            earningsTracker = new me.mtynnn.valerinutils.core.EarningsTracker(this);
+            earningsTracker.start();
+        }
+
         // 4. Initialize Modules
         moduleManager = new ModuleManager(this);
 
@@ -137,6 +145,9 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
         vouchersModule = new VouchersModule(this);
         moduleManager.registerModule(vouchersModule);
+
+        graceModule = new GraceModule(this);
+        moduleManager.registerModule(graceModule);
 
         commandHousekeeper.reinstateAll();
         moduleManager.enableAll();
@@ -217,6 +228,9 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
+        if (earningsTracker != null) {
+            earningsTracker.stop();
+        }
         playerDataManager.saveAllAndClear();
 
         if (moduleManager != null) {

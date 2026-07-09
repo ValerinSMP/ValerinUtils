@@ -9,17 +9,8 @@ code-sign:
     - "    Codigo   "
     - ""
 
-# Lista de códigos disponibles
-codes:
-  "SUNDIR":
-    commands:
-      - "money give %player% 25000"
-      - "give %player% diamond_helmet 1"
-      - "give %player% diamond_chestplate 1"
-      - "give %player% diamond_leggings 1"
-      - "give %player% diamond_boots 1"
-      - "give %player% golden_apple 10"
-    once: true # Solo se puede usar una vez por jugador
+# Lista de códigos disponibles (agregar aquí los propios, este bloque no se sobreescribe automáticamente)
+codes: {}
 
 messages:
   usage: "%prefix%<gray>Uso: <yellow>/code [código] <gray>o escríbelo en el cartel."

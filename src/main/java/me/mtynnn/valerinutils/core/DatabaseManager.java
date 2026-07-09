@@ -102,6 +102,10 @@ public class DatabaseManager {
             addColumnIfMissing(stmt, "player_data", "death_messages_disabled", "BOOLEAN DEFAULT 0");
             addColumnIfMissing(stmt, "player_data", "starter_kit_received", "BOOLEAN DEFAULT 0");
             addColumnIfMissing(stmt, "player_data", "nickname", "TEXT");
+            addColumnIfMissing(stmt, "player_data", "total_money_earned", "REAL DEFAULT 0");
+            addColumnIfMissing(stmt, "player_data", "total_shards_earned", "REAL DEFAULT 0");
+            addColumnIfMissing(stmt, "player_data", "grace_expires_at", "BIGINT DEFAULT 0");
+            addColumnIfMissing(stmt, "player_data", "grace_pvp_warned", "BOOLEAN DEFAULT 0");
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not create tables", e);
         }

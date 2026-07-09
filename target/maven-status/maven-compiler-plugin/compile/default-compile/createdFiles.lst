@@ -16,7 +16,9 @@ me\mtynnn\valerinutils\modules\codes\CodesModule.class
 me\mtynnn\valerinutils\modules\vouchers\VouchersModule$VoucherType.class
 me\mtynnn\valerinutils\modules\vouchers\VouchersModule$GuiButton.class
 me\mtynnn\valerinutils\modules\menuitem\MenuItemModule.class
+me\mtynnn\valerinutils\modules\grace\GraceModule.class
 me\mtynnn\valerinutils\modules\utility\UtilityNickCommand$1.class
+me\mtynnn\valerinutils\core\EarningsTracker.class
 me\mtynnn\valerinutils\core\CommandHousekeeper.class
 me\mtynnn\valerinutils\modules\utility\UtilityPersonalWorldCommands.class
 me\mtynnn\valerinutils\core\PlayerData.class

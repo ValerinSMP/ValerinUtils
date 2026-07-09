@@ -67,6 +67,7 @@ public class ConfigManager {
         registerConfig("codes", "modules/codes.yml");
         registerConfig("utility", "modules/utilities.yml");
         registerConfig("vouchers", "modules/vouchers.yml");
+        registerConfig("grace", "modules/grace.yml");
         migrateSellPriceConfigLocation();
         registerConfig("sellprice", "sellprice.yml");
 
@@ -730,7 +731,7 @@ public class ConfigManager {
 
         boolean changed = false;
         String[] modules = {
-            "menuitem", "killrewards", "codes", "deathmessages", "itemsign", "utility", "vouchers"
+            "menuitem", "killrewards", "codes", "deathmessages", "itemsign", "utility", "vouchers", "grace"
         };
         for (String moduleId : modules) {
             String path = "modules." + moduleId + ".enabled";

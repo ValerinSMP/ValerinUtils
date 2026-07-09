@@ -27,6 +27,11 @@ commands:
     permission: valerinutils.admin
     aliases: [setspawn]
 
+  grace:
+    description: Gestiona la inmunidad PvP de nuevos jugadores
+    usage: /grace remove <jugador>
+    permission: valerinutils.grace.admin
+
   code:
     description: Reclamar recompensas con códigos
     usage: /code [código]

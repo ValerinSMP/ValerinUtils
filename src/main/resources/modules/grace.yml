@@ -1,0 +1,27 @@
+enabled: true
+
+# 12h de playtime = 12 * 60 * 60 * 20 ticks
+grace-playtime-ticks: 864000
+
+# Mundos donde la gracia protege al jugador. En cualquier otro mundo (ej. arenas pvp)
+# la gracia no aplica pero tampoco se pierde al atacar.
+protected-worlds:
+  - world
+  - world_nether
+  - world_the_end
+
+bossbar:
+  title: "⚔ Inmunidad PvP: %time%"
+
+messages:
+  no-permission: "%prefix%<red>No tienes permiso."
+  usage: "%prefix%<gray>Uso: <yellow>/grace remove <jugador>"
+  player-not-found: "%prefix%<red>Jugador no encontrado."
+  no-grace: "%prefix%<yellow>%player% no tiene inmunidad activa."
+  grace-granted: "%prefix%<green>¡Bienvenido! Tienes <white>12h <green>de inmunidad PvP mientras exploras el servidor."
+  grace-expired: "%prefix%<yellow>Tu inmunidad PvP ha expirado. ¡Ya puedes ser atacado!"
+  grace-warning: "%prefix%<red>⚠ Si atacas a otro jugador nuevamente, <bold>perderás tu inmunidad PvP</bold>."
+  grace-removed-pvp: "%prefix%<red>Tu inmunidad PvP fue eliminada por atacar a otro jugador."
+  grace-removed-admin: "%prefix%<red>Un administrador eliminó tu inmunidad PvP."
+  grace-removed-admin-sender: "%prefix%<green>Inmunidad de <white>%player% <green>eliminada."
+  target-has-grace: "%prefix%<yellow>Este jugador tiene inmunidad PvP temporal y no puede ser atacado."

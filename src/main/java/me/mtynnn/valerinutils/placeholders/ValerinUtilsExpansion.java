@@ -179,6 +179,20 @@ public class ValerinUtilsExpansion extends PlaceholderExpansion {
             }
         }
 
+        // %valerinutils_earnings_money%
+        if (params.equals("earnings_money")) {
+            var data = plugin.getPlayerData(player.getUniqueId());
+            if (data == null) return "0";
+            return String.valueOf((long) data.getTotalMoneyEarned());
+        }
+
+        // %valerinutils_earnings_shards%
+        if (params.equals("earnings_shards")) {
+            var data = plugin.getPlayerData(player.getUniqueId());
+            if (data == null) return "0";
+            return String.valueOf((long) data.getTotalShardsEarned());
+        }
+
         // si no es un placeholder conocido -> null
         return null;
     }

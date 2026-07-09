@@ -13,6 +13,10 @@ public class PlayerData {
     private boolean royalPayDisabled;
     private boolean deathMessagesDisabled;
     private String nickname;
+    private double totalMoneyEarned;
+    private double totalShardsEarned;
+    private long graceExpiresAt; // 0=never granted, -1=expired/removed, >0=active threshold (playtime ticks)
+    private boolean gracePvpWarned;
 
     private boolean dirty = false; // If true, needs saving
 
@@ -120,6 +124,52 @@ public class PlayerData {
 
     public void setNickname(String nickname) {
         this.nickname = nickname;
+        this.dirty = true;
+    }
+
+    public double getTotalMoneyEarned() {
+        return totalMoneyEarned;
+    }
+
+    public void setTotalMoneyEarned(double v) {
+        this.totalMoneyEarned = v;
+        this.dirty = true;
+    }
+
+    public void addMoneyEarned(double amount) {
+        if (amount > 0) {
+            this.totalMoneyEarned += amount;
+            this.dirty = true;
+        }
+    }
+
+    public double getTotalShardsEarned() {
+        return totalShardsEarned;
+    }
+
+    public void setTotalShardsEarned(double v) {
+        this.totalShardsEarned = v;
+        this.dirty = true;
+    }
+
+    public void addShardsEarned(double amount) {
+        if (amount > 0) {
+            this.totalShardsEarned += amount;
+            this.dirty = true;
+        }
+    }
+
+    public long getGraceExpiresAt() { return graceExpiresAt; }
+
+    public void setGraceExpiresAt(long v) {
+        this.graceExpiresAt = v;
+        this.dirty = true;
+    }
+
+    public boolean isGracePvpWarned() { return gracePvpWarned; }
+
+    public void setGracePvpWarned(boolean v) {
+        this.gracePvpWarned = v;
         this.dirty = true;
     }
 }
