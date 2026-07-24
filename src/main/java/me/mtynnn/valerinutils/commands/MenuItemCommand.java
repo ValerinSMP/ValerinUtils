@@ -5,10 +5,13 @@ import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
 import org.bukkit.command.*;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.util.*;
 
-public class MenuItemCommand implements CommandExecutor, TabCompleter {
+public class MenuItemCommand implements CommandExecutor, TabCompleter, Listener {
 
     private final ValerinUtils plugin;
     private final MenuItemModule module;
@@ -67,6 +70,11 @@ public class MenuItemCommand implements CommandExecutor, TabCompleter {
         }
 
         return true;
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        cooldowns.remove(event.getPlayer().getUniqueId());
     }
 
     @Override

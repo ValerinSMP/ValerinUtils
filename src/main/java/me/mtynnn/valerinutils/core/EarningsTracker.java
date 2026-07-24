@@ -60,6 +60,9 @@ public class EarningsTracker implements Listener {
             flushShards(p);
         }
         lastKnownShards.clear();
+        try {
+            org.bukkit.event.HandlerList.unregisterAll(this);
+        } catch (Exception ignored) {}
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

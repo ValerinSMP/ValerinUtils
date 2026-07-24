@@ -64,6 +64,7 @@ commands:
     cooldown-seconds: 60
   nick:
     enabled: true
+    min-length: 3
   skull:
     enabled: true
   suicide:

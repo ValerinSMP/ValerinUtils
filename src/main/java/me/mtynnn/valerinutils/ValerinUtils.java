@@ -152,10 +152,10 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         commandHousekeeper.reinstateAll();
         moduleManager.enableAll();
 
-        // Sync the Brigadier dispatcher immediately so stale BukkitCommandNodes
-        // are rebuilt before any player can issue a command after a PlugManX reload.
-        commandHousekeeper.syncNow();
-
+        // Single deferred sync (commandHousekeeper.schedule()) instead of an extra
+        // immediate syncNow() here: stacking multiple syncCommands() calls close
+        // together races Paper's async per-player command broadcast and throws
+        // ConcurrentModificationException on the Brigadier tree with players online.
         commandHousekeeper.schedule();
 
         // Cleanup periodico de cache: elimina entradas de jugadores ya desconectados
@@ -180,6 +180,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             MenuItemCommand mic = new MenuItemCommand(this, menuItemModule);
             getCommand("menuitem").setExecutor(mic);
             getCommand("menuitem").setTabCompleter(mic);
+            getServer().getPluginManager().registerEvents(mic, this);
         }
 
         // 6. Startup Banner

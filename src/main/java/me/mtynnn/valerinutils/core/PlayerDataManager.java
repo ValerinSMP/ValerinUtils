@@ -106,7 +106,6 @@ public class PlayerDataManager implements Listener {
                     pd.setLastDailyReset(rs.getLong("last_daily_reset"));
                     pd.setMenuDisabled(rs.getBoolean("menu_disabled"));
                     pd.setRoyalPayDisabled(rs.getBoolean("royal_pay_disabled"));
-                    pd.setDeathMessagesDisabled(rs.getBoolean("death_messages_disabled"));
                     pd.setNickname(rs.getString("nickname"));
                     pd.setTotalMoneyEarned(rs.getDouble("total_money_earned"));
                     pd.setTotalShardsEarned(rs.getDouble("total_shards_earned"));
@@ -123,16 +122,15 @@ public class PlayerDataManager implements Listener {
     private void saveToDB(PlayerData data) {
         if (data == null) return;
         String sql = "INSERT INTO player_data (uuid, name, kills, deaths, daily_kills, last_daily_reset, menu_disabled, "
-                + "royal_pay_disabled, death_messages_disabled, nickname, total_money_earned, total_shards_earned, "
+                + "royal_pay_disabled, nickname, total_money_earned, total_shards_earned, "
                 + "grace_expires_at, grace_pvp_warned) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 + "ON CONFLICT(uuid) DO UPDATE SET "
                 + "name=excluded.name, kills=excluded.kills, "
                 + "deaths=excluded.deaths, daily_kills=excluded.daily_kills, "
                 + "last_daily_reset=excluded.last_daily_reset, "
                 + "menu_disabled=excluded.menu_disabled, "
                 + "royal_pay_disabled=excluded.royal_pay_disabled, "
-                + "death_messages_disabled=excluded.death_messages_disabled, "
                 + "nickname=excluded.nickname, "
                 + "total_money_earned=excluded.total_money_earned, "
                 + "total_shards_earned=excluded.total_shards_earned, "
@@ -147,12 +145,11 @@ public class PlayerDataManager implements Listener {
             ps.setLong(6, data.getLastDailyReset());
             ps.setBoolean(7, data.isMenuDisabled());
             ps.setBoolean(8, data.isRoyalPayDisabled());
-            ps.setBoolean(9, data.isDeathMessagesDisabled());
-            ps.setString(10, data.getNickname());
-            ps.setDouble(11, data.getTotalMoneyEarned());
-            ps.setDouble(12, data.getTotalShardsEarned());
-            ps.setLong(13, data.getGraceExpiresAt());
-            ps.setBoolean(14, data.isGracePvpWarned());
+            ps.setString(9, data.getNickname());
+            ps.setDouble(10, data.getTotalMoneyEarned());
+            ps.setDouble(11, data.getTotalShardsEarned());
+            ps.setLong(12, data.getGraceExpiresAt());
+            ps.setBoolean(13, data.isGracePvpWarned());
             ps.executeUpdate();
         } catch (SQLException e) {
             plugin.getLogger().severe("Could not save data for " + data.getName());

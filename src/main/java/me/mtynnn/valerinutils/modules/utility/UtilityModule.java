@@ -19,6 +19,7 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -92,6 +93,9 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
             Map.entry("nick-off", "%prefix%<red>Has desactivado tu apodo."),
             Map.entry("nick-off-others", "%prefix%<gray>Has quitado el apodo de <white>%player%<gray>."),
             Map.entry("nick-no-spaces", "%prefix%<red>El nick no puede contener espacios."),
+            Map.entry("nick-too-long", "%prefix%<red>El nick no puede tener más de <yellow>16 <red>caracteres visibles."),
+            Map.entry("nick-too-short", "%prefix%<red>El nick debe tener al menos <yellow>%min% <red>caracteres visibles."),
+            Map.entry("nick-impersonation", "%prefix%<red>No puedes usar el nombre de otro jugador conectado."),
             Map.entry("nick-format-not-allowed", "%prefix%<red>No puedes usar ese formato en el nick. <gray>Tu nivel es <yellow>%tier%<gray>. Permitido: <yellow>%allowed%<gray>. Ejemplos: <yellow>&aNombre <gray>o <yellow><red>Nombre<gray>. <red>No se permite texto obfuscado para evitar nombres ilegibles."),
             Map.entry("gamemode-success", "%prefix%<green>Modo de juego cambiado a <yellow>%mode%<green>."),
             Map.entry("gamemode-success-others", "%prefix%<green>Modo de juego de <white>%player% <green>cambiado a <yellow>%mode%<green>."),
@@ -166,8 +170,10 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
             registerCommand(command, this);
         }
 
-        // Remove disabled commands from the command map (they're auto-registered from plugin.yml)
-        removeDisabledCommandsFromMap();
+        // Deferred a tick: mutating knownCommands synchronously here races Paper's
+        // async per-player command broadcast that plugin.yml auto-registration just
+        // triggered, causing ConcurrentModificationException on the Brigadier tree.
+        Bukkit.getScheduler().runTask(plugin, this::removeDisabledCommandsFromMap);
 
         registerListener(this);
 
@@ -184,8 +190,10 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
         
         // Clear cooldown maps
         healCooldowns.clear();
+        feedCooldowns.clear();
         repairCooldowns.clear();
-        
+        helpOpCommand.clearAllCooldowns();
+
         // Clear condense map
         condenseMap.clear();
         
@@ -276,6 +284,15 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         applyStoredNickname(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        UUID uuid = event.getPlayer().getUniqueId();
+        healCooldowns.remove(uuid);
+        feedCooldowns.remove(uuid);
+        repairCooldowns.remove(uuid);
+        helpOpCommand.clearCooldown(uuid);
     }
 
     private void applyStoredNickname(Player player) {
@@ -576,6 +593,9 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
         if (target == null || !target.isOnline() || target.equals(viewer)) {
             return false;
         }
+        if (target.getGameMode() == GameMode.SPECTATOR) {
+            return false;
+        }
         // Respect vanish/hidden state managed by other plugins.
         return viewer.canSee(target);
     }
@@ -670,6 +690,10 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
                 }
             }
 
+            if (eligibleAmount > 0) {
+                debug("condense: " + source + " eligibleAmount=" + eligibleAmount + " (necesita >=9)");
+            }
+
             if (eligibleAmount >= 9) {
                 int toCondense = (eligibleAmount / 9) * 9;
                 int resultAmount = toCondense / 9;
@@ -697,7 +721,10 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
                 }
 
                 inventory.setContents(contents);
-                inventory.addItem(new ItemStack(resultMat, resultAmount));
+                Map<Integer, ItemStack> leftover = inventory.addItem(new ItemStack(resultMat, resultAmount));
+                for (ItemStack overflow : leftover.values()) {
+                    player.getWorld().dropItemNaturally(player.getLocation(), overflow);
+                }
                 condensedCount += toCondense;
             }
         }
@@ -722,8 +749,14 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
 
         try {
             Object id = nexoIdFromItemMethod.invoke(null, stack);
-            return id instanceof String stringId && !stringId.isBlank();
-        } catch (Throwable ignored) {
+            boolean custom = id instanceof String stringId && !stringId.isBlank();
+            if (custom) {
+                debug("condense: excluido " + stack.getType() + " x" + stack.getAmount()
+                        + " por ser item Nexo (id=" + id + ")");
+            }
+            return custom;
+        } catch (Throwable t) {
+            debug("condense: fallo lookup Nexo para " + stack.getType() + ": " + t.getMessage());
             return false;
         }
     }

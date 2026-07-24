@@ -19,6 +19,14 @@ final class UtilityHelpOpCommand {
         this.module = module;
     }
 
+    void clearCooldown(UUID uuid) {
+        cooldownByPlayer.remove(uuid);
+    }
+
+    void clearAllCooldowns() {
+        cooldownByPlayer.clear();
+    }
+
     void execute(Player sender, String[] args) {
         if (!module.checkStatus(sender, "helpop")) {
             return;

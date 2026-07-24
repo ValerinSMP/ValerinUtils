@@ -155,14 +155,120 @@ public class GraceModule extends BaseModule implements Listener, CommandExecutor
                     .replace("%player%", target.getName())));
             return true;
         }
-        sender.sendMessage(comp(msg("messages.usage", "%prefix%<gray>Uso: <yellow>/grace remove <jugador>")));
+
+        if (args.length >= 3 && "add".equalsIgnoreCase(args[0])) {
+            if (!hasPermission(sender, "valerinutils.grace.admin")) {
+                sender.sendMessage(comp(msg("messages.no-permission", "%prefix%<red>No tienes permiso.")));
+                return true;
+            }
+            Player target = Bukkit.getPlayerExact(args[1]);
+            if (target == null) {
+                sender.sendMessage(comp(msg("messages.player-not-found", "%prefix%<red>Jugador no encontrado.")));
+                return true;
+            }
+            double hours;
+            try {
+                hours = Double.parseDouble(args[2]);
+            } catch (NumberFormatException e) {
+                sender.sendMessage(comp(msg("messages.usage-add", "%prefix%<gray>Uso: <yellow>/grace add <jugador> <horas>")));
+                return true;
+            }
+            if (hours <= 0) {
+                sender.sendMessage(comp(msg("messages.usage-add", "%prefix%<gray>Uso: <yellow>/grace add <jugador> <horas>")));
+                return true;
+            }
+            PlayerData data = plugin.getPlayerData(target.getUniqueId());
+            if (data == null) {
+                sender.sendMessage(comp(msg("messages.player-not-found", "%prefix%<red>Jugador no encontrado.")));
+                return true;
+            }
+            long addTicks = (long) (hours * 3600L * 20L);
+            long playtime = target.getStatistic(Statistic.PLAY_ONE_MINUTE);
+            long base = isGraceActive(target) ? data.getGraceExpiresAt() : playtime;
+            data.setGraceExpiresAt(base + addTicks);
+            data.setGracePvpWarned(false);
+            showBossBar(target);
+            target.sendMessage(comp(msg("messages.grace-added",
+                    "%prefix%<green>Se te otorgaron <white>%hours%h <green>de inmunidad PvP.")
+                    .replace("%hours%", String.valueOf(hours))));
+            sender.sendMessage(comp(msg("messages.grace-added-sender",
+                    "%prefix%<green>Se otorgaron <white>%hours%h <green>de inmunidad a <white>%player%<green>.")
+                    .replace("%hours%", String.valueOf(hours))
+                    .replace("%player%", target.getName())));
+            return true;
+        }
+
+        if (args.length >= 1 && "check".equalsIgnoreCase(args[0])) {
+            Player target;
+            if (args.length >= 2) {
+                if (!hasPermission(sender, "valerinutils.grace.admin") && !(sender instanceof Player self
+                        && self.getName().equalsIgnoreCase(args[1]))) {
+                    sender.sendMessage(comp(msg("messages.no-permission", "%prefix%<red>No tienes permiso.")));
+                    return true;
+                }
+                target = Bukkit.getPlayerExact(args[1]);
+            } else if (sender instanceof Player self) {
+                target = self;
+            } else {
+                sender.sendMessage(comp(msg("messages.usage-check", "%prefix%<gray>Uso: <yellow>/grace check <jugador>")));
+                return true;
+            }
+            if (target == null) {
+                sender.sendMessage(comp(msg("messages.player-not-found", "%prefix%<red>Jugador no encontrado.")));
+                return true;
+            }
+            if (!isGraceActive(target)) {
+                sender.sendMessage(comp(msg("messages.no-grace",
+                        "%prefix%<yellow>%player% no tiene inmunidad activa.").replace("%player%", target.getName())));
+                return true;
+            }
+            PlayerData data = plugin.getPlayerData(target.getUniqueId());
+            long remaining = data.getGraceExpiresAt() - target.getStatistic(Statistic.PLAY_ONE_MINUTE);
+            sender.sendMessage(comp(msg("messages.grace-check",
+                    "%prefix%<white>%player% <gray>tiene <green>%time% <gray>de inmunidad restante.")
+                    .replace("%player%", target.getName())
+                    .replace("%time%", formatTicks(Math.max(0, remaining)))));
+            return true;
+        }
+
+        if (args.length >= 1 && "list".equalsIgnoreCase(args[0])) {
+            if (!hasPermission(sender, "valerinutils.grace.admin")) {
+                sender.sendMessage(comp(msg("messages.no-permission", "%prefix%<red>No tienes permiso.")));
+                return true;
+            }
+            List<String> active = Bukkit.getOnlinePlayers().stream()
+                    .filter(this::isGraceActive)
+                    .map(p -> {
+                        PlayerData data = plugin.getPlayerData(p.getUniqueId());
+                        long remaining = data.getGraceExpiresAt() - p.getStatistic(Statistic.PLAY_ONE_MINUTE);
+                        return p.getName() + " (" + formatTicks(Math.max(0, remaining)) + ")";
+                    })
+                    .collect(Collectors.toList());
+            if (active.isEmpty()) {
+                sender.sendMessage(comp(msg("messages.list-empty", "%prefix%<gray>Nadie tiene inmunidad activa ahora.")));
+            } else {
+                sender.sendMessage(comp(msg("messages.list-header", "%prefix%<gray>Jugadores con inmunidad activa:")));
+                for (String line : active) {
+                    sender.sendMessage(comp("<gray> - <white>" + line));
+                }
+            }
+            return true;
+        }
+
+        sender.sendMessage(comp(msg("messages.usage",
+                "%prefix%<gray>Uso: <yellow>/grace remove <jugador> <gray>| <yellow>/grace add <jugador> <horas> <gray>| <yellow>/grace check [jugador] <gray>| <yellow>/grace list")));
         return true;
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 1) return List.of("remove");
-        if (args.length == 2 && "remove".equalsIgnoreCase(args[0])) {
+        if (args.length == 1) {
+            String q = args[0].toLowerCase(Locale.ROOT);
+            return List.of("remove", "add", "check", "list").stream()
+                    .filter(s -> s.startsWith(q))
+                    .collect(Collectors.toList());
+        }
+        if (args.length == 2 && Set.of("remove", "add", "check").contains(args[0].toLowerCase(Locale.ROOT))) {
             String q = args[1].toLowerCase(Locale.ROOT);
             return Bukkit.getOnlinePlayers().stream()
                     .map(Player::getName)

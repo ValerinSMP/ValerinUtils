@@ -83,8 +83,20 @@ final class UtilityNickCommand {
             return;
         }
 
-        if (nickManager.visibleLength(nickRaw) > 16) {
+        int visibleLength = nickManager.visibleLength(nickRaw);
+        if (visibleLength > 16) {
             sender.sendMessage(module.getMessage("nick-too-long"));
+            return;
+        }
+        int minLength = module.getConfig() != null ? module.getConfig().getInt("commands.nick.min-length", 3) : 3;
+        if (visibleLength < minLength) {
+            sender.sendMessage(module.getMessage("nick-too-short").replace("%min%", String.valueOf(minLength)));
+            return;
+        }
+
+        if (!(sender instanceof Player p && p.hasPermission("valerinutils.utility.nick.bypassimpersonation"))
+                && impersonatesPlayer(nickRaw, target)) {
+            sender.sendMessage(module.getMessage("nick-impersonation"));
             return;
         }
 
@@ -110,6 +122,16 @@ final class UtilityNickCommand {
                     .replace("%nick%", module.plugin().translateColors(nickFinal)));
             target.sendMessage(module.getMessage("nick-success").replace("%nick%", module.plugin().translateColors(nickFinal)));
         }
+    }
+
+    private boolean impersonatesPlayer(String nickRaw, Player target) {
+        String plain = nickManager.stripFormatting(nickRaw);
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            if (!online.equals(target) && online.getName().equalsIgnoreCase(plain)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private UtilityNickManager.NickTier resolveSenderTier(CommandSender sender) {

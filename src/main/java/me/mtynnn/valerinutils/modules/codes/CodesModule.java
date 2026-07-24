@@ -37,6 +37,7 @@ public class CodesModule extends BaseModule implements CommandExecutor, TabCompl
             return;
 
         this.signMenuFactory = new SignMenuFactory(plugin);
+        registerListener(signMenuFactory.getListener());
         plugin.debug(getId(), "Módulo habilitado. Sistema de códigos activo.");
 
         registerCommand("code", this, this);

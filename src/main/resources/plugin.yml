@@ -18,9 +18,6 @@ commands:
     description: Activa o desactiva tu item de menú
     aliases: [menu]
 
-  deathmsg:
-    description: Configura tus mensajes de muerte
-    aliases: [dmsg]
   vuspawn:
     description: Configura el spawn (firstjoin/death)
     usage: "/vuspawn <set|off|info> ..."
@@ -29,8 +26,7 @@ commands:
 
   grace:
     description: Gestiona la inmunidad PvP de nuevos jugadores
-    usage: /grace remove <jugador>
-    permission: valerinutils.grace.admin
+    usage: "/grace remove <jugador> | /grace add <jugador> <horas> | /grace check [jugador] | /grace list"
 
   code:
     description: Reclamar recompensas con códigos

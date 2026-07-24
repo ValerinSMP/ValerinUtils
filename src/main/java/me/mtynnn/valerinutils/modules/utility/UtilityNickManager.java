@@ -20,7 +20,7 @@ final class UtilityNickManager {
             "black", "dark_blue", "dark_green", "dark_aqua", "dark_red", "dark_purple", "gold", "gray",
         "dark_gray", "blue", "green", "aqua", "red", "light_purple", "yellow", "white", "reset");
     private static final Set<String> FORMAT_TAGS = Set.of(
-        "bold", "italic", "underlined", "strikethrough");
+        "bold", "b", "italic", "i", "em", "underlined", "u", "strikethrough", "st");
 
     enum NickTier {
         NONE, BASIC, FORMAT, HEX;
@@ -88,7 +88,7 @@ final class UtilityNickManager {
                 token = token.substring(1);
             }
 
-            if (token.equals("obfuscated")) {
+            if (token.equals("obfuscated") || token.equals("obf")) {
                 return false;
             }
 
@@ -192,6 +192,11 @@ final class UtilityNickManager {
     int visibleLength(String raw) {
         if (raw == null) return 0;
         return STRIP_ALL_FORMATTING.matcher(raw).replaceAll("").length();
+    }
+
+    String stripFormatting(String raw) {
+        if (raw == null) return "";
+        return STRIP_ALL_FORMATTING.matcher(raw).replaceAll("");
     }
 
     String withTrailingReset(String raw) {

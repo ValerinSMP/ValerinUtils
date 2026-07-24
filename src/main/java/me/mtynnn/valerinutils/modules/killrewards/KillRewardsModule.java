@@ -4,14 +4,24 @@ import me.mtynnn.valerinutils.ValerinUtils;
 import me.mtynnn.valerinutils.core.BaseModule;
 import me.mtynnn.valerinutils.core.PlayerData;
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Statistic;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.AreaEffectCloud;
+import org.bukkit.entity.EnderCrystal;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityPlaceEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
 
@@ -21,10 +31,17 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 
 public class KillRewardsModule extends BaseModule implements Listener {
 
+    private static final long INDIRECT_KILL_CREDIT_MS = 10_000L;
+
     private Economy economy = null;
+    private NamespacedKey crystalOwnerKey;
 
     // Cache para Cooldowns: KillerUUID -> Map<VictimUUID, Timestamp>
     private final Map<UUID, Map<UUID, Long>> cooldowns = new HashMap<>();
+
+    // Last non-vanilla-credited attacker per victim (end crystal, TNT, etc.), for kill-credit fallback
+    private final Map<UUID, UUID> lastAttacker = new HashMap<>();
+    private final Map<UUID, Long> lastAttackerTime = new HashMap<>();
 
     public KillRewardsModule(ValerinUtils plugin) {
         super(plugin);
@@ -37,6 +54,7 @@ public class KillRewardsModule extends BaseModule implements Listener {
 
     @Override
     protected void onEnableModule() {
+        crystalOwnerKey = new NamespacedKey(plugin, "killrewards-crystal-owner");
         setupEconomy();
         registerListener(this);
     }
@@ -59,16 +77,86 @@ public class KillRewardsModule extends BaseModule implements Listener {
             HandlerList.unregisterAll(this);
         } catch (Exception ignored) {}
         cooldowns.clear();
+        lastAttacker.clear();
+        lastAttackerTime.clear();
     }
 
     private FileConfiguration getConfig() {
         return plugin.getConfigManager().getConfig("killrewards");
     }
 
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        UUID uuid = event.getPlayer().getUniqueId();
+        cooldowns.remove(uuid);
+        for (Map<UUID, Long> victims : cooldowns.values()) {
+            victims.remove(uuid);
+        }
+        lastAttacker.remove(uuid);
+        lastAttackerTime.remove(uuid);
+    }
+
+    // Placing an end crystal is not itself damage, but tags the entity with its owner
+    // so a later explosion (which reports the crystal, not a player, as the damager) can still be credited.
+    @EventHandler
+    public void onEntityPlace(EntityPlaceEvent event) {
+        if (event.getEntity() instanceof EnderCrystal && event.getPlayer() != null) {
+            event.getEntity().getPersistentDataContainer()
+                    .set(crystalOwnerKey, PersistentDataType.STRING, event.getPlayer().getUniqueId().toString());
+        }
+    }
+
+    // Bukkit's Entity#getKiller() is only set for direct player damage; explosions from
+    // end crystals/TNT report the crystal/TNT entity as the damager, so track the real
+    // player behind them here as a short-lived fallback for kill credit.
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+        if (!(event.getEntity() instanceof Player victim)) {
+            return;
+        }
+        Player attacker = resolveAttacker(event.getDamager());
+        if (attacker == null || attacker.equals(victim)) {
+            return;
+        }
+        lastAttacker.put(victim.getUniqueId(), attacker.getUniqueId());
+        lastAttackerTime.put(victim.getUniqueId(), System.currentTimeMillis());
+    }
+
+    private Player resolveAttacker(Entity damager) {
+        if (damager instanceof Player player) {
+            return player;
+        }
+        if (damager instanceof EnderCrystal crystal) {
+            String ownerRaw = crystal.getPersistentDataContainer().get(crystalOwnerKey, PersistentDataType.STRING);
+            if (ownerRaw != null) {
+                try {
+                    return Bukkit.getPlayer(UUID.fromString(ownerRaw));
+                } catch (IllegalArgumentException ignored) {
+                    return null;
+                }
+            }
+            return null;
+        }
+        if (damager instanceof TNTPrimed tnt && tnt.getSource() instanceof Player player) {
+            return player;
+        }
+        if (damager instanceof Projectile projectile && projectile.getShooter() instanceof Player player) {
+            return player;
+        }
+        if (damager instanceof AreaEffectCloud cloud && cloud.getSource() instanceof Player player) {
+            return player;
+        }
+        return null;
+    }
+
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player victim = event.getEntity();
         Player killer = victim.getKiller();
+
+        if (killer == null) {
+            killer = resolveIndirectKiller(victim);
+        }
 
         debug("PlayerDeathEvent triggered (LOWEST). Victim: " + victim.getName() +
                 ", Killer: " + (killer != null ? killer.getName() : "null"));
@@ -345,6 +433,19 @@ public class KillRewardsModule extends BaseModule implements Listener {
                 debug("Reward chance missed (" + roll + " > " + chance + ")");
             }
         }
+    }
+
+    private Player resolveIndirectKiller(Player victim) {
+        UUID victimId = victim.getUniqueId();
+        Long hitAt = lastAttackerTime.remove(victimId);
+        UUID attackerId = lastAttacker.remove(victimId);
+        if (attackerId == null || hitAt == null) {
+            return null;
+        }
+        if (System.currentTimeMillis() - hitAt > INDIRECT_KILL_CREDIT_MS) {
+            return null;
+        }
+        return Bukkit.getPlayer(attackerId);
     }
 
     private String getIp(Player p) {

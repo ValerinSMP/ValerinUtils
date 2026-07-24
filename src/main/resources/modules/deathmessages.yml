@@ -13,49 +13,8 @@ spawn:
     enabled: false
     location: "world_lobby;-4;141;107;0;0"
 
-# Configuración de Mensajes de Muerte
+# Mensajes del sistema / Comandos
 messages:
-  # PvP (Jugador mata a Jugador)
-  killed:
-    module:
-      chat:
-        enabled: true
-        message:
-          - "<color:#FF6961>☠ <color:#FF6961>%victim% <gray>fue asesinado por <color:#FF6961>🗡 %attacker%"
-      actionbar:
-        enabled: false
-        message:
-          - ""
-      title:
-        enabled: false
-        message:
-          - ""
-      subtitle:
-        enabled: false
-        message:
-          - ""
-
-  # PvE / Otras muertes
-  died:
-    module:
-      chat:
-        enabled: true
-        message:
-          - "<color:#FF6961>☠ <color:#FF6961>%victim% <gray>ha muerto"
-      actionbar:
-        enabled: false
-        message:
-          - ""
-      title:
-        enabled: false
-        message:
-          - ""
-      subtitle:
-        enabled: false
-        message:
-          - ""
-
-  # Mensajes del sistema / Comandos
   no_permission:
     module:
       chat:
@@ -94,40 +53,3 @@ messages:
         message:
           - ""
 
-  toggle_enabled:
-    module:
-      chat:
-        enabled: true
-        message:
-          - "<dark_gray>[<color:#FF6961>ᴍᴜᴇʀᴛᴇs<dark_gray>] <gray>Mensajes de muerte <green>activados<gray>."
-      actionbar:
-        enabled: false
-        message:
-          - ""
-      title:
-        enabled: false
-        message:
-          - ""
-      subtitle:
-        enabled: false
-        message:
-          - ""
-
-  toggle_disabled:
-    module:
-      chat:
-        enabled: true
-        message:
-          - "<dark_gray>[<color:#FF6961>ᴍᴜᴇʀᴛᴇs<dark_gray>] <gray>Mensajes de muerte <red>desactivados<gray>."
-      actionbar:
-        enabled: false
-        message:
-          - ""
-      title:
-        enabled: false
-        message:
-          - ""
-      subtitle:
-        enabled: false
-        message:
-          - ""

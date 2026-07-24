@@ -25,9 +25,18 @@ public class SignMenuFactory {
     private final ValerinUtils plugin;
     private final Map<UUID, Consumer<String[]>> inputHandlers = new HashMap<>();
 
+    private final SignListener signListener = new SignListener();
+
     public SignMenuFactory(ValerinUtils plugin) {
         this.plugin = plugin;
-        Bukkit.getPluginManager().registerEvents(new SignListener(), plugin);
+    }
+
+    /**
+     * Caller must register this via its module's registerListener() so it gets
+     * unregistered on module disable/reload instead of leaking on every reload.
+     */
+    public Listener getListener() {
+        return signListener;
     }
 
     public void openSign(Player player, String[] lines, Consumer<String[]> response) {

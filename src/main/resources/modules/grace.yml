@@ -15,7 +15,9 @@ bossbar:
 
 messages:
   no-permission: "%prefix%<red>No tienes permiso."
-  usage: "%prefix%<gray>Uso: <yellow>/grace remove <jugador>"
+  usage: "%prefix%<gray>Uso: <yellow>/grace remove <jugador> <gray>| <yellow>/grace add <jugador> <horas> <gray>| <yellow>/grace check [jugador] <gray>| <yellow>/grace list"
+  usage-add: "%prefix%<gray>Uso: <yellow>/grace add <jugador> <horas>"
+  usage-check: "%prefix%<gray>Uso: <yellow>/grace check <jugador>"
   player-not-found: "%prefix%<red>Jugador no encontrado."
   no-grace: "%prefix%<yellow>%player% no tiene inmunidad activa."
   grace-granted: "%prefix%<green>¡Bienvenido! Tienes <white>12h <green>de inmunidad PvP mientras exploras el servidor."
@@ -24,4 +26,9 @@ messages:
   grace-removed-pvp: "%prefix%<red>Tu inmunidad PvP fue eliminada por atacar a otro jugador."
   grace-removed-admin: "%prefix%<red>Un administrador eliminó tu inmunidad PvP."
   grace-removed-admin-sender: "%prefix%<green>Inmunidad de <white>%player% <green>eliminada."
+  grace-added: "%prefix%<green>Se te otorgaron <white>%hours%h <green>de inmunidad PvP."
+  grace-added-sender: "%prefix%<green>Se otorgaron <white>%hours%h <green>de inmunidad a <white>%player%<green>."
+  grace-check: "%prefix%<white>%player% <gray>tiene <green>%time% <gray>de inmunidad restante."
+  list-empty: "%prefix%<gray>Nadie tiene inmunidad activa ahora."
+  list-header: "%prefix%<gray>Jugadores con inmunidad activa:"
   target-has-grace: "%prefix%<yellow>Este jugador tiene inmunidad PvP temporal y no puede ser atacado."
