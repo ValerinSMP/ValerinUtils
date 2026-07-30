@@ -1,8 +1,6 @@
 package me.mtynnn.valerinutils;
 
-import me.mtynnn.valerinutils.commands.MenuItemCommand;
 import me.mtynnn.valerinutils.commands.ValerinUtilsCommand;
-import me.mtynnn.valerinutils.core.CommandHousekeeper;
 import me.mtynnn.valerinutils.core.CommandRegistry;
 import me.mtynnn.valerinutils.core.ConfigManager;
 import me.mtynnn.valerinutils.core.DatabaseManager;
@@ -15,7 +13,7 @@ import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
 import me.mtynnn.valerinutils.modules.codes.CodesModule;
 import me.mtynnn.valerinutils.modules.vouchers.VouchersModule;
 import me.mtynnn.valerinutils.modules.utility.UtilityModule;
-import me.mtynnn.valerinutils.modules.deathmessages.DeathMessagesModule;
+import me.mtynnn.valerinutils.modules.deathspawn.DeathSpawnModule;
 
 import me.mtynnn.valerinutils.modules.grace.GraceModule;
 import me.mtynnn.valerinutils.modules.itemsign.ItemSignModule;
@@ -39,7 +37,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,6 +51,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             "(?i)\\b((?:https?://)?(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,}(?:/[\\p{Alnum}\\-._~:/?#\\[\\]@!$&'()*+,;=%]*)?)(?<![.,;:!?])");
 
     private static ValerinUtils instance;
+    private final Set<String> malformedMessageWarnings = ConcurrentHashMap.newKeySet();
     private ModuleManager moduleManager;
     private CommandRegistry commandRegistry;
     private ConfigManager configManager;
@@ -60,7 +61,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private MenuItemModule menuItemModule;
     private KillRewardsModule killRewardsModule;
     private CodesModule codesModule;
-    private DeathMessagesModule deathMessagesModule;
+    private DeathSpawnModule deathSpawnModule;
     private ItemSignModule itemSignModule;
     private UtilityModule utilityModule;
     private VouchersModule vouchersModule;
@@ -68,9 +69,6 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private ValerinUtilsExpansion placeholderExpansion;
 
     private PlayerDataManager playerDataManager;
-    private CommandHousekeeper commandHousekeeper;
-    private me.mtynnn.valerinutils.core.EarningsTracker earningsTracker;
-
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         // Enforce cleanup if MenuItem module is disabled in config
@@ -93,6 +91,9 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
+        long startedAt = System.nanoTime();
+        getLogger().info("Starting ValerinUtils v" + getDescription().getVersion() + "...");
+        getLogger().info("Platform: Paper 1.21.11+ | Java 21 bytecode");
         instance = this;
 
         // 1. Initialize Managers
@@ -105,7 +106,6 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         databaseManager.initialize();
 
         playerDataManager = new PlayerDataManager(this);
-        commandHousekeeper = new CommandHousekeeper(this);
 
         // 2. Data Migration (v1 -> v2)
         performDataMigration();
@@ -116,11 +116,6 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         // 4. Register Events
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getPluginManager().registerEvents(playerDataManager, this);
-
-        if (Bukkit.getPluginManager().isPluginEnabled("RoyaleEconomy")) {
-            earningsTracker = new me.mtynnn.valerinutils.core.EarningsTracker(this);
-            earningsTracker.start();
-        }
 
         // 4. Initialize Modules
         moduleManager = new ModuleManager(this);
@@ -134,8 +129,8 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         codesModule = new CodesModule(this);
         moduleManager.registerModule(codesModule);
 
-        deathMessagesModule = new DeathMessagesModule(this);
-        moduleManager.registerModule(deathMessagesModule);
+        deathSpawnModule = new DeathSpawnModule(this);
+        moduleManager.registerModule(deathSpawnModule);
 
         itemSignModule = new ItemSignModule(this);
         moduleManager.registerModule(itemSignModule);
@@ -149,17 +144,9 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         graceModule = new GraceModule(this);
         moduleManager.registerModule(graceModule);
 
-        commandHousekeeper.reinstateAll();
         moduleManager.enableAll();
 
-        // Single deferred sync (commandHousekeeper.schedule()) instead of an extra
-        // immediate syncNow() here: stacking multiple syncCommands() calls close
-        // together races Paper's async per-player command broadcast and throws
-        // ConcurrentModificationException on the Brigadier tree with players online.
-        commandHousekeeper.schedule();
-
-        // Cleanup periodico de cache: elimina entradas de jugadores ya desconectados
-        // Previene acumulacion por crashes o QuitEvent perdidos tras PlugMan reload
+        // Limpia periódicamente entradas de jugadores que ya no están conectados.
         Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
             playerDataManager.removeStaleEntries();
         }, 6000L, 6000L);
@@ -172,19 +159,15 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
         if (getCommand("valerinutils") != null) {
             ValerinUtilsCommand mainCmd = new ValerinUtilsCommand(this);
-            getCommand("valerinutils").setExecutor(mainCmd);
-            getCommand("valerinutils").setTabCompleter(mainCmd);
-        }
-
-        if (getCommand("menuitem") != null) {
-            MenuItemCommand mic = new MenuItemCommand(this, menuItemModule);
-            getCommand("menuitem").setExecutor(mic);
-            getCommand("menuitem").setTabCompleter(mic);
-            getServer().getPluginManager().registerEvents(mic, this);
+            commandRegistry.bind("core", "valerinutils", mainCmd, mainCmd);
+            if (getCommand("valerinutilsadmin") != null) {
+                commandRegistry.bind("core", "valerinutilsadmin", mainCmd, mainCmd);
+            }
         }
 
         // 6. Startup Banner
-        printStartupBanner();
+        long elapsedMs = (System.nanoTime() - startedAt) / 1_000_000L;
+        getLogger().info("Enabled successfully in " + elapsedMs + " ms.");
 
         // 8. Cleanup ghost MenuItems if module is disabled (Reload fix)
         if (!moduleManager.isModuleEnabled("menuitem")) {
@@ -194,50 +177,15 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         }
     }
 
-    private void printStartupBanner() {
-        String version = getPluginMeta().getVersion();
-
-        // Check hooks
-        boolean papiHooked = Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null;
-        boolean luckPermsHooked = Bukkit.getPluginManager().getPlugin("LuckPerms") != null;
-        boolean vaultHooked = Bukkit.getPluginManager().getPlugin("Vault") != null;
-
-        // Check enabled modules
-        boolean menuItemEnabled = moduleManager.isModuleEnabled("menuitem");
-        boolean killRewardsEnabled = moduleManager.isModuleEnabled("killrewards");
-        boolean codesEnabled = moduleManager.isModuleEnabled("codes");
-        boolean itemSignEnabled = moduleManager.isModuleEnabled("itemsign");
-        boolean utilityEnabled = moduleManager.isModuleEnabled("utility");
-        boolean vouchersEnabled = moduleManager.isModuleEnabled("vouchers");
-
-        getLogger().info("");
-        getLogger().info("  ValerinUtils v" + version);
-        getLogger().info("  Developed by mtynnn");
-        getLogger().info("");
-        getLogger().info("  Hooks: PAPI " + (papiHooked ? "✔" : "✘")
-                + " | LuckPerms " + (luckPermsHooked ? "✔" : "✘")
-                + " | Vault " + (vaultHooked ? "✔" : "✘"));
-        getLogger().info("  Modules: MenuItem " + (menuItemEnabled ? "✔" : "✘")
-                + " | KillRewards " + (killRewardsEnabled ? "✔" : "✘")
-                + " | Codes " + (codesEnabled ? "✔" : "✘")
-                + " | ItemSign " + (itemSignEnabled ? "✔" : "✘")
-                + " | Utility " + (utilityEnabled ? "✔" : "✘")
-                + " | Vouchers " + (vouchersEnabled ? "✔" : "✘"));
-        getLogger().info("");
-        getLogger().info("  ValerinUtils has been enabled successfully!");
-    }
-
     @Override
     public void onDisable() {
-        if (earningsTracker != null) {
-            earningsTracker.stop();
-        }
+        long startedAt = System.nanoTime();
+        getLogger().info("Stopping ValerinUtils...");
         playerDataManager.saveAllAndClear();
 
         if (moduleManager != null) {
             moduleManager.disableAll();
         }
-        commandHousekeeper.clearBindings();
 
         if (placeholderExpansion != null) {
             try {
@@ -250,11 +198,8 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         if (databaseManager != null) {
             databaseManager.closeConnection();
         }
-        getLogger().info("ValerinUtils disabled");
-    }
-
-    public CommandHousekeeper getCommandHousekeeper() {
-        return commandHousekeeper;
+        long elapsedMs = (System.nanoTime() - startedAt) / 1_000_000L;
+        getLogger().info("Disabled successfully in " + elapsedMs + " ms.");
     }
 
     public static ValerinUtils getInstance() {
@@ -306,30 +251,6 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             }
             getLogger().info("Migrated " + count + " MenuItem records.");
             menuFile.renameTo(new File(getDataFolder(), "menuitem_data.yml.bak"));
-        }
-
-        // 2. RoyaleEconomy Pay Data
-        File royalFile = new File(getDataFolder(), "royaleconomy_data.yml");
-        if (royalFile.exists()) {
-            getLogger().info("Migrating royaleconomy_data.yml to database...");
-            FileConfiguration cfg = YamlConfiguration.loadConfiguration(royalFile);
-            List<String> disabled = cfg.getStringList("royaleconomy-pay-disabled");
-            int count = 0;
-            for (String uuidStr : disabled) {
-                try {
-                    UUID uuid = UUID.fromString(uuidStr);
-                    String sql = "INSERT INTO player_data (uuid, royal_pay_disabled) VALUES (?, true) " +
-                            "ON CONFLICT(uuid) DO UPDATE SET royal_pay_disabled=true";
-                    try (PreparedStatement ps = databaseManager.getConnection().prepareStatement(sql)) {
-                        ps.setString(1, uuid.toString());
-                        ps.executeUpdate();
-                        count++;
-                    }
-                } catch (Exception e) {
-                }
-            }
-            getLogger().info("Migrated " + count + " RoyaleEconomy records.");
-            royalFile.renameTo(new File(getDataFolder(), "royaleconomy_data.yml.bak"));
         }
 
         // 2. KillRewards Data
@@ -406,8 +327,8 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         return codesModule;
     }
 
-    public DeathMessagesModule getDeathMessagesModule() {
-        return deathMessagesModule;
+    public DeathSpawnModule getDeathSpawnModule() {
+        return deathSpawnModule;
     }
 
     // --- Debug flags (per-module) ---
@@ -485,8 +406,12 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         String normalized = normalizeToMiniMessage(text);
         try {
             return MiniMessage.miniMessage().deserialize(normalized);
-        } catch (Exception ignored) {
-            return LegacyComponentSerializer.legacyAmpersand().deserialize(normalized.replace('§', '&'));
+        } catch (Exception exception) {
+            if (malformedMessageWarnings.add(normalized)) {
+                getLogger().warning("[Messages] MiniMessage invalido; se enviara como texto plano: "
+                        + normalized.replace('\n', ' '));
+            }
+            return Component.text(MiniMessage.miniMessage().stripTags(normalized));
         }
     }
 

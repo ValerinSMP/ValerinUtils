@@ -2,8 +2,10 @@ package me.mtynnn.valerinutils.modules.utility;
 
 import me.mtynnn.valerinutils.ValerinUtils;
 import me.mtynnn.valerinutils.core.BaseModule;
+import me.mtynnn.valerinutils.core.CommandHelpRenderer;
 import me.mtynnn.valerinutils.core.PlayerData;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
@@ -31,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -58,7 +61,7 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
     private static final String BYPASS_REPAIR_COOLDOWN = "valerinutils.utility.repair.bypasscooldown";
 
     private static final String[] REGISTERED_COMMANDS = {
-            "craft", "enderchest", "anvil", "smithingtable",
+            "craft", "anvil", "smithingtable",
             "cartographytable", "grindstone", "loom", "stonecutter",
             "disposal",
             "hat", "condense", "seen", "clear", "gmc", "gms", "gmsp", "gma", "ping",
@@ -156,6 +159,11 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
     }
 
     @Override
+    public Set<String> getCommandNames() {
+        return Set.of(REGISTERED_COMMANDS);
+    }
+
+    @Override
     protected void onEnableModule() {
         FileConfiguration cfg = getConfig();
         if (cfg == null || !cfg.getBoolean("enabled", true))
@@ -169,11 +177,6 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
             }
             registerCommand(command, this);
         }
-
-        // Deferred a tick: mutating knownCommands synchronously here races Paper's
-        // async per-player command broadcast that plugin.yml auto-registration just
-        // triggered, causing ConcurrentModificationException on the Brigadier tree.
-        Bukkit.getScheduler().runTask(plugin, this::removeDisabledCommandsFromMap);
 
         registerListener(this);
 
@@ -248,7 +251,7 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
                 if (args.length > 0) {
                     seenCommand.execute(player, args[0]);
                 } else {
-                    getMessageLines("seen-usage").forEach(player::sendMessage);
+            sendMessageLines(player, "seen-usage");
                 }
             }
             case "clear" -> handleClear(player, args);
@@ -374,7 +377,7 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
 
     private void handleSpeed(Player player, String[] args) {
         if (args.length == 0) {
-            getMessageLines("speed-usage").forEach(player::sendMessage);
+            sendMessageLines(player, "speed-usage");
             return;
         }
 
@@ -511,7 +514,7 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
         if (!checkStatus(player, "repair"))
             return;
         if (args.length > 0 && !args[0].equalsIgnoreCase("hand")) {
-            getMessageLines("repair-usage").forEach(player::sendMessage);
+            sendMessageLines(player, "repair-usage");
             return;
         }
         int cd = Math.max(0, getConfig().getInt("commands.repair.cooldown-seconds", 0));
@@ -900,110 +903,117 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
         return resolved;
     }
 
-    List<String> getMessageLines(String key) {
-        List<String> lines = plugin.messages().moduleList(getId(), key);
-        return lines != null && !lines.isEmpty() ? lines : List.of(getMessage(key));
+    void sendMessageLines(CommandSender sender, String key) {
+        if (sendInteractiveUsage(sender, key)) {
+            return;
+        }
+        FileConfiguration config = getConfig();
+        List<String> lines = config == null
+                ? List.of()
+                : config.getStringList("messages." + key);
+        if (lines.isEmpty()) {
+            sender.sendMessage(getMessage(key));
+            return;
+        }
+        for (String line : lines) {
+            sender.sendMessage(comp(line));
+        }
     }
 
-    private boolean isCommandEnabled(String commandName) {
+    private boolean sendInteractiveUsage(CommandSender sender, String key) {
+        List<CommandHelpRenderer.Entry> entries;
+        String title;
+        Component footer = null;
+        switch (key) {
+            case "speed-usage" -> {
+                title = "Velocidad";
+                entries = List.of(
+                        help("/speed (1-10)", "Ajustar tu velocidad", "/speed "),
+                        help("/speed (1-10) (jugador)", "Ajustar velocidad ajena", "/speed "));
+            }
+            case "broadcast-usage" -> {
+                title = "Anuncios";
+                entries = List.of(
+                        help("/broadcast (mensaje)", "Enviar un anuncio global", "/broadcast "),
+                        help("/vubroadcast (mensaje)", "Usar el comando alternativo", "/vubroadcast "));
+            }
+            case "helpop-usage" -> {
+                title = "Ayuda";
+                entries = List.of(help(
+                        "/helpop (mensaje)", "Contactar al staff", "/helpop "));
+            }
+            case "repair-usage" -> {
+                title = "Reparación";
+                entries = List.of(help(
+                        "/fix hand", "Reparar el objeto de tu mano", "/fix hand"));
+            }
+            case "nick-usage" -> {
+                title = "Apodo";
+                entries = List.of(
+                        help("/nick (apodo)", "Cambiar tu apodo", "/nick "),
+                        help("/nick off", "Quitar tu apodo", "/nick off"));
+            }
+            case "nick-usage-others" -> {
+                title = "Apodo administrativo";
+                entries = List.of(
+                        help("/nick (jugador) (apodo)", "Cambiar un apodo ajeno", "/nick "),
+                        help("/nick (jugador) off", "Quitar un apodo ajeno", "/nick "));
+            }
+            case "ptime-usage" -> {
+                title = "Tiempo personal";
+                entries = List.of(
+                        help("/ptime day", "Establecer el día", "/ptime day"),
+                        help("/ptime night", "Establecer la noche", "/ptime night"),
+                        help("/ptime reset", "Restaurar el tiempo del servidor", "/ptime reset"));
+            }
+            case "pweather-usage" -> {
+                title = "Clima personal";
+                entries = List.of(
+                        help("/pweather clear", "Establecer clima despejado", "/pweather clear"),
+                        help("/pweather rain", "Establecer lluvia", "/pweather rain"),
+                        help("/pweather reset", "Restaurar el clima del servidor", "/pweather reset"));
+            }
+            case "sell-usage" -> {
+                title = "Ventas";
+                entries = List.of(
+                        help("/sell hand", "Vender el objeto de tu mano", "/sell hand"),
+                        help("/sell inventory", "Vender tu inventario", "/sell inventory"));
+                footer = Component.text(
+                        "Solo se venden objetos vanilla sin encantamientos, daño ni personalización.",
+                        TextColor.fromHexString("#FFC43B"));
+            }
+            case "seen-usage" -> {
+                title = "Información";
+                entries = List.of(help(
+                        "/seen (jugador)", "Consultar la última conexión", "/seen "));
+            }
+            default -> {
+                return false;
+            }
+        }
+        CommandHelpRenderer.send(sender, title, entries, footer);
+        return true;
+    }
+
+    private CommandHelpRenderer.Entry help(String command, String description, String suggestion) {
+        return CommandHelpRenderer.Entry.of(command, description, suggestion);
+    }
+
+    public boolean isCommandEnabled(String commandName) {
         FileConfiguration cfg = getConfig();
         if (cfg == null) return true;
-        return cfg.getBoolean("commands." + commandName + ".enabled", true);
+        return cfg.getBoolean("commands." + commandSettingKey(commandName) + ".enabled", true);
     }
 
-    private void removeDisabledCommandsFromMap() {
-        try {
-            org.bukkit.command.CommandMap cmdMapAPI = Bukkit.getServer().getCommandMap();
-            if (cmdMapAPI == null) return;
-
-            // Walk all fields (including superclass) to find the knownCommands map
-            Map<String, org.bukkit.command.Command> knownCommands = null;
-            Class<?> cls = cmdMapAPI.getClass();
-            while (cls != null && knownCommands == null) {
-                for (java.lang.reflect.Field f : cls.getDeclaredFields()) {
-                    if (!Map.class.isAssignableFrom(f.getType())) continue;
-                    f.setAccessible(true);
-                    Object val = f.get(cmdMapAPI);
-                    if (val instanceof Map<?, ?> m && !m.isEmpty()) {
-                        Object first = m.values().iterator().next();
-                        if (first instanceof org.bukkit.command.Command) {
-                            @SuppressWarnings("unchecked")
-                            Map<String, org.bukkit.command.Command> typed =
-                                    (Map<String, org.bukkit.command.Command>) m;
-                            // Unwrap unmodifiable if needed
-                            if (typed.getClass().getName().contains("nmodifiable")) {
-                                for (java.lang.reflect.Field inner : typed.getClass().getDeclaredFields()) {
-                                    if (Map.class.isAssignableFrom(inner.getType())) {
-                                        inner.setAccessible(true);
-                                        Object innerVal = inner.get(typed);
-                                        if (innerVal instanceof Map<?,?> im && im != typed) {
-                                            @SuppressWarnings("unchecked")
-                                            Map<String, org.bukkit.command.Command> unwrapped =
-                                                    (Map<String, org.bukkit.command.Command>) innerVal;
-                                            knownCommands = unwrapped;
-                                            break;
-                                        }
-                                    }
-                                }
-                            } else {
-                                knownCommands = typed;
-                            }
-                            break;
-                        }
-                    }
-                }
-                cls = cls.getSuperclass();
-            }
-
-            if (knownCommands == null) {
-                plugin.getLogger().warning("[Utility] Could not access CommandMap knownCommands");
-                return;
-            }
-
-            String pluginNamespace = plugin.getName().toLowerCase(Locale.ROOT);
-
-            for (String command : REGISTERED_COMMANDS) {
-                if (!isCommandEnabled(command)) {
-                    org.bukkit.command.PluginCommand pluginCmd = plugin.getCommand(command);
-                    List<String> toRemove = new java.util.ArrayList<>();
-                    if (pluginCmd != null) {
-                        toRemove.add(pluginCmd.getName().toLowerCase(Locale.ROOT));
-                        for (String alias : pluginCmd.getAliases()) {
-                            toRemove.add(alias.toLowerCase(Locale.ROOT));
-                        }
-                    } else {
-                        toRemove.add(command.toLowerCase(Locale.ROOT));
-                    }
-                    // Add namespaced variants
-                    int size = toRemove.size();
-                    for (int i = 0; i < size; i++) {
-                        toRemove.add(pluginNamespace + ":" + toRemove.get(i));
-                    }
-                    for (String key : toRemove) {
-                        // Only remove if the entry points to OUR PluginCommand, not another plugin's
-                        if (pluginCmd != null && knownCommands.get(key) == pluginCmd) {
-                            knownCommands.remove(key);
-                            plugin.getLogger().info("[Utility] Removed from CommandMap: " + key);
-                        }
-                    }
-                    // After removing our entries, if the plain key is now gone, promote
-                    // another plugin's namespaced command (e.g. donutsell:sell → sell)
-                    String plainKey = command.toLowerCase(Locale.ROOT);
-                    if (!knownCommands.containsKey(plainKey)) {
-                        for (Map.Entry<String, org.bukkit.command.Command> entry : knownCommands.entrySet()) {
-                            String k = entry.getKey();
-                            if (k.endsWith(":" + plainKey) && !k.startsWith(pluginNamespace + ":")) {
-                                knownCommands.put(plainKey, entry.getValue());
-                                plugin.getLogger().info("[Utility] Promoted " + k + " to /" + plainKey);
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (Throwable t) {
-            plugin.getLogger().warning("[Utility] Failed to remove disabled commands: " + t.getMessage());
-        }
+    static String commandSettingKey(String commandName) {
+        return switch (commandName.toLowerCase(Locale.ROOT)) {
+            case "smithingtable" -> "smithing";
+            case "cartographytable" -> "cartography";
+            case "gmc", "gms", "gmsp", "gma" -> "gamemode";
+            case "vubroadcast" -> "broadcast";
+            case "vtop" -> "top";
+            default -> commandName.toLowerCase(Locale.ROOT);
+        };
     }
 
     private void setupCondenseMap() {

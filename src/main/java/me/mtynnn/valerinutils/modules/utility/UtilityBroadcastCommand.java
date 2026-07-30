@@ -27,7 +27,7 @@ final class UtilityBroadcastCommand {
             return;
         }
         if (args.length == 0) {
-            module.getMessageLines("broadcast-usage").forEach(sender::sendMessage);
+            module.sendMessageLines(sender, "broadcast-usage");
             module.plugin().debug(module.getId(), "Broadcast cancelado: sin argumentos (" + sender.getName() + ").");
             return;
         }

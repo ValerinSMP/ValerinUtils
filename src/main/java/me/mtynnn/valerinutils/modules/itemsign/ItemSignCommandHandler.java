@@ -1,6 +1,7 @@
 package me.mtynnn.valerinutils.modules.itemsign;
 
 import me.mtynnn.valerinutils.ValerinUtils;
+import me.mtynnn.valerinutils.core.CommandHelpRenderer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -66,7 +67,7 @@ final class ItemSignCommandHandler implements CommandExecutor {
             return true;
         }
         if (args.length == 0) {
-            player.sendMessage(msg("usage-sign", "%prefix%&7Uso: &e/sign <texto...>"));
+            sendMessageLines(player, "usage-sign", "%prefix%<gray>Usa <#FFD166>/sign (texto)</#FFD166>.");
             return true;
         }
 
@@ -87,7 +88,7 @@ final class ItemSignCommandHandler implements CommandExecutor {
 
         String dedication = String.join(" ", args).trim();
         if (dedication.isEmpty()) {
-            player.sendMessage(msg("usage-sign", "%prefix%&7Uso: &e/sign <texto...>"));
+            sendMessageLines(player, "usage-sign", "%prefix%<gray>Usa <#FFD166>/sign (texto)</#FFD166>.");
             return true;
         }
 
@@ -138,7 +139,8 @@ final class ItemSignCommandHandler implements CommandExecutor {
 
     private boolean handleItemSign(CommandSender sender, String[] args) {
         if (args.length == 0 || !args[0].equalsIgnoreCase("remove")) {
-            sender.sendMessage(msg("usage-remove", "%prefix%&7Uso: &e/itemsign remove &7o &e/itemsign remove <numero|nombre>"));
+            sendMessageLines(sender, "usage-remove",
+                    "%prefix%<gray>Usa <#FFD166>/itemsign remove</#FFD166>.");
             return true;
         }
 
@@ -551,6 +553,36 @@ final class ItemSignCommandHandler implements CommandExecutor {
         FileConfiguration cfg = config();
         String raw = cfg != null ? cfg.getString("messages." + path, fallback) : fallback;
         return plugin.parseComponent(raw);
+    }
+
+    private void sendMessageLines(CommandSender sender, String path, String fallback) {
+        if ("usage-sign".equals(path)) {
+            CommandHelpRenderer.send(sender, "Firma de objetos", List.of(
+                    CommandHelpRenderer.Entry.of(
+                            "/sign (texto)", "Firmar el objeto de tu mano", "/sign ")));
+            return;
+        }
+        if ("usage-remove".equals(path)) {
+            CommandHelpRenderer.send(sender, "Firmas", List.of(
+                    CommandHelpRenderer.Entry.of(
+                            "/itemsign remove", "Retirar tu propia firma", "/itemsign remove"),
+                    CommandHelpRenderer.Entry.of(
+                            "/itemsign remove (número o nombre)",
+                            "Retirar una firma específica",
+                            "/itemsign remove ")));
+            return;
+        }
+        FileConfiguration cfg = config();
+        Object value = cfg == null ? null : cfg.get("messages." + path);
+        if (value instanceof List<?> lines) {
+            for (Object line : lines) {
+                if (line instanceof String text) {
+                    sender.sendMessage(plugin.parseComponent(text));
+                }
+            }
+            return;
+        }
+        sender.sendMessage(plugin.parseComponent(value instanceof String text ? text : fallback));
     }
 
     private Component formatted(String path, String fallback, String token, String replacement) {

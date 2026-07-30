@@ -2,6 +2,7 @@ package me.mtynnn.valerinutils.modules.grace;
 
 import me.mtynnn.valerinutils.ValerinUtils;
 import me.mtynnn.valerinutils.core.BaseModule;
+import me.mtynnn.valerinutils.core.CommandHelpRenderer;
 import me.mtynnn.valerinutils.core.PlayerData;
 import org.bukkit.Bukkit;
 import org.bukkit.Statistic;
@@ -47,6 +48,11 @@ public class GraceModule extends BaseModule implements Listener, CommandExecutor
     @Override
     public String getId() {
         return "grace";
+    }
+
+    @Override
+    public Set<String> getCommandNames() {
+        return Set.of("grace");
     }
 
     @Override
@@ -255,9 +261,20 @@ public class GraceModule extends BaseModule implements Listener, CommandExecutor
             return true;
         }
 
-        sender.sendMessage(comp(msg("messages.usage",
-                "%prefix%<gray>Uso: <yellow>/grace remove <jugador> <gray>| <yellow>/grace add <jugador> <horas> <gray>| <yellow>/grace check [jugador] <gray>| <yellow>/grace list")));
+        sendGraceHelp(sender);
         return true;
+    }
+
+    private void sendGraceHelp(CommandSender sender) {
+        CommandHelpRenderer.send(sender, "Inmunidad PvP", List.of(
+                CommandHelpRenderer.Entry.of(
+                        "/grace check [jugador]", "Consultar la inmunidad PvP", "/grace check "),
+                CommandHelpRenderer.Entry.of(
+                        "/grace add (jugador) (horas)", "Otorgar inmunidad", "/grace add "),
+                CommandHelpRenderer.Entry.of(
+                        "/grace remove (jugador)", "Retirar inmunidad", "/grace remove "),
+                CommandHelpRenderer.Entry.of(
+                        "/grace list", "Listar inmunidades activas", "/grace list")));
     }
 
     @Override

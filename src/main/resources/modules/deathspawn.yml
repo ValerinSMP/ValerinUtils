@@ -1,0 +1,76 @@
+enabled: true
+
+messages:
+  admin-usage: "%prefix%<gray>Usa <#FFD166>/vutilsadmin deathspawn</#FFD166> para ver los comandos."
+  admin-set-usage: "%prefix%<gray>Uso: <yellow>/valerinutilsadmin deathspawn set <id> <region>"
+  admin-state-usage: "%prefix%<gray>Uso: <yellow>/valerinutilsadmin deathspawn <enable|disable> <id>"
+  admin-remove-usage: "%prefix%<gray>Uso: <yellow>/valerinutilsadmin deathspawn remove <id>"
+  admin-player-only: "%prefix%<red>Debes ejecutar este comando dentro del juego."
+  admin-worldguard-required: "%prefix%<red>WorldGuard debe estar instalado y activado."
+  admin-invalid-id: "%prefix%<red>El ID solo puede usar letras minusculas, numeros, guion y guion bajo."
+  admin-unknown-region: "%prefix%<red>La region <yellow>%region%</yellow> no existe en este mundo."
+  admin-unknown-rule: "%prefix%<red>No existe la regla <yellow>%id%</yellow>."
+  admin-set: "%prefix%<green>Regla <yellow>%id%</yellow> guardada para <aqua>%region%</aqua> en tu ubicacion."
+  admin-state: "%prefix%<gray>Regla <yellow>%id%</yellow>: %state%"
+  admin-removed: "%prefix%<green>Regla <yellow>%id%</yellow> eliminada."
+  admin-list-empty: "%prefix%<gray>No hay reglas de DeathSpawn."
+  admin-list-header: "%prefix%<aqua>Reglas de DeathSpawn:</aqua>"
+  admin-list-entry: "<gray>• <yellow>%id%</yellow> <dark_gray>→</dark_gray> <aqua>%region%</aqua> %state%"
+
+# La primera regla que coincida decide el lugar de respawn.
+# "death-worlds" usa los nombres reales de Bukkit/Multiverse; "*" acepta cualquiera.
+# "worldguard-region" usa la region exacta donde murio el jugador.
+# El destino puede ser "world-spawn" o "location".
+# Cambia los nombres, mundo y coordenadas antes de habilitar estas plantillas.
+rules:
+  - id: koth_1
+    enabled: false
+    death-worlds: ["world_koth"]
+    worldguard-region: "koth_1"
+    destination:
+      type: location
+      world: "world_koth"
+      x: 0.5
+      y: 64.0
+      z: 0.5
+      yaw: 0.0
+      pitch: 0.0
+
+  - id: koth_2
+    enabled: false
+    death-worlds: ["world_koth"]
+    worldguard-region: "koth_2"
+    destination:
+      type: location
+      world: "world_koth"
+      x: 0.5
+      y: 64.0
+      z: 0.5
+      yaw: 0.0
+      pitch: 0.0
+
+  - id: koth_3
+    enabled: false
+    death-worlds: ["world_koth"]
+    worldguard-region: "koth_3"
+    destination:
+      type: location
+      world: "world_koth"
+      x: 0.5
+      y: 64.0
+      z: 0.5
+      yaw: 0.0
+      pitch: 0.0
+
+  - id: koth_4
+    enabled: false
+    death-worlds: ["world_koth"]
+    worldguard-region: "koth_4"
+    destination:
+      type: location
+      world: "world_koth"
+      x: 0.5
+      y: 64.0
+      z: 0.5
+      yaw: 0.0
+      pitch: 0.0

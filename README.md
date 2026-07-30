@@ -1,214 +1,91 @@
+<div align="center">
+
 # ValerinUtils
 
-Plugin modular para Paper 1.21+ con utilidades de administración, QoL y sistemas personalizados para servidores survival.
+### Utilidades y sistemas survival para ValerinSMP
 
-## Módulos actuales
+[![Paper](https://img.shields.io/badge/Paper-1.21.11%2B-222222?style=for-the-badge)](https://papermc.io/)
+[![Java](https://img.shields.io/badge/Java-21-E76F00?style=for-the-badge&logo=openjdk&logoColor=white)](https://adoptium.net/)
+[![Version](https://img.shields.io/badge/version-1.0.0-7B5CFA?style=for-the-badge)](https://github.com/ValerinSMP/ValerinUtils)
 
-- `menuitem` (`src/main/resources/modules/menuitem.yml`)
-- `joinquit` (`src/main/resources/modules/joinquit.yml`)
-- `killrewards` (`src/main/resources/modules/killrewards.yml`)
-- `codes` (`src/main/resources/modules/codes.yml`)
-- `deathmessages` (`src/main/resources/modules/deathmessages.yml`)
-- `geodes` (`src/main/resources/modules/geodes.yml`)
-- `itemsign` (`src/main/resources/modules/itemsign.yml`)
-- `kits` (`src/main/resources/modules/kits.yml`)
-- `utility` (`src/main/resources/modules/utilities.yml`)
-- `itemeditor` (`src/main/resources/modules/itemeditor.yml`)
+</div>
 
-> Los módulos `vote40` y `votetracking` fueron retirados.
+**ValerinUtils** reúne las utilidades, comandos de calidad de vida y sistemas
+personalizados del survival de ValerinSMP. Cada módulo se configura y se puede
+desactivar por separado desde su propio archivo YAML.
 
-## Configuración
+## ⭐ Módulos
 
-- Global: `src/main/resources/settings.yml`
-- Debug por módulo: `src/main/resources/debug.yml`
-- Precios de venta (`/sell`): `src/main/resources/sellprice.yml`
-- Descriptor Bukkit: `src/main/resources/plugin.yml`
+- **Menu Item:** acceso rápido al menú, con comandos condicionales por PlaceholderAPI.
+- **Kill Rewards:** recompensas configurables por combate.
+- **Codes:** códigos reclamables con recompensas.
+- **Death Spawn:** respawn por mundo, condiciones o región de WorldGuard.
+- **Item Sign:** firma de objetos con autor y dedicatoria.
+- **Utility:** comandos generales para jugadores y administración.
+- **Grace:** protección PvP temporal para jugadores nuevos.
+- **Vouchers:** objetos canjeables configurables.
 
-Los mensajes se manejan por módulo en `messages.*` dentro de cada archivo del módulo.  
-`settings.yml` queda para mensajes globales (`prefix`, permisos globales y comandos admin del plugin).
+Los sistemas antiguos Geodes, Kits, Item Editor y VUSpawn ya no forman parte del
+plugin.
 
-## Arquitectura interna
+## 🧰 Utilidades destacadas
 
-- `ModuleManager`: registro/habilitado/recarga de módulos.
-- `BaseModule`: base común para comandos, listeners y debug.
-- `ConfigManager`: carga, migraciones y autocompletado de claves faltantes.
-- `MessageService`: resolución central de mensajes y `%prefix%`.
-- `CommandRegistry`: registro/bindeo central de comandos.
+- Mesas de trabajo virtuales: crafting, yunque, herrería, telar y más.
+- Comandos de vuelo, velocidad, curación, alimentación y gamemode.
+- Venta y condensación de inventarios.
+- Nicknames, cabezas, ping, `/seen`, clima y tiempo personal.
+- Broadcasts, helpop y herramientas administrativas.
+- Mensajes con Adventure/MiniMessage y PlaceholderAPI.
 
-## Comandos principales
+## 🎮 Administración
 
-- Admin: `/valerinutils reload`, `/valerinutils debug <modulo> [on|off|toggle]`
-- MenuItem: `/menuitem <on|off|toggle>` (alias `/menu`)
-- Utility: `/gmc`, `/gms`, `/gmsp`, `/gma`, `/broadcast`, `/nick`, `/seen`, `/sell`, etc.
-- Kits: `/kits` (alias `/kit`, `/vukits`)
-- ItemEditor: `/itemedit ...` (alias `/itemeditor`, `/iedit`)
+| Comando | Descripción |
+| --- | --- |
+| `/valerinutils` | Ayuda pública e información del plugin. |
+| `/valerinutilsadmin reload [all\|módulo]` | Recarga configuración o módulos. |
+| `/valerinutilsadmin debug <módulo>` | Controla el debug de un módulo. |
+| `/valerinutilsadmin deathspawn` | Configura respawns por región desde el juego. |
+| `/grace` | Administra la protección PvP inicial. |
+| `/voucher` | Entrega o recarga vouchers. |
 
-Comandos y aliases completos: `src/main/resources/plugin.yml`.
+El listado completo de comandos y permisos está en
+[`src/main/resources/plugin.yml`](src/main/resources/plugin.yml).
 
-## Permisos y Placeholders (por módulo)
+## ⚙️ Configuración
 
-> Placeholder interno común en todos los módulos de mensajes: `%prefix%`.
+- `settings.yml`: opciones y mensajes globales.
+- `debug.yml`: debug por módulo.
+- `sellprice.yml`: precios usados por `/sell`.
+- `modules/*.yml`: estado, comportamiento y mensajes de cada módulo.
 
-### Core / Admin
+## 🧩 Requisitos
 
-- **Permisos**
-  - `valerinutils.admin`
-- **PlaceholderAPI (expansión `valerinutils`)**
-  - `%valerinutils_menuitem_enabled%`
-  - `%valerinutils_deathmessages_enabled%`
-  - `%valerinutils_player_number%`
-  - `%valerinutils_total_players%`
-  - `%valerinutils_first_join_date%`
-  - `%valerinutils_votes_total%`
-  - `%valerinutils_votes_daily%`
-  - `%valerinutils_votes_monthly%`
-  - `%valerinutils_votes_month_<mes>_[año]%`
-  - `%valerinutils_votes_year_<año>%`
-  - `%valerinutils_votes_quarter_<1-4>_[año]%`
+| Paper | Java requerida | Folia |
+| :---: | :---: | :---: |
+| 1.21.11 en adelante | 21 | ❌ |
 
-### menuitem
-
-- **Permisos**
-  - `valerinutils.bypass.cooldown`
-- **Placeholders internos (config)**
-  - `%player%`, `%time%`
-
-### joinquit
-
-- **Permisos**
-  - `groups.<grupo>.permission` (configurable por grupo en `joinquit.yml`)
-  - fallback automático por grupo: `group.<grupo>`
-- **Placeholders internos (config)**
-  - `%player%`, `%player_name%`, `%player_number%`, `%online%`, `%max%`
-  - soporta placeholders externos via PlaceholderAPI (ej: `%luckperms_prefix%`, `%server_online%`, `%vault_eco_balance%`)
-
-### killrewards
-
-- **Permisos**
-  - Sin permisos propios obligatorios.
-- **Placeholders internos (config)**
-  - `%killer%`, `%victim%`, `%amount%`, `%percentage%`
-
-### codes
-
-- **Permisos**
-  - Sin permisos propios obligatorios.
-- **Placeholders internos (config)**
-  - `%player%` (comandos de recompensa)
-  - `%code%` (mensajes de éxito/error)
-
-### deathmessages
-
-- **Permisos**
-  - `valerinutils.admin` (comando `/vuspawn`)
-- **Placeholders internos (config)**
-  - `%victim%`, `%attacker%`
-
-### geodes
-
-- **Permisos**
-  - `valerinutils.geodes.admin`
-- **Placeholders internos (config)**
-  - `%player%`
-
-### itemsign
-
-- **Permisos**
-  - `valerinutils.itemsign.use`
-  - `valerinutils.itemsign.admin`
-- **Placeholders internos (config)**
-  - `%player%`, `%date%`
-
-### kits
-
-- **Permisos**
-  - `valerinutils.kits.admin`
-  - `kits.<nombre_kit>` (o el permiso definido en `kits.<id>.required-permission`)
-- **Placeholders internos (config)**
-  - `%kit%`, `%time%`, `%items%`, `%days%`, `%perm%`, `%status%`
-  - `%page%`, `%max_page%`, `%selected_kit%`, `%preset_slot%`
-  - `%player%`, `%permission%`
-
-### utility
-
-- **Permisos base**
-  - `valerinutils.utility.craft`
-  - `valerinutils.utility.enderchest`
-  - `valerinutils.utility.anvil`
-  - `valerinutils.utility.smithing`
-  - `valerinutils.utility.cartography`
-  - `valerinutils.utility.grindstone`
-  - `valerinutils.utility.loom`
-  - `valerinutils.utility.stonecutter`
-  - `valerinutils.utility.disposal`
-  - `valerinutils.utility.hat`
-  - `valerinutils.utility.condense`
-  - `valerinutils.utility.clear`
-  - `valerinutils.utility.ping`
-  - `valerinutils.utility.fly`
-  - `valerinutils.utility.speed`
-  - `valerinutils.utility.broadcast`
-  - `valerinutils.utility.heal`
-  - `valerinutils.utility.feed`
-  - `valerinutils.utility.repair`
-  - `valerinutils.utility.nick`
-  - `valerinutils.utility.skull`
-  - `valerinutils.utility.suicide`
-  - `valerinutils.utility.near`
-  - `valerinutils.utility.top`
-  - `valerinutils.utility.ptime`
-  - `valerinutils.utility.pweather`
-  - `valerinutils.utility.sell`
-  - `valerinutils.utility.gamemode`
-- **Permisos extra**
-  - `/seen` actualmente no valida permiso base; sólo protege IP con `valerinutils.utility.seen.ip`
-  - `valerinutils.utility.clear.others`
-  - `valerinutils.utility.ping.others`
-  - `valerinutils.utility.fly.others`
-  - `valerinutils.utility.speed.others`
-  - `valerinutils.utility.heal.others`
-  - `valerinutils.utility.feed.others`
-  - `valerinutils.utility.gamemode.others`
-  - `valerinutils.utility.nick.others`
-  - `valerinutils.utility.nick.color.basic`
-  - `valerinutils.utility.nick.color.format`
-  - `valerinutils.utility.nick.color.hex`
-  - `valerinutils.utility.seen.ip`
-  - `valerinutils.utility.helpop.receive`
-  - `valerinutils.utility.heal.bypasscooldown`
-  - `valerinutils.utility.feed.bypasscooldown`
-  - `valerinutils.utility.repair.bypasscooldown`
-  - `valerinutils.utility.helpop.bypasscooldown`
-
-- **Nota de compatibilidad**
-  - Utility usa un único namespace de permisos: `valerinutils.utility.*`
-  - Se removió compatibilidad legacy con `valerinutils.utilities.*` y `valerinutils.utility.fix`
-- **Placeholders internos (config)**
-  - `%player%`, `%players%`, `%message%`, `%mode%`, `%nick%`, `%tier%`, `%time%`
-  - `%ping%`, `%state%`, `%type%`, `%speed%`, `%value%`, `%count%`, `%amount%`
-  - `%radius%`, `%status%`, `%uuid%`, `%ip%`, `%first_join%`, `%last_seen%`
-  - `%world%`, `%x%`, `%y%`, `%z%`, `%health%`, `%hunger%`, `%xp%`, `%fly%`, `%gamemode%`, `%items%`
-
-### itemeditor
-
-- **Permisos**
-  - `valerinutils.itemeditor.use`
-- **Placeholders internos (config)**
-  - `%prefix%`
-
-## Dependencias suaves
+Integraciones opcionales:
 
 - PlaceholderAPI
 - LuckPerms
 - Vault
-- RoyaleEconomy
+- ExcellentEconomy, mediante Vault
+- MythicMobs
+- WorldGuard, para respawns locales por región
 
-## Build
-
-Requiere Java 21.
+## 🛠️ Compilación
 
 ```bash
-mvn clean package
+./gradlew clean test build
 ```
 
-El jar generado queda en `target/`.
+El artefacto se genera dentro de `build/libs/`.
+
+## Versionado
+
+La versión **1.0.0** establece el baseline público de ValerinUtils. A partir de
+este estado se aplica [Versionado Semántico](https://semver.org/lang/es/):
+
+- **PATCH** para correcciones compatibles.
+- **MINOR** para funcionalidades nuevas compatibles.
+- **MAJOR** para cambios incompatibles.

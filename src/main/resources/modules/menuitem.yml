@@ -9,6 +9,15 @@ lore:
 - ''
 - '<yellow>¡Click para abrir!'
 command: dm open menu %player%
+# Se ejecuta la primera regla cuya condicion coincida. Si ninguna coincide,
+# se usa "command". Operadores: equals, not_equals, contains, not_contains,
+# regex, truthy, falsy, resolved y unresolved.
+command-rules:
+  - condition:
+      placeholder: "%koth_active%"
+      operator: truthy
+      value: ""
+    command: "dm open menu-koth %player%"
 custom-model-data: 3
 
 disabled-worlds: []
@@ -22,10 +31,10 @@ sound:
 cooldown-seconds: 3
 
 messages:
-  usage: '<gray>Uso: <yellow>/menuitem <white><on|off|toggle>'
-  on: '<green>Item de menú <white>activado<gray>. Ahora ocupará el slot configurado.'
-  off: '<red>Item de menú <white>desactivado<gray>. El slot queda libre.'
-  toggled-on: '<green>Item de menú <white>activado<gray>.'
-  toggled-off: "<red>Item de menú <white>desactivado<gray>."
-  slot-occupied: '<red>No puedes activar el item. El slot está ocupado, vacíalo primero.'
-  cooldown: '<red>Debes esperar <yellow>%time%s <red>para volver a usar esto.'
+  usage: "%prefix%<gray>Usa <#FFD166>/menuitem</#FFD166> para ver los comandos."
+  on: "%prefix%<#00FB9A>Ítem de menú activado.</#00FB9A>"
+  off: "%prefix%<#00FB9A>Ítem de menú desactivado.</#00FB9A>"
+  toggled-on: "%prefix%<#00FB9A>Ítem de menú activado.</#00FB9A>"
+  toggled-off: "%prefix%<#00FB9A>Ítem de menú desactivado.</#00FB9A>"
+  slot-occupied: "%prefix%<#FF3300>El slot está ocupado; vacíalo antes de activar el ítem de menú.</#FF3300>"
+  cooldown: "%prefix%<#FF3300>Espera <white>%time%s</white> antes de volver a usarlo.</#FF3300>"

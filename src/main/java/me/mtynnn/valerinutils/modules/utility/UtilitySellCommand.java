@@ -31,7 +31,7 @@ final class UtilitySellCommand {
             return;
         }
         if (args.length == 0) {
-            module.getMessageLines("sell-usage").forEach(player::sendMessage);
+            module.sendMessageLines(player, "sell-usage");
             return;
         }
 
@@ -52,7 +52,7 @@ final class UtilitySellCommand {
             case "hand" -> sellHand(player, prices);
             case "inventory", "inv", "all" -> sellInventory(player, prices);
             default -> {
-                module.getMessageLines("sell-usage").forEach(player::sendMessage);
+                module.sendMessageLines(player, "sell-usage");
                 yield SellResult.empty();
             }
         };

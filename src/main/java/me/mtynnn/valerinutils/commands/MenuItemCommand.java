@@ -1,6 +1,7 @@
 package me.mtynnn.valerinutils.commands;
 
 import me.mtynnn.valerinutils.ValerinUtils;
+import me.mtynnn.valerinutils.core.CommandHelpRenderer;
 import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
 import org.bukkit.command.*;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -26,12 +27,12 @@ public class MenuItemCommand implements CommandExecutor, TabCompleter, Listener 
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
 
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(getMessage("only-players", "&cSolo jugadores."));
+            sendMessage(sender, "only-players", "%prefix%<#FF3300>Solo jugadores.");
             return true;
         }
 
         if (args.length == 0) {
-            sender.sendMessage(getMessage("usage", "&7Uso: &e/menuitem <on|off|toggle>"));
+            sendUsage(sender);
             return true;
         }
 
@@ -46,27 +47,26 @@ public class MenuItemCommand implements CommandExecutor, TabCompleter, Listener 
             case "on" -> {
                 boolean success = module.setDisabled(player, false);
                 if (success) {
-                    sender.sendMessage(getMessage("on", "&aActivado."));
+                    sendMessage(sender, "on", "%prefix%<#00FB9A>Item de menú activado.");
                 } else {
-                    sender.sendMessage(getMessage("slot-occupied", "&cSlot ocupado."));
+                    sendMessage(sender, "slot-occupied", "%prefix%<#FF3300>El slot está ocupado.");
                 }
             }
             case "off" -> {
                 module.setDisabled(player, true);
-                sender.sendMessage(getMessage("off", "&cDesactivado."));
+                sendMessage(sender, "off", "%prefix%<#00FB9A>Item de menú desactivado.");
             }
             case "toggle" -> {
                 boolean disabled = module.isDisabled(player);
                 boolean success = module.setDisabled(player, !disabled);
                 if (success) {
-                    sender.sendMessage(!disabled
-                            ? getMessage("toggled-off", "&cDesactivado.")
-                            : getMessage("toggled-on", "&aActivado."));
+                    sendMessage(sender, !disabled ? "toggled-off" : "toggled-on",
+                            "%prefix%<#00FB9A>Estado del item de menú actualizado.");
                 } else {
-                    sender.sendMessage(getMessage("slot-occupied", "&cSlot ocupado."));
+                    sendMessage(sender, "slot-occupied", "%prefix%<#FF3300>El slot está ocupado.");
                 }
             }
-            default -> sender.sendMessage(getMessage("usage", "&7Uso: &e/menuitem <on|off|toggle>"));
+            default -> sendUsage(sender);
         }
 
         return true;
@@ -112,9 +112,8 @@ public class MenuItemCommand implements CommandExecutor, TabCompleter, Listener 
 
         if (diff < cooldownMillis) {
             double remaining = (cooldownMillis - diff) / 1000.0;
-            String msg = getMessage("cooldown", "&cEspera &e%time%s");
-            msg = msg.replace("%time%", String.format("%.1f", remaining));
-            player.sendMessage(msg);
+            sendMessage(player, "cooldown", "%prefix%<#FF3300>Espera <#FFD166>%time%s</#FFD166>.",
+                    "%time%", String.format("%.1f", remaining));
             return false;
         }
 
@@ -122,7 +121,22 @@ public class MenuItemCommand implements CommandExecutor, TabCompleter, Listener 
         return true;
     }
 
-    private String getMessage(String key, String def) {
-        return plugin.messages().module("menuitem", key, def);
+    private void sendUsage(CommandSender sender) {
+        CommandHelpRenderer.send(sender, "Item de menú", List.of(
+                CommandHelpRenderer.Entry.of(
+                        "/menuitem on", "Activar el item del menú", "/menuitem on"),
+                CommandHelpRenderer.Entry.of(
+                        "/menuitem off", "Desactivar el item del menú", "/menuitem off"),
+                CommandHelpRenderer.Entry.of(
+                        "/menuitem toggle", "Alternar el estado actual", "/menuitem toggle")));
+    }
+
+    private void sendMessage(CommandSender sender, String key, String fallback, String... replacements) {
+        FileConfiguration config = plugin.getConfigManager().getConfig("menuitem");
+        String raw = config == null ? fallback : config.getString("messages." + key, fallback);
+        for (int index = 0; index + 1 < replacements.length; index += 2) {
+            raw = raw.replace(replacements[index], replacements[index + 1]);
+        }
+        sender.sendMessage(plugin.parseComponent(raw));
     }
 }

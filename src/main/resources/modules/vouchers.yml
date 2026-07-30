@@ -18,7 +18,7 @@ gui:
 
 messages:
   no-permission: "%prefix%<red>No tienes permiso."
-  usage: "%prefix%<gray>Uso: <yellow>/voucher give <jugador> <tipo> [cantidad] <gray>| <yellow>/voucher reload"
+  usage: "%prefix%<gray>Usa <#FFD166>/voucher</#FFD166> para ver los comandos."
   give-usage: "%prefix%<gray>Uso: <yellow>/voucher give <jugador> <tipo> [cantidad]"
   player-not-found: "%prefix%<red>Jugador no encontrado."
   unknown-type: "%prefix%<red>Tipo de voucher desconocido: <white>%type%"

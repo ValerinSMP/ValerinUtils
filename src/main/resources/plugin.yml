@@ -1,28 +1,26 @@
 name: ValerinUtils
-version: "2.0.16"
+version: "${version}"
 main: me.mtynnn.valerinutils.ValerinUtils
 api-version: "1.21"
 author: Mtynnn
 description: Utilidades varias para ValerinSMP
-softdepend: [PlaceholderAPI, RoyaleEconomy, Vault, LuckPerms, MythicMobs]
+softdepend: [PlaceholderAPI, ExcellentEconomy, Vault, LuckPerms, MythicMobs, WorldGuard]
 
 commands:
   valerinutils:
+    description: Ayuda e información de ValerinUtils
+    usage: "/valerinutils <help|about>"
+    aliases: [vutils, vu]
+  valerinutilsadmin:
     description: Comandos de administración de ValerinUtils
-    usage: "/valerinutils reload [all|modulo]"
-    aliases: [vu, vutils]
+    usage: "/valerinutilsadmin <help|about|reload|debug|deathspawn>"
+    aliases: [vutilsadmin, vuadmin]
     permission: valerinutils.admin
     permission-message: "&cNo tienes permiso para usar este comando."
 
   menuitem:
     description: Activa o desactiva tu item de menú
     aliases: [menu]
-
-  vuspawn:
-    description: Configura el spawn (firstjoin/death)
-    usage: "/vuspawn <set|off|info> ..."
-    permission: valerinutils.admin
-    aliases: [setspawn]
 
   grace:
     description: Gestiona la inmunidad PvP de nuevos jugadores
@@ -34,9 +32,6 @@ commands:
   craft:
     description: Abre una mesa de trabajo
     aliases: [wv, workbench]
-  enderchest:
-    description: Abre tu cofre del ender
-    aliases: [ec]
   anvil:
     description: Abre un yunque
   smithingtable:

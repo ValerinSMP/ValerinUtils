@@ -3,7 +3,7 @@
 #
 # Ejemplo:
 # modules:
-#   kits:
+#   menuitem:
 #     enabled: true
 #   utility:
 #     enabled: false
@@ -16,11 +16,13 @@ modules:
     enabled: false
   codes:
     enabled: false
-  deathmessages:
-    enabled: false
-  kits:
+  deathspawn:
     enabled: false
   utility:
     enabled: false
-  itemeditor:
+  itemsign:
+    enabled: false
+  vouchers:
+    enabled: false
+  grace:
     enabled: false

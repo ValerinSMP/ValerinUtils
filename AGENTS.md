@@ -3,19 +3,20 @@
 ## Build & Run
 
 ```bash
-mvn clean package     # output: target/ValerinUtils-2.0.16.jar
+./gradlew clean test build     # output: build/libs/ValerinUtils-1.0.0.jar
 ```
 
-- Java 21 required (`maven-compiler-plugin` release=21).
-- No tests, no linter, no formatter configured.
+- Java 21 required (Gradle toolchain and compiler release 21).
+- JUnit 5 tests cover pure condition logic; no linter or formatter is configured.
 
 ## plugin.yml: the real one
 
-Root `/plugin.yml` is **outdated**. The canonical file is `src/main/resources/plugin.yml` — it's the one included in the JAR. Root copy is missing the `sign`/`itemsign` commands and the permissions block.
+The canonical file is `src/main/resources/plugin.yml` — it's the one included in
+the JAR. Do not restore the obsolete root `/plugin.yml` copy.
 
 ## Architecture
 
-**Module-based plugin** for Paper 1.21.8 (`api-version: "1.21"`).
+**Module-based plugin** for Paper 1.21.11+ (`api-version: "1.21"`).
 
 ```
 ValerinUtils (main class, ~1280 lines)
@@ -49,7 +50,7 @@ ValerinUtils (main class, ~1280 lines)
 - 13 config files registered: `settings.yml`, `debug.yml`, `sellprice.yml`, plus 10 modules under `modules/`.
 - Config has **code-based versioning** — each module has an `update*Config()` method that adds missing keys with defaults. Adding a new YAML key also requires adding it in the corresponding update method.
 - Legacy `config.yml` (pre-2.0) is auto-migrated to per-module files on first load.
-- `&a` → MiniMessage conversion runs on first load. Kits `display_name` paths are **skipped** from this conversion.
+- `&a` → MiniMessage conversion runs on first load.
 - `settings.messages.aesthetic-theme-enabled` rewrites standard MiniMessage colors to branded hex palette in-place on every load.
 - `sellprice.yml` has **duplicate entries** (both `iron_ingot` and `ironingot` stripped variants) — search for material by uppercase name, not by stripping underscores.
 
@@ -78,7 +79,8 @@ ValerinUtils (main class, ~1280 lines)
 
 - `CommandRegistry` binds module-owned commands. On module disable/reload, all commands owned by that module are unbound (executor set to null, but command stays registered in Bukkit).
 - `plugin.yml` declares **all** commands upfront (not dynamically registered).
-- The main class has **~300 lines of reflection** (`purgeRegisteredCommands`, `reinstatePluginCommands`, `repairBrigadierDispatcher`) to support PlugManX-style hot-reload without server restart. This is fragile across Paper versions and should be treated as "don't touch unless broken."
+- Los comandos se declaran en `plugin.yml`; no se soporta PlugManX ni se manipula
+  `CommandMap`/Brigadier mediante reflexión.
 
 ## Module conventions
 
@@ -92,15 +94,14 @@ ValerinUtils (main class, ~1280 lines)
 - PlaceholderAPI — expansion registered if `%valerinutils_*` placeholders needed
 - LuckPerms — group checks in joinquit module
 - Vault — economy integration
-- RoyaleEconomy — alternative economy hook
+- ExcellentEconomy — economy provider exposed through Vault
 
 ## Code conventions
 
 - **Language:** Spanish for log messages, comments, and default player-facing messages. Source code identifiers are English.
-- Module classes that grow large (Kits module has 7 files, Utility has 10) are split into helper/handler classes within the same package, not sub-packages.
+- Module classes that grow large are split into helper/handler classes within the same package, not sub-packages.
 - No dependency injection framework — everything is wired manually in `ValerinUtils.onEnable()`.
 
 ## Utility scripts (not part of the plugin)
 
-- `check_db.py` — inspects RoyaleEconomy SQLite DB structure. Dev tool only.
 - `spigot-logging-config.yml` — reference config snippet to suppress command-log spam in `spigot.yml`. Drop-in config for server admins.

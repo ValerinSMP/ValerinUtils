@@ -15,7 +15,7 @@ bossbar:
 
 messages:
   no-permission: "%prefix%<red>No tienes permiso."
-  usage: "%prefix%<gray>Uso: <yellow>/grace remove <jugador> <gray>| <yellow>/grace add <jugador> <horas> <gray>| <yellow>/grace check [jugador] <gray>| <yellow>/grace list"
+  usage: "%prefix%<gray>Usa <#FFD166>/grace</#FFD166> para ver los comandos."
   usage-add: "%prefix%<gray>Uso: <yellow>/grace add <jugador> <horas>"
   usage-check: "%prefix%<gray>Uso: <yellow>/grace check <jugador>"
   player-not-found: "%prefix%<red>Jugador no encontrado."

@@ -33,13 +33,13 @@ final class UtilityHelpOpCommand {
         }
 
         if (args.length == 0) {
-            module.getMessageLines("helpop-usage").forEach(sender::sendMessage);
+            module.sendMessageLines(sender, "helpop-usage");
             return;
         }
 
         String message = String.join(" ", args).trim();
         if (message.isBlank()) {
-            module.getMessageLines("helpop-usage").forEach(sender::sendMessage);
+            module.sendMessageLines(sender, "helpop-usage");
             return;
         }
 

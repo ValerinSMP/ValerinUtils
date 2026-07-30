@@ -2,17 +2,17 @@ package me.mtynnn.valerinutils.core;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.Collections;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ModuleManager {
 
     private final JavaPlugin plugin;
     private final Map<String, BaseModule> modules = new LinkedHashMap<>();
-    private final Set<String> enabledModules = new HashSet<>();
+    private final Set<String> enabledModules = ConcurrentHashMap.newKeySet();
 
     public ModuleManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -20,6 +20,9 @@ public class ModuleManager {
 
     public void registerModule(BaseModule module) {
         modules.put(module.getId(), module);
+        if (plugin instanceof me.mtynnn.valerinutils.ValerinUtils vPlugin) {
+            vPlugin.getCommandRegistry().declare(module.getId(), module.getCommandNames());
+        }
     }
 
     public BaseModule getModule(String id) {

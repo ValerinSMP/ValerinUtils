@@ -19,15 +19,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ConfigManager {
     private static final Pattern LEGACY_HEX_PATTERN = Pattern.compile("(?i)&#([0-9a-f]{6})");
     private static final Map<String, Object> UTILITIES_DEFAULTS = buildUtilitiesDefaults();
 
     private final ValerinUtils plugin;
-    private final Map<String, FileConfiguration> configs = new HashMap<>();
-    private final Map<String, File> files = new HashMap<>();
-    private final Map<String, String> configPaths = new HashMap<>();
+    private final Map<String, FileConfiguration> configs = new ConcurrentHashMap<>();
+    private final Map<String, File> files = new ConcurrentHashMap<>();
+    private final Map<String, String> configPaths = new ConcurrentHashMap<>();
 
     public ConfigManager(ValerinUtils plugin) {
         this.plugin = plugin;
@@ -62,7 +63,7 @@ public class ConfigManager {
         registerConfig("debug", "debug.yml");
         registerConfig("killrewards", "modules/killrewards.yml");
         registerConfig("menuitem", "modules/menuitem.yml");
-        registerConfig("deathmessages", "modules/deathmessages.yml");
+        registerConfig("deathspawn", "modules/deathspawn.yml");
         registerConfig("itemsign", "modules/itemsign.yml");
         registerConfig("codes", "modules/codes.yml");
         registerConfig("utility", "modules/utilities.yml");
@@ -75,10 +76,10 @@ public class ConfigManager {
         // 2. Check for migration (Will merge legacy values into the just-created
         // defaults)
         migrateLegacyConfig(); // Legacy config.yml -> new structure
-        mergeMissingKeysFromDefaults();
 
-        // 3. Update Settings (Add missing keys for updates)
+        // Migrate versioned sections before merging missing version markers.
         updateSettingsConfig();
+        mergeMissingKeysFromDefaults();
 
         // 4. Update Module Configs (Add missing keys from new versions)
         updateModuleConfigs();
@@ -96,8 +97,19 @@ public class ConfigManager {
             return;
 
         boolean changed = false;
+        if (settings.getInt("messages.help-style-version", 0) < 3
+                || !hasValidHelpEntries(settings)) {
+            changed |= migrateSettingsHelp(settings);
+        }
+        if (settings.getInt("messages.palette-version", 0) < 1) {
+            settings.set("messages.palette-version", 1);
+            settings.set("messages.aesthetic-theme-enabled", true);
+            settings.set("messages.prefix",
+                    "<dark_gray>[<#FFD166>ᴠᴀʟᴇʀɪɴ</#FFD166><dark_gray>]</dark_gray> ");
+            changed = true;
+        }
         changed |= setIfMissing(settings, "messages.valerinutils-usage",
-                "%prefix%<gray>Uso: <yellow>/valerinutils reload [all|modulo]");
+                "%prefix%<gray>Uso: <yellow>/valerinutilsadmin reload [all|modulo]");
         changed |= setIfMissing(settings, "messages.valerinutils-reload-ok",
                 "%prefix%<green>Configuracion y modulos recargados correctamente.");
         changed |= setIfMissing(settings, "messages.valerinutils-reload-module-ok",
@@ -132,8 +144,9 @@ public class ConfigManager {
         updateUtilitiesConfig();
         updateMenuItemConfig();
         updateKillRewardsConfig();
-        updateDeathMessagesConfig();
         updateVouchersConfig();
+        updateGraceConfig();
+        updateDeathSpawnConfig();
             // updateCodesConfig();
     }
 
@@ -143,7 +156,7 @@ public class ConfigManager {
             return;
         }
 
-        boolean changed = false;
+        boolean changed = migrateMessageStyle("menuitem", config, "modules/menuitem.yml", 3);
         if (!config.contains("messages.usage")) {
             config.set("messages.usage", "%prefix%<gray>Uso: <yellow>/menuitem <on|off|toggle>");
             changed = true;
@@ -184,7 +197,9 @@ public class ConfigManager {
         if (config == null) {
             return;
         }
-        // Defaults live in resources/modules/itemsign.yml; this hook keeps future migrations centralized.
+        if (migrateMessageStyle("itemsign", config, "modules/itemsign.yml", 3)) {
+            saveConfig("itemsign");
+        }
     }
 
     private void updateKillRewardsConfig() {
@@ -275,11 +290,113 @@ public class ConfigManager {
         if (config == null)
             return;
 
-        boolean changed = applyMissingDefaults(config, UTILITIES_DEFAULTS);
+        boolean changed = migrateMessageStyle("utility", config, "modules/utilities.yml", 3);
+        changed |= applyMissingDefaults(config, UTILITIES_DEFAULTS);
         if (changed) {
             saveConfig("utility");
             plugin.getLogger().info("[Utility] Config updated with new keys.");
         }
+    }
+
+    private boolean migrateSettingsHelp(FileConfiguration settings) {
+        try (InputStream input = plugin.getResource("settings.yml")) {
+            if (input == null) {
+                return false;
+            }
+            FileConfiguration defaults = YamlConfiguration.loadConfiguration(
+                    new InputStreamReader(input, StandardCharsets.UTF_8));
+            ConfigurationSection help = defaults.getConfigurationSection("messages.help");
+            if (help == null) {
+                return false;
+            }
+            backupMessagesBeforeMigration("settings");
+            settings.set("messages.help", sectionToMap(help));
+            settings.set("messages.help-style-version", 3);
+            plugin.getLogger().info("[Settings] Ayuda migrada al formato interactivo v3.");
+            return true;
+        } catch (IOException exception) {
+            plugin.getLogger().warning("No se pudo migrar la ayuda de settings.yml: "
+                    + exception.getMessage());
+            return false;
+        }
+    }
+
+    private boolean hasValidHelpEntries(FileConfiguration settings) {
+        List<Map<?, ?>> entries = settings.getMapList("messages.help.entries");
+        if (entries.size() < 10) {
+            return false;
+        }
+        for (Map<?, ?> entry : entries) {
+            Object command = entry.get("command");
+            Object description = entry.get("description");
+            if (command == null || command.toString().isBlank()
+                    || description == null || description.toString().isBlank()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean migrateMessageStyle(
+            String configId,
+            FileConfiguration config,
+            String resourcePath,
+            int targetVersion
+    ) {
+        if (config.getInt("message-style-version", 0) >= targetVersion) {
+            return false;
+        }
+
+        try (InputStream input = plugin.getResource(resourcePath)) {
+            if (input == null) {
+                plugin.getLogger().warning("No se encontro el recurso para migrar mensajes: " + resourcePath);
+                return false;
+            }
+            FileConfiguration defaults = YamlConfiguration.loadConfiguration(
+                    new InputStreamReader(input, StandardCharsets.UTF_8));
+            ConfigurationSection messages = defaults.getConfigurationSection("messages");
+            if (messages == null) {
+                return false;
+            }
+            backupMessagesBeforeMigration(configId);
+            config.set("messages", sectionToMap(messages));
+            config.set("message-style-version", targetVersion);
+            plugin.getLogger().info("[" + resourcePath + "] Mensajes migrados al estilo visual v"
+                    + targetVersion + ".");
+            return true;
+        } catch (IOException exception) {
+            plugin.getLogger().warning("No se pudieron migrar mensajes de " + resourcePath + ": "
+                    + exception.getMessage());
+            return false;
+        }
+    }
+
+    private void backupMessagesBeforeMigration(String configId) {
+        File source = files.get(configId);
+        if (source == null || !source.isFile()) {
+            return;
+        }
+        File backup = new File(source.getParentFile(), source.getName() + ".messages-v1.bak");
+        if (backup.exists()) {
+            return;
+        }
+        try {
+            Files.copy(source.toPath(), backup.toPath());
+        } catch (IOException exception) {
+            plugin.getLogger().warning("No se pudo respaldar " + source.getName()
+                    + " antes de migrar sus mensajes: " + exception.getMessage());
+        }
+    }
+
+    private Map<String, Object> sectionToMap(ConfigurationSection section) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        for (String key : section.getKeys(false)) {
+            Object value = section.get(key);
+            values.put(key, value instanceof ConfigurationSection child
+                    ? sectionToMap(child)
+                    : cloneConfigValue(value));
+        }
+        return values;
     }
 
     private boolean applyMissingDefaults(FileConfiguration config, Map<String, Object> defaults) {
@@ -300,7 +417,6 @@ public class ConfigManager {
         defaults.put("enabled", true);
 
         defaults.put("commands.craft.enabled", true);
-        defaults.put("commands.enderchest.enabled", true);
         defaults.put("commands.anvil.enabled", true);
         defaults.put("commands.smithing.enabled", true);
         defaults.put("commands.cartography.enabled", true);
@@ -477,41 +593,6 @@ public class ConfigManager {
                 + "). Config backups (*.back) created.");
     }
 
-    private void updateDeathMessagesConfig() {
-        FileConfiguration config = getConfig("deathmessages");
-        if (config == null)
-            return;
-
-        boolean changed = false;
-
-        if (!config.contains("spawn.first-join.enabled")) {
-            config.set("spawn.first-join.enabled", false);
-            changed = true;
-        }
-        if (!config.contains("spawn.first-join.location")) {
-            config.set("spawn.first-join.location", "world_lobby;-4;141;107;0;0");
-            changed = true;
-        }
-        if (!config.contains("spawn.first-join.delay-ticks")) {
-            config.set("spawn.first-join.delay-ticks", 1);
-            changed = true;
-        }
-
-        if (!config.contains("spawn.on-death.enabled")) {
-            config.set("spawn.on-death.enabled", false);
-            changed = true;
-        }
-        if (!config.contains("spawn.on-death.location")) {
-            config.set("spawn.on-death.location", "world_lobby;-4;141;107;0;0");
-            changed = true;
-        }
-
-        if (changed) {
-            saveConfig("deathmessages");
-            plugin.getLogger().info("[DeathMessages] Config updated with new keys.");
-        }
-    }
-
     private void updateCodesConfig() {
         FileConfiguration config = getConfig("codes");
         if (config == null) {
@@ -541,9 +622,9 @@ public class ConfigManager {
                 configs.put(id, YamlConfiguration.loadConfiguration(file));
             }
         }
+        updateSettingsConfig();
         mergeMissingKeysFromDefaults();
         // Re-run auto-updater after reload to ensure defaults are there
-        updateSettingsConfig();
         updateModuleConfigs();
         migrateSettingsMessagesToModules();
         updateDebugConfig();
@@ -557,7 +638,7 @@ public class ConfigManager {
         if (config == null) {
             return;
         }
-        boolean changed = false;
+        boolean changed = migrateMessageStyle("vouchers", config, "modules/vouchers.yml", 3);
         if (!config.contains("enabled")) {
             config.set("enabled", true);
             changed = true;
@@ -576,6 +657,28 @@ public class ConfigManager {
         }
     }
 
+    private void updateGraceConfig() {
+        FileConfiguration config = getConfig("grace");
+        if (config == null) {
+            return;
+        }
+        if (migrateMessageStyle("grace", config, "modules/grace.yml", 3)) {
+            saveConfig("grace");
+            plugin.getLogger().info("[Grace] Config updated with the current message style.");
+        }
+    }
+
+    private void updateDeathSpawnConfig() {
+        FileConfiguration config = getConfig("deathspawn");
+        if (config == null) {
+            return;
+        }
+        if (migrateMessageStyle("deathspawn", config, "modules/deathspawn.yml", 3)) {
+            saveConfig("deathspawn");
+            plugin.getLogger().info("[DeathSpawn] Config updated with the current message style.");
+        }
+    }
+
     public boolean reloadConfig(String id) {
         File file = files.get(id);
         if (file == null || !file.exists()) {
@@ -583,8 +686,8 @@ public class ConfigManager {
         }
 
         configs.put(id, YamlConfiguration.loadConfiguration(file));
-        mergeMissingKeysFromDefaults(id);
         updateConfig(id);
+        mergeMissingKeysFromDefaults(id);
         migrateLegacyFormattingToMiniMessage(id);
         applyAestheticThemeToMessages(id);
         plugin.getLogger().info("Configuration reloaded: " + id);
@@ -692,10 +795,11 @@ public class ConfigManager {
             case "menuitem" -> updateMenuItemConfig();
             case "killrewards" -> updateKillRewardsConfig();
             case "codes" -> updateCodesConfig();
-            case "deathmessages" -> updateDeathMessagesConfig();
+            case "deathspawn" -> updateDeathSpawnConfig();
             case "itemsign" -> updateItemSignConfig();
             case "utility" -> updateUtilitiesConfig();
             case "vouchers" -> updateVouchersConfig();
+            case "grace" -> updateGraceConfig();
             default -> {
             }
         }
@@ -705,21 +809,16 @@ public class ConfigManager {
         if (input == null || input.isEmpty()) {
             return input;
         }
-        if (!input.contains("%prefix%")) {
-            return input;
-        }
 
         String out = input;
-        out = out.replace("<dark_red>", "<color:#FF6961>");
-        out = out.replace("<red>", "<color:#FF6961>");
-        out = out.replace("<dark_green>", "<color:#77DD77>");
-        out = out.replace("<green>", "<color:#77DD77>");
-        out = out.replace("<gold>", "<color:#FFB347>");
-        out = out.replace("<yellow>", "<color:#FFB347>");
-        out = out.replace("<dark_gray>", "<color:#B8B8B8>");
-        out = out.replace("<gray>", "<color:#D0D0D0>");
-        out = out.replace("<aqua>", "<color:#9FE2FF>");
-        out = out.replace("<blue>", "<color:#8AB4FF>");
+        out = out.replace("<dark_red>", "<color:#FF3300>");
+        out = out.replace("<red>", "<color:#FF3300>");
+        out = out.replace("<dark_green>", "<color:#00FB9A>");
+        out = out.replace("<green>", "<color:#00FB9A>");
+        out = out.replace("<gold>", "<color:#FFC43B>");
+        out = out.replace("<yellow>", "<color:#FFD166>");
+        out = out.replace("<aqua>", "<color:#FFD166>");
+        out = out.replace("<blue>", "<color:#FFC43B>");
         return out;
     }
 
@@ -731,7 +830,7 @@ public class ConfigManager {
 
         boolean changed = false;
         String[] modules = {
-            "menuitem", "killrewards", "codes", "deathmessages", "itemsign", "utility", "vouchers", "grace"
+            "menuitem", "killrewards", "codes", "deathspawn", "itemsign", "utility", "vouchers", "grace"
         };
         for (String moduleId : modules) {
             String path = "modules." + moduleId + ".enabled";

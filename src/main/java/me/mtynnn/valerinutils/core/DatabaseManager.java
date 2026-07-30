@@ -87,9 +87,6 @@ public class DatabaseManager {
                 "daily_kills INTEGER DEFAULT 0, " +
                 "last_daily_reset BIGINT DEFAULT 0, " +
                 "menu_disabled BOOLEAN DEFAULT 0, " +
-                "royal_pay_disabled BOOLEAN DEFAULT 0, " +
-                "death_messages_disabled BOOLEAN DEFAULT 0, " +
-                "starter_kit_received BOOLEAN DEFAULT 0, " +
                 "nickname TEXT" +
                 ");";
 
@@ -98,19 +95,12 @@ public class DatabaseManager {
 
             // Attempt to add columns if missing (simple schema migration)
             addColumnIfMissing(stmt, "player_data", "menu_disabled", "BOOLEAN DEFAULT 0");
-            addColumnIfMissing(stmt, "player_data", "royal_pay_disabled", "BOOLEAN DEFAULT 0");
-            addColumnIfMissing(stmt, "player_data", "death_messages_disabled", "BOOLEAN DEFAULT 0");
-            addColumnIfMissing(stmt, "player_data", "starter_kit_received", "BOOLEAN DEFAULT 0");
             addColumnIfMissing(stmt, "player_data", "nickname", "TEXT");
-            addColumnIfMissing(stmt, "player_data", "total_money_earned", "REAL DEFAULT 0");
-            addColumnIfMissing(stmt, "player_data", "total_shards_earned", "REAL DEFAULT 0");
             addColumnIfMissing(stmt, "player_data", "grace_expires_at", "BIGINT DEFAULT 0");
             addColumnIfMissing(stmt, "player_data", "grace_pvp_warned", "BOOLEAN DEFAULT 0");
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not create tables", e);
         }
-
-        migratePlayerDataDropTikTokColumn();
 
         // Table: player_votes
         // Stores individual vote records for detailed stats
@@ -155,67 +145,6 @@ public class DatabaseManager {
         }
     }
 
-    private void migratePlayerDataDropTikTokColumn() {
-        Connection conn = getConnection();
-        if (conn == null) {
-            plugin.getLogger().warning("No se pudo migrar player_data: conexion a DB no disponible");
-            return;
-        }
-        try {
-            if (!hasColumn("player_data", "tiktok_claimed")) {
-                return;
-            }
-
-            boolean previousAutoCommit = conn.getAutoCommit();
-            conn.setAutoCommit(false);
-
-            try (Statement stmt = conn.createStatement()) {
-                stmt.execute("""
-                        CREATE TABLE IF NOT EXISTS player_data_new (
-                            uuid TEXT PRIMARY KEY,
-                            name TEXT,
-                            kills INTEGER DEFAULT 0,
-                            deaths INTEGER DEFAULT 0,
-                            daily_kills INTEGER DEFAULT 0,
-                            last_daily_reset BIGINT DEFAULT 0,
-                            menu_disabled BOOLEAN DEFAULT 0,
-                            royal_pay_disabled BOOLEAN DEFAULT 0,
-                            death_messages_disabled BOOLEAN DEFAULT 0,
-                            starter_kit_received BOOLEAN DEFAULT 0,
-                            nickname TEXT
-                        );
-                        """);
-
-                stmt.execute("""
-                        INSERT INTO player_data_new
-                        (uuid, name, kills, deaths, daily_kills, last_daily_reset, menu_disabled, royal_pay_disabled,
-                         death_messages_disabled, starter_kit_received, nickname)
-                        SELECT uuid, name, kills, deaths, daily_kills, last_daily_reset, menu_disabled, royal_pay_disabled,
-                               death_messages_disabled, starter_kit_received, nickname
-                        FROM player_data;
-                        """);
-
-                stmt.execute("DROP TABLE player_data;");
-                stmt.execute("ALTER TABLE player_data_new RENAME TO player_data;");
-            }
-
-            conn.commit();
-            conn.setAutoCommit(previousAutoCommit);
-            plugin.getLogger().info("Database migration: removed legacy column player_data.tiktok_claimed.");
-        } catch (SQLException e) {
-            try {
-                conn.rollback();
-            } catch (SQLException ignored) {
-                plugin.getLogger().warning("No se pudo hacer rollback durante la migracion de player_data");
-            }
-            try {
-                conn.setAutoCommit(true);
-            } catch (SQLException ignored) {
-            }
-            plugin.getLogger().log(Level.SEVERE, "Could not migrate player_data to remove tiktok_claimed", e);
-        }
-    }
-
     private void addColumnIfMissing(Statement stmt, String table, String column, String type) throws SQLException {
         try {
             stmt.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + type + ";");
@@ -225,21 +154,6 @@ public class DatabaseManager {
             }
             throw e;
         }
-    }
-
-    private boolean hasColumn(String table, String column) {
-        String sql = "PRAGMA table_info(" + table + ")";
-        try (Statement stmt = getConnection().createStatement();
-                ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                if (column.equalsIgnoreCase(rs.getString("name"))) {
-                    return true;
-                }
-            }
-        } catch (SQLException e) {
-            plugin.getLogger().warning("Could not inspect table schema for " + table + ": " + e.getMessage());
-        }
-        return false;
     }
 
     // ================== Reward Codes ==================

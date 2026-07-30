@@ -2,6 +2,7 @@ package me.mtynnn.valerinutils.modules.vouchers;
 
 import me.mtynnn.valerinutils.ValerinUtils;
 import me.mtynnn.valerinutils.core.BaseModule;
+import me.mtynnn.valerinutils.core.CommandHelpRenderer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.luckperms.api.LuckPerms;
@@ -48,6 +49,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -76,6 +78,11 @@ public final class VouchersModule extends BaseModule implements Listener, Comman
     @Override
     public String getId() {
         return "vouchers";
+    }
+
+    @Override
+    public Set<String> getCommandNames() {
+        return Set.of("voucher");
     }
 
     @Override
@@ -171,8 +178,7 @@ public final class VouchersModule extends BaseModule implements Listener, Comman
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(comp(msg("messages.usage",
-                    "%prefix%<gray>Uso: <yellow>/voucher give <jugador> <tipo> [cantidad] <gray>| <yellow>/voucher reload")));
+            sendVoucherHelp(sender);
             return true;
         }
 
@@ -245,9 +251,18 @@ public final class VouchersModule extends BaseModule implements Listener, Comman
             return true;
         }
 
-        sender.sendMessage(comp(msg("messages.usage",
-                "%prefix%<gray>Uso: <yellow>/voucher give <jugador> <tipo> [cantidad] <gray>| <yellow>/voucher reload")));
+        sendVoucherHelp(sender);
         return true;
+    }
+
+    private void sendVoucherHelp(CommandSender sender) {
+        CommandHelpRenderer.send(sender, "Vouchers", List.of(
+                CommandHelpRenderer.Entry.of(
+                        "/voucher give (jugador) (tipo) [cantidad]",
+                        "Entregar vouchers a un jugador",
+                        "/voucher give "),
+                CommandHelpRenderer.Entry.of(
+                        "/voucher reload", "Recargar la configuración", "/voucher reload")));
     }
 
     @Override

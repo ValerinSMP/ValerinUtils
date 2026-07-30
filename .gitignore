@@ -1,5 +1,10 @@
 target/
+build/
+bin/
+.gradle/
 .idea/
 .vscode/
 *.iml
 *.log
+*.jar
+!gradle/wrapper/gradle-wrapper.jar

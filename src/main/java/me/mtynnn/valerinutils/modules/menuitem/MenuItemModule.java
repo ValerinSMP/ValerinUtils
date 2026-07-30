@@ -1,8 +1,11 @@
 package me.mtynnn.valerinutils.modules.menuitem;
 
 import me.mtynnn.valerinutils.ValerinUtils;
+import me.mtynnn.valerinutils.commands.MenuItemCommand;
 import me.mtynnn.valerinutils.core.BaseModule;
+import me.mtynnn.valerinutils.core.PlaceholderCondition;
 import me.mtynnn.valerinutils.core.PlayerData;
+import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -60,7 +63,15 @@ public class MenuItemModule extends BaseModule implements Listener {
     }
 
     @Override
+    public Set<String> getCommandNames() {
+        return Set.of("menuitem");
+    }
+
+    @Override
     protected void onEnableModule() {
+        MenuItemCommand command = new MenuItemCommand(plugin, this);
+        registerCommand("menuitem", command, command);
+        registerListener(command);
         registerListener(this);
         // Invalidate cache so fresh config values are used
         invalidateCache();
@@ -71,12 +82,7 @@ public class MenuItemModule extends BaseModule implements Listener {
 
     @Override
     protected void onDisableModule() {
-        // Unregister all event handlers
-        try {
-            org.bukkit.event.HandlerList.unregisterAll(this);
-        } catch (Exception ignored) {}
-
-        // Remove menu items from all online players
+        // BaseModule unregisters listeners. Only remove PDC-tagged menu items.
         try {
             for (org.bukkit.entity.Player player : plugin.getServer().getOnlinePlayers()) {
                 clearMenuItem(player);
@@ -164,12 +170,40 @@ public class MenuItemModule extends BaseModule implements Listener {
         return slot;
     }
 
-    private String getCommandTemplate() {
+    private String getCommandTemplate(Player player) {
         ConfigurationSection section = getSection();
         if (section == null) {
             return "dm open menu-main %player%";
         }
+        for (java.util.Map<?, ?> rule : section.getMapList("command-rules")) {
+            Object command = rule.get("command");
+            if (command == null) {
+                continue;
+            }
+            Object conditionObject = rule.get("condition");
+            if (!(conditionObject instanceof java.util.Map<?, ?> condition)) {
+                return command.toString();
+            }
+            String placeholder = stringValue(condition.get("placeholder"));
+            String resolved = resolvePlaceholders(player, placeholder);
+            if (PlaceholderCondition.matches(placeholder, resolved,
+                    stringValue(condition.get("operator")), stringValue(condition.get("value")))) {
+                return command.toString();
+            }
+        }
         return section.getString("command", "dm open menu-main %player%");
+    }
+
+    private String stringValue(Object value) {
+        return value == null ? "" : value.toString();
+    }
+
+    private String resolvePlaceholders(Player player, String value) {
+        if (value == null || value.isBlank()
+                || !Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return value == null ? "" : value;
+        }
+        return PlaceholderAPI.setPlaceholders(player, value);
     }
 
     private ItemStack createMenuItem() {
@@ -246,21 +280,6 @@ public class MenuItemModule extends BaseModule implements Listener {
             return true;
         }
 
-        // 2. Fallback: Check Name & Material (For legacy/glitching items)
-        ConfigurationSection section = getSection();
-        if (section != null) {
-            String cfgName = plugin.translateColors(section.getString("name", ""));
-            String stackName = plugin.translateColors(meta.hasDisplayName() ? meta.getDisplayName() : "");
-            if (!cfgName.isEmpty() && cfgName.equals(stackName)) {
-                String materialName = section.getString("material", "COMPASS");
-                if (stack.getType() == Material.matchMaterial(materialName)) {
-                    // Update tag for future efficiency (optional, but lets just identifying it as
-                    // menu)
-                    return true;
-                }
-            }
-        }
-
         return false;
     }
 
@@ -299,6 +318,9 @@ public class MenuItemModule extends BaseModule implements Listener {
     }
 
     private void giveMenuItem(Player player) {
+        if (!isActive() || !isEnabledInConfig()) {
+            return;
+        }
         if (isDisabled(player)) {
             clearMenuItem(player);
             debug("No se entrega MenuItem a " + player.getName() + ": desactivado por jugador.");
@@ -320,14 +342,19 @@ public class MenuItemModule extends BaseModule implements Listener {
         int slot = getConfiguredSlot();
         PlayerInventory inv = player.getInventory();
 
-        // borrar cualquier copia previa en el inventario
+        ItemStack itemInTargetSlot = inv.getItem(slot);
+        if (itemInTargetSlot != null && !itemInTargetSlot.getType().isAir() && !isMenuItem(itemInTargetSlot)) {
+            debug("No se entrega MenuItem a " + player.getName() + ": slot " + slot + " ocupado.");
+            return;
+        }
+
+        // Remove only tagged duplicates. Never rewrite the whole inventory.
         ItemStack[] contents = inv.getContents();
         for (int i = 0; i < contents.length; i++) {
-            if (isMenuItem(contents[i])) {
-                contents[i] = null;
+            if (i != slot && isMenuItem(contents[i])) {
+                inv.setItem(i, null);
             }
         }
-        inv.setContents(contents);
 
         // crear y poner el ítem en el slot configurado
         ItemStack menuItem = createMenuItem();
@@ -348,7 +375,7 @@ public class MenuItemModule extends BaseModule implements Listener {
         playMenuSound(player);
 
         // luego el comando
-        String template = getCommandTemplate();
+        String template = getCommandTemplate(player);
         if (template == null || template.isBlank()) {
             return;
         }

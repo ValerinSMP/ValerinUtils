@@ -2,6 +2,7 @@ package me.mtynnn.valerinutils.modules.itemsign;
 
 import me.mtynnn.valerinutils.ValerinUtils;
 import me.mtynnn.valerinutils.core.BaseModule;
+import java.util.Set;
 
 public final class ItemSignModule extends BaseModule {
 
@@ -15,6 +16,11 @@ public final class ItemSignModule extends BaseModule {
     @Override
     public String getId() {
         return "itemsign";
+    }
+
+    @Override
+    public Set<String> getCommandNames() {
+        return Set.of("sign", "itemsign");
     }
 
     @Override

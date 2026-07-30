@@ -10,10 +10,7 @@ public class PlayerData {
     private int dailyKills; // This is actually daily rewards count for KillRewards
     private long lastDailyReset; // Timestamp of the last day tracked
     private boolean menuDisabled;
-    private boolean royalPayDisabled;
     private String nickname;
-    private double totalMoneyEarned;
-    private double totalShardsEarned;
     private long graceExpiresAt; // 0=never granted, -1=expired/removed, >0=active threshold (playtime ticks)
     private boolean gracePvpWarned;
 
@@ -34,15 +31,6 @@ public class PlayerData {
 
     public void setMenuDisabled(boolean menuDisabled) {
         this.menuDisabled = menuDisabled;
-        this.dirty = true;
-    }
-
-    public boolean isRoyalPayDisabled() {
-        return royalPayDisabled;
-    }
-
-    public void setRoyalPayDisabled(boolean royalPayDisabled) {
-        this.royalPayDisabled = royalPayDisabled;
         this.dirty = true;
     }
 
@@ -115,38 +103,6 @@ public class PlayerData {
     public void setNickname(String nickname) {
         this.nickname = nickname;
         this.dirty = true;
-    }
-
-    public double getTotalMoneyEarned() {
-        return totalMoneyEarned;
-    }
-
-    public void setTotalMoneyEarned(double v) {
-        this.totalMoneyEarned = v;
-        this.dirty = true;
-    }
-
-    public void addMoneyEarned(double amount) {
-        if (amount > 0) {
-            this.totalMoneyEarned += amount;
-            this.dirty = true;
-        }
-    }
-
-    public double getTotalShardsEarned() {
-        return totalShardsEarned;
-    }
-
-    public void setTotalShardsEarned(double v) {
-        this.totalShardsEarned = v;
-        this.dirty = true;
-    }
-
-    public void addShardsEarned(double amount) {
-        if (amount > 0) {
-            this.totalShardsEarned += amount;
-            this.dirty = true;
-        }
     }
 
     public long getGraceExpiresAt() { return graceExpiresAt; }

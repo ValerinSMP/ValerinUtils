@@ -3,6 +3,7 @@ package me.mtynnn.valerinutils.core;
 import me.mtynnn.valerinutils.ValerinUtils;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -17,6 +18,7 @@ public abstract class BaseModule {
 
     protected final ValerinUtils plugin;
     private final Set<Listener> listeners = new HashSet<>();
+    private boolean active;
 
     protected BaseModule(ValerinUtils plugin) {
         this.plugin = plugin;
@@ -24,11 +26,29 @@ public abstract class BaseModule {
 
     public abstract String getId();
 
+    public Set<String> getCommandNames() {
+        return Set.of();
+    }
+
     public final void enable() {
-        onEnableModule();
+        active = true;
+        try {
+            onEnableModule();
+        } catch (Throwable throwable) {
+            for (Listener listener : listeners) {
+                HandlerList.unregisterAll(listener);
+            }
+            listeners.clear();
+            plugin.getCommandRegistry().unbindOwner(getId());
+            active = false;
+            throw throwable;
+        }
     }
 
     public final void disable() {
+        if (!active) {
+            return;
+        }
         try {
             onDisableModule();
         } finally {
@@ -37,7 +57,12 @@ public abstract class BaseModule {
             }
             listeners.clear();
             plugin.getCommandRegistry().unbindOwner(getId());
+            active = false;
         }
+    }
+
+    public final boolean isActive() {
+        return active;
     }
 
     protected abstract void onEnableModule();
@@ -81,6 +106,20 @@ public abstract class BaseModule {
 
     protected final Component comp(String raw) {
         return plugin.messages().component(raw);
+    }
+
+    protected final void sendMessageLines(CommandSender sender, String key, String fallback) {
+        FileConfiguration config = cfg();
+        Object value = config == null ? null : config.get("messages." + key);
+        if (value instanceof List<?> lines) {
+            for (Object line : lines) {
+                if (line instanceof String text) {
+                    sender.sendMessage(comp(text));
+                }
+            }
+            return;
+        }
+        sender.sendMessage(comp(value instanceof String text ? text : fallback));
     }
 
     protected final void debug(String message) {

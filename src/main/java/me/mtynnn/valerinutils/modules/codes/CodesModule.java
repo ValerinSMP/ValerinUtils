@@ -16,6 +16,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class CodesModule extends BaseModule implements CommandExecutor, TabCompleter {
@@ -28,6 +29,11 @@ public class CodesModule extends BaseModule implements CommandExecutor, TabCompl
     @Override
     public String getId() {
         return "codes";
+    }
+
+    @Override
+    public Set<String> getCommandNames() {
+        return Set.of("code");
     }
 
     @Override
