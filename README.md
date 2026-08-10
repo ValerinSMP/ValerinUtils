@@ -63,7 +63,7 @@ El listado completo de comandos y permisos está en
 
 | Paper | Java requerida | Folia |
 | :---: | :---: | :---: |
-| 1.21.11 en adelante | 21 | ❌ |
+| 1.21.11 en adelante | 21 (25 con ExcellentEconomy 2.8.0) | ❌ |
 
 Integraciones opcionales:
 
@@ -72,7 +72,7 @@ Integraciones opcionales:
 - Vault
 - ExcellentEconomy 2.8.0, mediante Vault y su evento de cambios de saldo
 - MythicMobs
-- WorldGuard, para respawns locales por región
+- WorldGuard, para respawns locales por región y Crimson Protection
 - Nexo 1.26.0, para identificar bloques permitidos en Crimson Protection
 
 ## Crimson Protection
