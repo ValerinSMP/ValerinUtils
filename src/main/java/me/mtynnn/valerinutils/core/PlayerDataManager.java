@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BooleanSupplier;
 
 public class PlayerDataManager implements Listener {
 
@@ -106,6 +107,8 @@ public class PlayerDataManager implements Listener {
                     pd.setLastDailyReset(rs.getLong("last_daily_reset"));
                     pd.setMenuDisabled(rs.getBoolean("menu_disabled"));
                     pd.setNickname(rs.getString("nickname"));
+                    pd.setTotalMoneyEarned(rs.getDouble("total_money_earned"));
+                    pd.setTotalShardsEarned(rs.getDouble("total_shards_earned"));
                     pd.setGraceExpiresAt(rs.getLong("grace_expires_at"));
                     pd.setGracePvpWarned(rs.getBoolean("grace_pvp_warned"));
                     pd.setDirty(false);
@@ -119,14 +122,16 @@ public class PlayerDataManager implements Listener {
     private void saveToDB(PlayerData data) {
         if (data == null) return;
         String sql = "INSERT INTO player_data (uuid, name, kills, deaths, daily_kills, last_daily_reset, menu_disabled, "
-                + "nickname, grace_expires_at, grace_pvp_warned) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                + "nickname, total_money_earned, total_shards_earned, grace_expires_at, grace_pvp_warned) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 + "ON CONFLICT(uuid) DO UPDATE SET "
                 + "name=excluded.name, kills=excluded.kills, "
                 + "deaths=excluded.deaths, daily_kills=excluded.daily_kills, "
                 + "last_daily_reset=excluded.last_daily_reset, "
                 + "menu_disabled=excluded.menu_disabled, "
                 + "nickname=excluded.nickname, "
+                + "total_money_earned=excluded.total_money_earned, "
+                + "total_shards_earned=excluded.total_shards_earned, "
                 + "grace_expires_at=excluded.grace_expires_at, "
                 + "grace_pvp_warned=excluded.grace_pvp_warned";
         try (PreparedStatement ps = plugin.getDatabaseManager().getConnection().prepareStatement(sql)) {
@@ -138,12 +143,30 @@ public class PlayerDataManager implements Listener {
             ps.setLong(6, data.getLastDailyReset());
             ps.setBoolean(7, data.isMenuDisabled());
             ps.setString(8, data.getNickname());
-            ps.setLong(9, data.getGraceExpiresAt());
-            ps.setBoolean(10, data.isGracePvpWarned());
+            ps.setDouble(9, data.getTotalMoneyEarned());
+            ps.setDouble(10, data.getTotalShardsEarned());
+            ps.setLong(11, data.getGraceExpiresAt());
+            ps.setBoolean(12, data.isGracePvpWarned());
             ps.executeUpdate();
         } catch (SQLException e) {
             plugin.getLogger().severe("Could not save data for " + data.getName());
             e.printStackTrace();
         }
+    }
+
+    public boolean addEarnings(UUID uuid, EarningsCurrency currency, double amount) {
+        if (amount <= 0 || !Double.isFinite(amount)) return false;
+        PlayerData data = cache.get(uuid);
+        return persistThenPublish(
+                () -> plugin.getDatabaseManager().incrementEarnings(uuid.toString(), currency, amount),
+                () -> {
+                    if (data != null) data.addEarnings(currency, amount);
+                });
+    }
+
+    static boolean persistThenPublish(BooleanSupplier persist, Runnable publish) {
+        if (!persist.getAsBoolean()) return false;
+        publish.run();
+        return true;
     }
 }

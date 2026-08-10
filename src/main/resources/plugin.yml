@@ -4,7 +4,7 @@ main: me.mtynnn.valerinutils.ValerinUtils
 api-version: "1.21"
 author: Mtynnn
 description: Utilidades varias para ValerinSMP
-softdepend: [PlaceholderAPI, ExcellentEconomy, Vault, LuckPerms, MythicMobs, WorldGuard]
+softdepend: [PlaceholderAPI, ExcellentEconomy, Vault, LuckPerms, MythicMobs, WorldGuard, Nexo]
 
 commands:
   valerinutils:
@@ -142,6 +142,9 @@ commands:
     permission: valerinutils.admin
 
 permissions:
+  valerinutils.crimsonprotection.bypass:
+    description: Ignora la proteccion minera crimson
+    default: op
   valerinutils.itemsign.use:
     description: Permite firmar el item en la mano
     default: false

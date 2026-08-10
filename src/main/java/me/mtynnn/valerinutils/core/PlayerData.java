@@ -11,6 +11,8 @@ public class PlayerData {
     private long lastDailyReset; // Timestamp of the last day tracked
     private boolean menuDisabled;
     private String nickname;
+    private double totalMoneyEarned;
+    private double totalShardsEarned;
     private long graceExpiresAt; // 0=never granted, -1=expired/removed, >0=active threshold (playtime ticks)
     private boolean gracePvpWarned;
 
@@ -103,6 +105,33 @@ public class PlayerData {
     public void setNickname(String nickname) {
         this.nickname = nickname;
         this.dirty = true;
+    }
+
+    public double getTotalMoneyEarned() {
+        return totalMoneyEarned;
+    }
+
+    public void setTotalMoneyEarned(double totalMoneyEarned) {
+        this.totalMoneyEarned = totalMoneyEarned;
+        this.dirty = true;
+    }
+
+    public double getTotalShardsEarned() {
+        return totalShardsEarned;
+    }
+
+    public void setTotalShardsEarned(double totalShardsEarned) {
+        this.totalShardsEarned = totalShardsEarned;
+        this.dirty = true;
+    }
+
+    public void addEarnings(EarningsCurrency currency, double amount) {
+        if (currency == EarningsCurrency.MONEY) {
+            totalMoneyEarned += amount;
+        } else {
+            totalShardsEarned += amount;
+        }
+        dirty = true;
     }
 
     public long getGraceExpiresAt() { return graceExpiresAt; }

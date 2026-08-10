@@ -3,7 +3,7 @@
 ## Build & Run
 
 ```bash
-./gradlew clean test build     # output: build/libs/ValerinUtils-1.0.0.jar
+./gradlew clean test build     # output: build/libs/ValerinUtils-1.1.1.jar
 ```
 
 - Java 21 required (Gradle toolchain and compiler release 21).
@@ -94,7 +94,11 @@ ValerinUtils (main class, ~1280 lines)
 - PlaceholderAPI — expansion registered if `%valerinutils_*` placeholders needed
 - LuckPerms — group checks in joinquit module
 - Vault — economy integration
-- ExcellentEconomy — economy provider exposed through Vault
+- ExcellentEconomy 2.8.0 — Vault provider plus optional earnings events. Keep
+  the API `compileOnly`; its adapter must capture only UUID/currency/delta and
+  serialize SQLite/cache mutation on the main thread.
+- WorldGuard and Nexo — optional Crimson Protection integrations. Register its
+  StateFlag only from `onLoad()`; reload only replaces the validated settings snapshot.
 
 ## Code conventions
 

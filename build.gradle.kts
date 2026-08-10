@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "me.mtynnn"
-version = "1.0.0"
+version = "1.1.1"
 
 providers.environmentVariable("VALERIN_BUILD_DIR").orNull?.let {
     layout.buildDirectory.set(file(it))
@@ -14,6 +14,8 @@ repositories {
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://repo.extendedclip.com/content/repositories/placeholderapi/")
     maven("https://maven.enginehub.org/repo/")
+    maven("https://repo.nexomc.com/releases")
+    maven("https://repo.nightexpressdev.com/releases")
     maven("https://jitpack.io")
 }
 
@@ -21,6 +23,8 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     compileOnly("me.clip:placeholderapi:2.11.6")
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.17")
+    compileOnly("com.nexomc:nexo:1.26.0")
+    compileOnly("su.nightexpress.excellenteconomy:ExcellentEconomy:2.8.0")
     compileOnly("net.luckperms:api:5.4")
     compileOnly("com.github.MilkBowl:VaultAPI:1.7") {
         exclude(group = "org.bukkit", module = "bukkit")
@@ -29,6 +33,8 @@ dependencies {
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     testImplementation(platform("org.junit:junit-bom:5.10.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
+    testImplementation("com.sk89q.worldguard:worldguard-core:7.0.17")
+    testRuntimeOnly("org.xerial:sqlite-jdbc:3.46.1.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

@@ -9,7 +9,7 @@ de una sola vez: cada módulo se aislará y migrará con un contrato verificable
 
 ## Base actual
 
-- Versión baseline 1.0.0.
+- Versión actual 1.1.1; el baseline SemVer fue 1.0.0.
 - Desde este baseline se aplica SemVer: PATCH para correcciones compatibles,
   MINOR para funcionalidades compatibles y MAJOR para cambios incompatibles.
 - Java 21, Gradle Kotlin DSL 9.1.0 y Paper API 1.21.11.
@@ -29,7 +29,7 @@ de una sola vez: cada módulo se aislará y migrará con un contrato verificable
 - Defaults y migraciones de configuración repartidos en código.
 - MenuItem solo identifica objetos mediante su etiqueta PDC y nunca sobrescribe
   un slot ocupado por un objeto normal.
-- Geodes, kits, itemeditor, VUSpawn y RoyaleEconomy fueron retirados.
+- Geodes, kits, itemeditor, VUSpawn y la integración RoyaleEconomy fueron retirados.
 - DeathSpawn guarda la ubicación exacta de muerte y puede seleccionar una regla
   por mundo y región de WorldGuard. Cada región KOTH apunta directamente a unas
   coordenadas de respawn del mismo servidor; no usa placeholders ni comandos warp.
@@ -80,6 +80,23 @@ de una sola vez: cada módulo se aislará y migrará con un contrato verificable
   autocompletado al hilo principal antes de acceder a Bukkit, configuraciones o
   ciclo de módulos. El estado compartido de módulos/configs usa colecciones
   concurrentes para garantizar visibilidad antes y después de un reload.
+- Crimson Protection registra `valerin-crimson-protection` exclusivamente en
+  `onLoad()`. WorldGuard y Nexo son opcionales; el listener se registra una vez y
+  los reloads solo sustituyen un snapshot validado de `settings.yml`.
+- Dentro de un mundo configurado y una región con la flag en `ALLOW`, solo se
+  permite romper IDs Nexo configurados. Un lookup ausente o fallido se cierra
+  de forma segura sin afectar mundos o regiones fuera de ese alcance.
+- La única API Nexo compilada y verificada es 1.26.0. Falta el smoke de servidor
+  con los JARs runtime reales de Nexo y WorldGuard; no asumir compatibilidad con
+  otras versiones hasta ejecutar esa prueba.
+- Los placeholders públicos `earnings_money` y `earnings_shards` son acumulados,
+  no saldos. ExcellentEconomy 2.8.0 emite `ChangeBalanceEvent`; solo sus deltas
+  positivos para IDs `money`/`shards` se persisten. La escritura SQLite ocurre
+  antes de publicar en caché, y eventos async/offline convergen al hilo principal.
+- ExcellentEconomy 2.8.0 está compilado para Java 25, mientras ValerinUtils
+  conserva bytecode Java 21. La frontera registra el evento oficial de forma
+  aislada por nombre y no expone tipos ExcellentEconomy fuera de ese adaptador;
+  la dependencia Gradle sigue siendo `compileOnly` y nunca se empaqueta.
 
 ## Auditoría de inicio (2026-07-29)
 

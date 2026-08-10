@@ -2,7 +2,10 @@
 
 > Archivo temporal. Eliminarlo cuando la versión sea aceptada.
 >
-> Versión objetivo: **ValerinUtils 1.0.0**, Paper **1.21.11+**, Java **21**.
+> Versión objetivo: **ValerinUtils 1.1.1**, Paper **1.21.11+**, Java **21**.
+> ValerinUtils conserva bytecode Java 21 (major 65), pero un servidor con
+> ExcellentEconomy 2.8.0 instalado debe ejecutarse con Java 25; esa combinación
+> no se considera funcionalmente compatible con runtime Java 21.
 
 ## Cómo usar esta checklist
 
@@ -31,7 +34,7 @@
 
 ## 1. Arranque, configuración y apagado
 
-- [ ] El plugin carga como `ValerinUtils v1.0.0`.
+- [ ] El plugin carga como `ValerinUtils v1.1.1`.
 - [ ] No aparecen `ERROR`, `SEVERE`, excepciones ni stack traces relacionados.
 - [ ] El log muestra plataforma Paper 1.21.11+ y conexión SQLite.
 - [ ] Todos los módulos configurados con `enabled: true` se activan una sola vez.
@@ -290,6 +293,11 @@ Pruebas destructivas adicionales:
 - [ ] No existe VUSpawn.
 - [ ] No hay hooks, clases cargadas ni mensajes de RoyaleEconomy.
 - [ ] La economía utilizada es ExcellentEconomy mediante Vault.
+- [ ] `%valerinutils_earnings_money%` suma solo aumentos positivos de `money`.
+- [ ] `%valerinutils_earnings_shards%` suma solo aumentos positivos de `shards`.
+- [ ] Retiros, cambios cancelados y otras monedas no alteran los acumulados.
+- [ ] Reiniciar conserva ambos acumulados y un reload no duplica listeners ni sumas.
+- [ ] Sin ExcellentEconomy se muestran los totales persistidos sin registrar nuevos.
 - [ ] PlugManX no aparece como dependencia ni integración.
 - [ ] No se recomienda ni prueba reload mediante PlugManX.
 

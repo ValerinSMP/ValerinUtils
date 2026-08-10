@@ -1,6 +1,8 @@
 package me.mtynnn.valerinutils.placeholders;
 
 import me.mtynnn.valerinutils.ValerinUtils;
+import me.mtynnn.valerinutils.core.EarningsCurrency;
+import me.mtynnn.valerinutils.core.PlayerData;
 import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
@@ -169,6 +171,17 @@ public class ValerinUtilsExpansion extends PlaceholderExpansion {
                     return "0";
                 }
             }
+        }
+
+        String earnings = EconomyPlaceholder.resolve(params, currency -> {
+            PlayerData data = plugin.getPlayerData(player.getUniqueId());
+            if (data == null) return 0;
+            return currency == EarningsCurrency.MONEY
+                    ? data.getTotalMoneyEarned()
+                    : data.getTotalShardsEarned();
+        });
+        if (earnings != null) {
+            return earnings;
         }
 
         // si no es un placeholder conocido -> null

@@ -8,6 +8,9 @@ import me.mtynnn.valerinutils.core.ModuleManager;
 import me.mtynnn.valerinutils.core.MessageService;
 import me.mtynnn.valerinutils.core.PlayerData;
 import me.mtynnn.valerinutils.core.PlayerDataManager;
+import me.mtynnn.valerinutils.crimson.CrimsonProtectionHook;
+import me.mtynnn.valerinutils.crimson.WorldGuardCrimsonProtection;
+import me.mtynnn.valerinutils.integrations.excellenteconomy.ExcellentEconomyEarningsTracker;
 import me.mtynnn.valerinutils.modules.killrewards.KillRewardsModule;
 import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
 import me.mtynnn.valerinutils.modules.codes.CodesModule;
@@ -57,6 +60,9 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private ConfigManager configManager;
     private DatabaseManager databaseManager;
     private MessageService messageService;
+    private Object crimsonProtectionFlag;
+    private CrimsonProtectionHook crimsonProtection;
+    private ExcellentEconomyEarningsTracker earningsTracker;
 
     private MenuItemModule menuItemModule;
     private KillRewardsModule killRewardsModule;
@@ -90,6 +96,19 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private String cachedGlobalPrefix = null;
 
     @Override
+    public void onLoad() {
+        if (getServer().getPluginManager().getPlugin("WorldGuard") == null) {
+            return;
+        }
+        try {
+            crimsonProtectionFlag = WorldGuardCrimsonProtection.registerFlag(this);
+        } catch (LinkageError | RuntimeException error) {
+            getLogger().severe("[CrimsonProtection] Could not register the WorldGuard flag; only this feature is disabled: "
+                    + error.getMessage());
+        }
+    }
+
+    @Override
     public void onEnable() {
         long startedAt = System.nanoTime();
         getLogger().info("Starting ValerinUtils v" + getDescription().getVersion() + "...");
@@ -116,6 +135,9 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         // 4. Register Events
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getPluginManager().registerEvents(playerDataManager, this);
+        initializeCrimsonProtection();
+        earningsTracker = new ExcellentEconomyEarningsTracker(this);
+        earningsTracker.start();
 
         // 4. Initialize Modules
         moduleManager = new ModuleManager(this);
@@ -181,6 +203,10 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     public void onDisable() {
         long startedAt = System.nanoTime();
         getLogger().info("Stopping ValerinUtils...");
+        if (earningsTracker != null) {
+            earningsTracker.stop();
+            earningsTracker = null;
+        }
         playerDataManager.saveAllAndClear();
 
         if (moduleManager != null) {
@@ -587,10 +613,32 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         // Delegate to ConfigManager
         if (configManager != null) {
             configManager.loadAll();
+            reloadCrimsonProtection();
             getLogger().info("Configurations reloaded via ConfigManager.");
         } else {
             // Fallback if called before init (should not happen)
             reloadConfig();
+        }
+    }
+
+    private void initializeCrimsonProtection() {
+        if (crimsonProtectionFlag == null || !Bukkit.getPluginManager().isPluginEnabled("WorldGuard")) {
+            return;
+        }
+        try {
+            crimsonProtection = WorldGuardCrimsonProtection.create(this, crimsonProtectionFlag);
+            reloadCrimsonProtection();
+            getServer().getPluginManager().registerEvents(crimsonProtection, this);
+        } catch (LinkageError | RuntimeException error) {
+            crimsonProtection = null;
+            getLogger().severe("[CrimsonProtection] Could not initialize; only this feature is disabled: "
+                    + error.getMessage());
+        }
+    }
+
+    private void reloadCrimsonProtection() {
+        if (crimsonProtection != null && configManager != null) {
+            crimsonProtection.reload(configManager.getConfig("settings"));
         }
     }
 

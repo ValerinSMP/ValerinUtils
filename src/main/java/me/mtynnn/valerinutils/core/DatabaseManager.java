@@ -96,6 +96,8 @@ public class DatabaseManager {
             // Attempt to add columns if missing (simple schema migration)
             addColumnIfMissing(stmt, "player_data", "menu_disabled", "BOOLEAN DEFAULT 0");
             addColumnIfMissing(stmt, "player_data", "nickname", "TEXT");
+            addColumnIfMissing(stmt, "player_data", "total_money_earned", "REAL DEFAULT 0");
+            addColumnIfMissing(stmt, "player_data", "total_shards_earned", "REAL DEFAULT 0");
             addColumnIfMissing(stmt, "player_data", "grace_expires_at", "BIGINT DEFAULT 0");
             addColumnIfMissing(stmt, "player_data", "grace_pvp_warned", "BOOLEAN DEFAULT 0");
         } catch (SQLException e) {
@@ -142,6 +144,28 @@ public class DatabaseManager {
             stmt.execute(codesSql);
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not create player_codes table", e);
+        }
+    }
+
+    public boolean incrementEarnings(String uuid, EarningsCurrency currency, double amount) {
+        try {
+            incrementEarnings(getConnection(), uuid, currency, amount);
+            return true;
+        } catch (SQLException | RuntimeException e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not persist " + currency.id() + " earnings for " + uuid, e);
+            return false;
+        }
+    }
+
+    static void incrementEarnings(Connection connection, String uuid, EarningsCurrency currency, double amount)
+            throws SQLException {
+        String column = currency.column();
+        String sql = "INSERT INTO player_data (uuid, " + column + ") VALUES (?, ?) "
+                + "ON CONFLICT(uuid) DO UPDATE SET " + column + "=COALESCE(" + column + ", 0)+excluded." + column;
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, uuid);
+            ps.setDouble(2, amount);
+            ps.executeUpdate();
         }
     }
 

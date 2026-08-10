@@ -1,5 +1,14 @@
 debug: true
 
+crimson-protection:
+  enabled: true
+  worlds:
+    - world_crimson
+  allowed-break-ids:
+    - crimson_ore
+  deny-place: true
+  bypass-permission: valerinutils.crimsonprotection.bypass
+
 messages:
   # Paleta ValerinUtils: primario #FFD166, éxito #00FB9A,
   # error #FF3300 y advertencia #FFC43B.

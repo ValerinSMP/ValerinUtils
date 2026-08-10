@@ -120,10 +120,16 @@ public class ConfigManager {
                 "%prefix%<red>Modulo desconocido: <yellow>%module%<red>.");
         changed |= setIfMissing(settings, "messages.valerinutils-reload-config-missing",
                 "%prefix%<red>No se pudo recargar la config de <yellow>%module%<red>.");
+        changed |= setIfMissing(settings, "crimson-protection.enabled", true);
+        changed |= setIfMissing(settings, "crimson-protection.worlds", List.of("world_crimson"));
+        changed |= setIfMissing(settings, "crimson-protection.allowed-break-ids", List.of("crimson_ore"));
+        changed |= setIfMissing(settings, "crimson-protection.deny-place", true);
+        changed |= setIfMissing(settings, "crimson-protection.bypass-permission",
+                "valerinutils.crimsonprotection.bypass");
 
         if (changed) {
             saveConfig("settings");
-            plugin.getLogger().info("[Settings] Config updated with reload messages.");
+            plugin.getLogger().info("[Settings] Config updated with current defaults.");
         }
     }
 
@@ -936,7 +942,7 @@ public class ConfigManager {
         }
     }
 
-    private boolean mergeSectionMissing(FileConfiguration target, ConfigurationSection defaults, String basePath) {
+    static boolean mergeSectionMissing(FileConfiguration target, ConfigurationSection defaults, String basePath) {
         boolean changed = false;
 
         for (String key : defaults.getKeys(false)) {
@@ -966,7 +972,7 @@ public class ConfigManager {
         return changed;
     }
 
-    private Object cloneConfigValue(Object value) {
+    private static Object cloneConfigValue(Object value) {
         if (value instanceof List<?> list) {
             return new ArrayList<>(list);
         }
