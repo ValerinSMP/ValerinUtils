@@ -23,6 +23,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class ConfigManager {
     private static final Pattern LEGACY_HEX_PATTERN = Pattern.compile("(?i)&#([0-9a-f]{6})");
+    private static final String PREFIX_V1 =
+            "<dark_gray>[<#FFD166>ᴠᴀʟᴇʀɪɴ</#FFD166><dark_gray>]</dark_gray> ";
+    private static final String PREFIX_V2 =
+            "<dark_gray>[<#FFD166>ᴠᴀʟᴇʀɪɴ</#FFD166>]</dark_gray> <reset>";
     private static final Map<String, Object> UTILITIES_DEFAULTS = buildUtilitiesDefaults();
 
     private final ValerinUtils plugin;
@@ -102,12 +106,10 @@ public class ConfigManager {
             changed |= migrateSettingsHelp(settings);
         }
         if (settings.getInt("messages.palette-version", 0) < 1) {
-            settings.set("messages.palette-version", 1);
             settings.set("messages.aesthetic-theme-enabled", true);
-            settings.set("messages.prefix",
-                    "<dark_gray>[<#FFD166>ᴠᴀʟᴇʀɪɴ</#FFD166><dark_gray>]</dark_gray> ");
             changed = true;
         }
+        changed |= migratePrefix(settings);
         changed |= setIfMissing(settings, "messages.valerinutils-usage",
                 "%prefix%<gray>Uso: <yellow>/valerinutilsadmin reload [all|modulo]");
         changed |= setIfMissing(settings, "messages.valerinutils-reload-ok",
@@ -302,6 +304,18 @@ public class ConfigManager {
             saveConfig("utility");
             plugin.getLogger().info("[Utility] Config updated with new keys.");
         }
+    }
+
+    static boolean migratePrefix(FileConfiguration settings) {
+        if (settings.getInt("messages.palette-version", 0) >= 2) {
+            return false;
+        }
+        String prefix = settings.getString("messages.prefix");
+        if (prefix == null || PREFIX_V1.equals(prefix)) {
+            settings.set("messages.prefix", PREFIX_V2);
+        }
+        settings.set("messages.palette-version", 2);
+        return true;
     }
 
     private boolean migrateSettingsHelp(FileConfiguration settings) {

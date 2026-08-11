@@ -13,8 +13,9 @@ messages:
   # Paleta ValerinUtils: primario #FFD166, éxito #00FB9A,
   # error #FF3300 y advertencia #FFC43B.
   aesthetic-theme-enabled: true
+  palette-version: 2
   help-style-version: 3
-  prefix: '<dark_gray>[<#FFD166>ᴠᴀʟᴇʀɪɴ</#FFD166><dark_gray>]</dark_gray> '
+  prefix: '<dark_gray>[<#FFD166>ᴠᴀʟᴇʀɪɴ</#FFD166>]</dark_gray> <reset>'
   no-permission: '%prefix%<red>No tienes permiso para usar este comando.'
   only-players: '%prefix%<red>Solo jugadores pueden usar este comando.'
   unknown-subcommand: "<#FF3300>Subcomando desconocido: <white>'%input%'</white>. Usa <#FFD166>/valerinutils help</#FFD166>."

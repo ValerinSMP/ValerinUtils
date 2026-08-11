@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "me.mtynnn"
-version = "1.1.1"
+version = "1.1.2"
 
 providers.environmentVariable("VALERIN_BUILD_DIR").orNull?.let {
     layout.buildDirectory.set(file(it))

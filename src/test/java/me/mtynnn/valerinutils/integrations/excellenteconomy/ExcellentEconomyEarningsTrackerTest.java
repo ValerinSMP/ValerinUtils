@@ -1,5 +1,7 @@
 package me.mtynnn.valerinutils.integrations.excellenteconomy;
 
+import me.mtynnn.valerinutils.core.EarningsChange;
+import me.mtynnn.valerinutils.core.EarningsCurrency;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -31,5 +33,18 @@ class ExcellentEconomyEarningsTrackerTest {
         assertEquals(1, scheduled.size());
         scheduled.getFirst().run();
         assertEquals(1, writes.get());
+    }
+
+    @Test
+    void normalPositiveChangesRemainTrackableWhilePayFrameIsExcluded() {
+        String currencyManager = "su.nightexpress.excellenteconomy.currency.CurrencyManager";
+
+        assertEquals(EarningsCurrency.MONEY, EarningsChange.currency("money", 10, 15));
+        assertEquals(EarningsCurrency.SHARDS, EarningsChange.currency("shards", 2, 4));
+        assertTrue(ExcellentEconomyEarningsTracker.isTransferFrame(currencyManager, "send"));
+        assertFalse(ExcellentEconomyEarningsTracker.isTransferFrame(currencyManager, "give"));
+        assertFalse(ExcellentEconomyEarningsTracker.isTransferFrame(currencyManager, "sendPayment"));
+        assertFalse(ExcellentEconomyEarningsTracker.isTransferFrame(currencyManager + "Proxy", "send"));
+        assertFalse(ExcellentEconomyEarningsTracker.isTransferFrame("another.Plugin", "send"));
     }
 }

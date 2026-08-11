@@ -420,7 +420,8 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         FileConfiguration settings = configManager.getConfig("settings");
         if (settings == null)
             return "";
-        String prefix = settings.getString("messages.prefix", "<dark_gray>[<aqua>Valerin<white>Utils<dark_gray>] ");
+        String prefix = settings.getString("messages.prefix",
+                "<dark_gray>[<#FFD166>ᴠᴀʟᴇʀɪɴ</#FFD166>]</dark_gray> <reset>");
         cachedGlobalPrefix = prefix;
         return cachedGlobalPrefix;
     }

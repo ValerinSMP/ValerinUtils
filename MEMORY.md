@@ -9,7 +9,7 @@ de una sola vez: cada módulo se aislará y migrará con un contrato verificable
 
 ## Base actual
 
-- Versión actual 1.1.1; el baseline SemVer fue 1.0.0.
+- Versión actual 1.1.2; el baseline SemVer fue 1.0.0.
 - Desde este baseline se aplica SemVer: PATCH para correcciones compatibles,
   MINOR para funcionalidades compatibles y MAJOR para cambios incompatibles.
 - Java 21, Gradle Kotlin DSL 9.1.0 y Paper API 1.21.11.
@@ -43,6 +43,10 @@ de una sola vez: cada módulo se aislará y migrará con un contrato verificable
   el autocompletado público del administrativo.
 - Paleta visual: primario `#FFD166`, éxito `#00FB9A`, error `#FF3300` y
   advertencia `#FFC43B`.
+- El prefijo global canónico es
+  `<dark_gray>[<#FFD166>ᴠᴀʟᴇʀɪɴ</#FFD166>]</dark_gray> <reset>`. La migración de
+  paleta v2 actualiza únicamente el valor predeterminado anterior y conserva
+  prefijos personalizados; `%prefix%` sigue resolviéndose mediante `MessageService`.
 
 ## Estado visual y compilación
 
@@ -97,6 +101,11 @@ de una sola vez: cada módulo se aislará y migrará con un contrato verificable
   conserva bytecode Java 21. La frontera registra el evento oficial de forma
   aislada por nombre y no expone tipos ExcellentEconomy fuera de ese adaptador;
   la dependencia Gradle sigue siendo `compileOnly` y nunca se empaqueta.
+- `ChangeBalanceEvent` no expone la causa. Para excluir `/pay`, el listener
+  reconoce únicamente el frame exacto
+  `su.nightexpress.excellenteconomy.currency.CurrencyManager#send` antes de
+  diferir la escritura. Este contrato está fijado a ExcellentEconomy 2.8.0 y debe
+  reauditarse si cambia la versión; los acumulados históricos no guardan origen.
 
 ## Auditoría de inicio (2026-07-29)
 

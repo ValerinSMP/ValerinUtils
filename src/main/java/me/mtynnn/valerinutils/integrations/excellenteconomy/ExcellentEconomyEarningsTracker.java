@@ -20,6 +20,9 @@ public final class ExcellentEconomyEarningsTracker implements Listener {
     private static final String PLUGIN_NAME = "ExcellentEconomy";
     private static final String EVENT_CLASS =
             "su.nightexpress.excellenteconomy.api.event.ChangeBalanceEvent";
+    private static final String CURRENCY_MANAGER_CLASS =
+            "su.nightexpress.excellenteconomy.currency.CurrencyManager";
+    private static final StackWalker STACK_WALKER = StackWalker.getInstance();
 
     private final ValerinUtils plugin;
     private final AtomicBoolean started = new AtomicBoolean();
@@ -88,7 +91,7 @@ public final class ExcellentEconomyEarningsTracker implements Listener {
             double oldAmount = ((Number) getOldAmount.invoke(event)).doubleValue();
             double newAmount = ((Number) getNewAmount.invoke(event)).doubleValue();
             EarningsCurrency trackedCurrency = EarningsChange.currency(currencyId, oldAmount, newAmount);
-            if (trackedCurrency == null) return;
+            if (trackedCurrency == null || isPlayerTransfer()) return;
 
             EarningsSnapshot snapshot = new EarningsSnapshot(
                     playerId, trackedCurrency, EarningsChange.positiveDelta(oldAmount, newAmount));
@@ -117,6 +120,16 @@ public final class ExcellentEconomyEarningsTracker implements Listener {
         } else {
             apply.run();
         }
+    }
+
+    private static boolean isPlayerTransfer() {
+        // ChangeBalanceEvent 2.8.0 has no cause; /pay is emitted from this exact provider operation.
+        return STACK_WALKER.walk(frames -> frames.anyMatch(frame ->
+                isTransferFrame(frame.getClassName(), frame.getMethodName())));
+    }
+
+    static boolean isTransferFrame(String className, String methodName) {
+        return CURRENCY_MANAGER_CLASS.equals(className) && "send".equals(methodName);
     }
 
     private record EarningsSnapshot(UUID playerId, EarningsCurrency currency, double delta) {

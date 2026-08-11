@@ -48,4 +48,24 @@ class ConfigManagerDefaultsTest {
             assertEquals("op", descriptor.getString("permissions.valerinutils.crimsonprotection.bypass.default"));
         }
     }
+
+    @Test
+    void prefixMigrationUpdatesTheBundledDefaultWithoutOverwritingCustomValues() {
+        YamlConfiguration bundled = new YamlConfiguration();
+        bundled.set("messages.palette-version", 1);
+        bundled.set("messages.prefix",
+                "<dark_gray>[<#FFD166>ᴠᴀʟᴇʀɪɴ</#FFD166><dark_gray>]</dark_gray> ");
+
+        assertTrue(ConfigManager.migratePrefix(bundled));
+        assertEquals(2, bundled.getInt("messages.palette-version"));
+        assertEquals("<dark_gray>[<#FFD166>ᴠᴀʟᴇʀɪɴ</#FFD166>]</dark_gray> <reset>",
+                bundled.getString("messages.prefix"));
+
+        YamlConfiguration custom = new YamlConfiguration();
+        custom.set("messages.palette-version", 1);
+        custom.set("messages.prefix", "<blue>[Custom]</blue> ");
+
+        assertTrue(ConfigManager.migratePrefix(custom));
+        assertEquals("<blue>[Custom]</blue> ", custom.getString("messages.prefix"));
+    }
 }

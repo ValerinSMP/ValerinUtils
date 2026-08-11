@@ -15,6 +15,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -90,6 +91,14 @@ class HelpConfigurationTest {
         }
     }
 
+    @Test
+    void bundledPrefixUsesTheValerinPaletteAndResetsFormatting() throws IOException {
+        String prefix = load("/settings.yml").getString("messages.prefix");
+
+        assertEquals("<dark_gray>[<#FFD166>ᴠᴀʟᴇʀɪɴ</#FFD166>]</dark_gray> <reset>", prefix);
+        assertDoesNotThrow(() -> MiniMessage.miniMessage().deserialize(prefix));
+    }
+
     private YamlConfiguration load(String resource) throws IOException {
         try (var stream = getClass().getResourceAsStream(resource)) {
             assertNotNull(stream, resource);
@@ -119,7 +128,8 @@ class HelpConfigurationTest {
         assertFalse(text.contains("<hover:"), location + " must use CommandHelpRenderer");
         assertFalse(text.contains("<click:suggest_command:"), location + " must use CommandHelpRenderer");
         assertFalse(text.contains("<click:run_command:"), location + " must use CommandHelpRenderer");
-        String rendered = text.replace("%prefix%", "<dark_gray>[<#FFD166>VALERIN</#FFD166>]</dark_gray> ");
+        String rendered = text.replace("%prefix%",
+                "<dark_gray>[<#FFD166>ᴠᴀʟᴇʀɪɴ</#FFD166>]</dark_gray> <reset>");
         assertDoesNotThrow(() -> MiniMessage.miniMessage().deserialize(rendered), location);
     }
 
