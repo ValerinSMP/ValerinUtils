@@ -33,6 +33,10 @@ final class UtilityNickCommand {
             }
             Player target = Bukkit.getPlayer(args[1]);
             if (target == null) {
+                if (module.plugin().routeRemoteCommand(args[1], "nick " + String.join(" ", args))) {
+                    sender.sendMessage(module.getMessage("network-forwarded").replace("%player%", args[1]));
+                    return;
+                }
                 sender.sendMessage(module.getMessage("player-not-found"));
                 return;
             }
@@ -47,6 +51,10 @@ final class UtilityNickCommand {
             }
             Player target = Bukkit.getPlayer(args[0]);
             if (target == null) {
+                if (module.plugin().routeRemoteCommand(args[0], "nick " + String.join(" ", args))) {
+                    sender.sendMessage(module.getMessage("network-forwarded").replace("%player%", args[0]));
+                    return;
+                }
                 sender.sendMessage(module.getMessage("player-not-found"));
                 return;
             }

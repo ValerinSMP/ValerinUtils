@@ -61,6 +61,7 @@ final class UtilityHelpOpCommand {
         Component component = module.plugin().parseComponent(format
                 .replace("%player%", sender.getName())
                 .replace("%message%", message));
+        String networkMessage = format.replace("%player%", sender.getName()).replace("%message%", message);
 
         int receivers = 0;
         for (Player target : Bukkit.getOnlinePlayers()) {
@@ -75,17 +76,30 @@ final class UtilityHelpOpCommand {
         if (module.getConfig().getBoolean("commands.helpop.send-to-console", true)) {
             Bukkit.getConsoleSender().sendMessage(component);
         }
+        module.plugin().publishHelpOp(networkMessage);
 
         module.playSound(sender, "helpop-send");
-        if (receivers == 0) {
+        if (receivers == 0 && !module.plugin().getCrossServerService().ready()) {
             sender.sendMessage(module.getMessage("helpop-no-staff"));
             module.plugin().debug(module.getId(), "HelpOp sin staff online: " + sender.getName() + " -> " + message);
             return;
         }
 
         sender.sendMessage(module.getMessage("helpop-sent")
-                .replace("%staff%", String.valueOf(receivers)));
+                .replace("%staff%", String.valueOf(receivers == 0 ? 1 : receivers)));
         module.plugin().debug(module.getId(),
                 "HelpOp enviado por " + sender.getName() + " a " + receivers + " staff: " + message);
+    }
+
+    void deliverNetwork(String formatted) {
+        Component component = module.plugin().parseComponent(formatted);
+        for (Player target : Bukkit.getOnlinePlayers()) {
+            if (target.hasPermission(RECEIVE_PERMISSION)) {
+                target.sendMessage(component);
+                module.playSound(target, "helpop-receive");
+            }
+        }
+        if (module.getConfig().getBoolean("commands.helpop.send-to-console", true))
+            Bukkit.getConsoleSender().sendMessage(component);
     }
 }

@@ -75,6 +75,7 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
             Map.entry("no-permission", "%prefix%<red>No tienes permiso para usar este comando."),
             Map.entry("module-disabled", "%prefix%<red>Este comando está deshabilitado."),
             Map.entry("player-not-found", "%prefix%<red>Jugador no encontrado."),
+            Map.entry("network-forwarded", "%prefix%<green>Accion enviada a <white>%player% <green>en su servidor."),
             Map.entry("seen-usage", "%prefix%<gray>Uso: <yellow>/seen <jugador>"),
             Map.entry("seen-online", "<green>Online"),
             Map.entry("seen-offline", "<gray>Offline hace %time%"),
@@ -351,6 +352,10 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
                 return;
             target = Bukkit.getPlayer(args[0]);
             if (target == null) {
+                if (plugin.routeRemoteAction(args[0], "FLY", "")) {
+                    player.sendMessage(getMessage("network-forwarded").replace("%player%", args[0]));
+                    return;
+                }
                 player.sendMessage(getMessage("player-not-found"));
                 return;
             }
@@ -400,6 +405,10 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
                 return;
             target = Bukkit.getPlayer(args[1]);
             if (target == null) {
+                if (plugin.routeRemoteAction(args[1], "SPEED", String.valueOf((int) speed))) {
+                    player.sendMessage(getMessage("network-forwarded").replace("%player%", args[1]));
+                    return;
+                }
                 player.sendMessage(getMessage("player-not-found"));
                 return;
             }
@@ -437,6 +446,10 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
                 return;
             target = Bukkit.getPlayer(args[0]);
             if (target == null) {
+                if (plugin.routeRemoteAction(args[0], "HEAL", "")) {
+                    player.sendMessage(getMessage("network-forwarded").replace("%player%", args[0]));
+                    return;
+                }
                 player.sendMessage(getMessage("player-not-found"));
                 return;
             }
@@ -476,6 +489,10 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
                 return;
             target = Bukkit.getPlayer(args[0]);
             if (target == null) {
+                if (plugin.routeRemoteAction(args[0], "FEED", "")) {
+                    player.sendMessage(getMessage("network-forwarded").replace("%player%", args[0]));
+                    return;
+                }
                 player.sendMessage(getMessage("player-not-found"));
                 return;
             }
@@ -631,6 +648,11 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
         if (others) {
             target = Bukkit.getPlayer(args[0]);
             if (target == null) {
+                if (checkStatusSender(sender, "gamemode", true)
+                        && plugin.routeRemoteAction(args[0], "GAMEMODE", mode.name())) {
+                    sender.sendMessage(getMessage("network-forwarded").replace("%player%", args[0]));
+                    return;
+                }
                 sender.sendMessage(getMessage("player-not-found"));
                 return;
             }
@@ -791,6 +813,10 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
                 return;
             target = Bukkit.getPlayer(args[0]);
             if (target == null) {
+                if (plugin.routeRemoteAction(args[0], "CLEAR", "")) {
+                    player.sendMessage(getMessage("network-forwarded").replace("%player%", args[0]));
+                    return;
+                }
                 player.sendMessage(getMessage("player-not-found"));
                 return;
             }
@@ -917,6 +943,42 @@ public class UtilityModule extends BaseModule implements CommandExecutor, Listen
         }
         for (String line : lines) {
             sender.sendMessage(comp(line));
+        }
+    }
+
+    public void deliverNetworkHelpOp(String formatted) { helpOpCommand.deliverNetwork(formatted); }
+
+    public void applyRemoteAction(Player target, String action, String argument) {
+        switch (action) {
+            case "FLY" -> {
+                boolean enabled = !target.getAllowFlight();
+                target.setAllowFlight(enabled);
+                if (enabled) target.setFlying(true);
+                target.sendMessage(getMessage(enabled ? "fly-enabled" : "fly-disabled"));
+            }
+            case "SPEED" -> {
+                float speed = Float.parseFloat(argument) / 10.0f;
+                if (target.isFlying() || target.getAllowFlight()) target.setFlySpeed(speed);
+                else target.setWalkSpeed(speed);
+                target.sendMessage(getMessage("speed-success").replace("%player%", target.getName())
+                        .replace("%type%", target.isFlying() ? "vuelo" : "caminata").replace("%speed%", argument));
+            }
+            case "HEAL" -> {
+                target.setHealth(target.getAttribute(Attribute.MAX_HEALTH).getValue());
+                target.setFoodLevel(20); target.setFireTicks(0);
+                playSound(target, "heal"); target.sendMessage(getMessage("heal-success"));
+            }
+            case "FEED" -> {
+                target.setFoodLevel(20); target.setSaturation(10); target.sendMessage(getMessage("feed-success"));
+            }
+            case "CLEAR" -> {
+                target.getInventory().clear(); target.sendMessage(getMessage("clear-success-self"));
+            }
+            case "GAMEMODE" -> {
+                target.setGameMode(GameMode.valueOf(argument));
+                target.sendMessage(getMessage("gamemode-success").replace("%mode%", argument));
+            }
+            default -> { }
         }
     }
 

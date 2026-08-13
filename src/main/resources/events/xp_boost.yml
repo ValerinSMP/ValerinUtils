@@ -1,0 +1,26 @@
+name: "⚡ Boost de XP"
+enabled: true
+
+schedule:
+  window-start: "18:00"
+  window-end: "22:00"
+  interval-days: 1
+  interval-days-max: 1
+
+duration:
+  min-minutes: 60
+  max-minutes: 120
+
+start-commands:
+  - "lp group default permission settemp ecoskills.xpmultiplier.50percent true {duration}s"
+  - "broadcast &6&l¡EVENTO! &eBoost de XP activo por &f{duration_human}&e. ¡Aprovechá!"
+
+end-commands:
+  - "broadcast &7El Boost de XP ha terminado."
+
+bossbar:
+  enabled: true
+  text: "<gold>⚡ Boost de XP activo — <white>{remaining}"
+  color: YELLOW
+  style: SOLID
+  show-to-all: true

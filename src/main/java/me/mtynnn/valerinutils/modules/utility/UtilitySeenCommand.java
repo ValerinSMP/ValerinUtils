@@ -1,5 +1,6 @@
 package me.mtynnn.valerinutils.modules.utility;
 
+import me.mtynnn.valerinutils.network.CrossServerService;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -20,6 +21,12 @@ final class UtilitySeenCommand {
     }
 
     void execute(CommandSender sender, String name) {
+        CrossServerService cross = module.plugin().getCrossServerService();
+        CrossServerService.Presence remote = cross == null ? null : cross.presence(name);
+        if (remote != null && !remote.serverId().equals(cross.config().serverId())) {
+            renderRemote(sender, remote);
+            return;
+        }
         OfflinePlayer offlinePlayer = findOfflinePlayer(name);
         if (offlinePlayer == null || !isKnownPlayer(offlinePlayer)) {
             sender.sendMessage(module.getMessage("player-not-found"));
@@ -52,6 +59,8 @@ final class UtilitySeenCommand {
                                     : (offlinePlayer.getLocation() != null
                                             ? offlinePlayer.getLocation().getWorld().getName()
                                             : "N/A"))
+                    .replace("%server%", module.plugin().getCrossServerService().enabled()
+                            ? module.plugin().getCrossServerService().config().serverId() : "local")
                     .replace("%x%",
                             String.valueOf(onlinePlayer != null ? onlinePlayer.getLocation().getBlockX()
                                     : (offlinePlayer.getLocation() != null ? offlinePlayer.getLocation().getBlockX() : 0)))
@@ -67,6 +76,19 @@ final class UtilitySeenCommand {
                     .replace("%gamemode%", onlinePlayer != null ? onlinePlayer.getGameMode().name() : "OFFLINE")
                     .replace("%fly%", onlinePlayer != null ? (onlinePlayer.getAllowFlight() ? "<green>Sí" : "<red>No") : "OFFLINE");
 
+            sender.sendMessage(module.plugin().parseComponent(processed));
+        }
+    }
+
+    private void renderRemote(CommandSender sender, CrossServerService.Presence player) {
+        for (String line : module.getConfig().getStringList("messages.seen-format")) {
+            String processed = line.replace("%player%", player.name()).replace("%status%", module.getMessage("seen-online"))
+                    .replace("%uuid%", player.uuid().toString()).replace("%ip%", "Oculta")
+                    .replace("%first_join%", "N/A").replace("%last_seen%", formatDateOrUnknown(player.updatedAt()))
+                    .replace("%world%", player.world()).replace("%server%", player.serverId())
+                    .replace("%x%", "0").replace("%y%", "0").replace("%z%", "0")
+                    .replace("%health%", "0").replace("%hunger%", "0").replace("%xp%", "0")
+                    .replace("%gamemode%", "REMOTE").replace("%fly%", "REMOTE");
             sender.sendMessage(module.plugin().parseComponent(processed));
         }
     }

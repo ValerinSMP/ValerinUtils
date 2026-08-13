@@ -3,7 +3,7 @@
 ## Build & Run
 
 ```bash
-./gradlew clean test build     # output: build/libs/ValerinUtils-1.1.2.jar
+./gradlew clean test build     # output: build/libs/ValerinUtils-1.6.0.jar
 ```
 
 - Java 21 required (Gradle toolchain and compiler release 21).

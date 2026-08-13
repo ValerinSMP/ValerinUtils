@@ -51,13 +51,16 @@ final class UtilityBroadcastCommand {
         }
 
         int sentLines = 0;
+        java.util.ArrayList<String> networkLines = new java.util.ArrayList<>();
         for (String line : formattedLines) {
             String formatted = line.replace("%message%", message);
             // Apply center formatting if line contains {center}
             formatted = applyCenter(formatted);
             Bukkit.broadcast(module.plugin().parseComponent(formatted));
+            networkLines.add(formatted);
             sentLines++;
         }
+        module.plugin().publishBroadcast(networkLines);
         for (Player online : Bukkit.getOnlinePlayers()) {
             module.playSound(online, "broadcast");
         }

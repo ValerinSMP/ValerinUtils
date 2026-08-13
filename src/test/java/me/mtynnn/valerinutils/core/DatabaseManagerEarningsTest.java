@@ -42,6 +42,36 @@ class DatabaseManagerEarningsTest {
         assertEquals(0, published.get());
     }
 
+    @Test
+    void concurrentIncrementsDoNotLoseEarnings(@TempDir Path tempDir) throws Exception {
+        String url = "jdbc:sqlite:" + tempDir.resolve("concurrent.db");
+        try (Connection connection = DriverManager.getConnection(url)) { createTable(connection); }
+        try (var executor = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var first = executor.submit(() -> incrementMany(url));
+            var second = executor.submit(() -> incrementMany(url));
+            first.get();
+            second.get();
+        }
+        try (Connection connection = DriverManager.getConnection(url);
+             Statement statement = connection.createStatement();
+             ResultSet result = statement.executeQuery("SELECT total_money_earned FROM player_data WHERE uuid='p'")) {
+            assertEquals(200, result.getDouble(1));
+        }
+    }
+
+    private static void incrementMany(String url) {
+        for (int index = 0; index < 100; index++) {
+            try (Connection connection = DriverManager.getConnection(url)) {
+                try (Statement statement = connection.createStatement()) {
+                    statement.execute("PRAGMA busy_timeout=5000");
+                }
+                DatabaseManager.incrementEarnings(connection, "p", EarningsCurrency.MONEY, 1);
+            } catch (Exception error) {
+                throw new RuntimeException(error);
+            }
+        }
+    }
+
     private static void createTable(Connection connection) throws Exception {
         try (Statement statement = connection.createStatement()) {
             statement.execute("CREATE TABLE player_data (uuid TEXT PRIMARY KEY, "

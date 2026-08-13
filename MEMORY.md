@@ -9,7 +9,7 @@ de una sola vez: cada módulo se aislará y migrará con un contrato verificable
 
 ## Base actual
 
-- Versión actual 1.1.2; el baseline SemVer fue 1.0.0.
+- Versión actual 1.6.0; el baseline SemVer fue 1.0.0.
 - Desde este baseline se aplica SemVer: PATCH para correcciones compatibles,
   MINOR para funcionalidades compatibles y MAJOR para cambios incompatibles.
 - Java 21, Gradle Kotlin DSL 9.1.0 y Paper API 1.21.11.
@@ -106,6 +106,24 @@ de una sola vez: cada módulo se aislará y migrará con un contrato verificable
   `su.nightexpress.excellenteconomy.currency.CurrencyManager#send` antes de
   diferir la escritura. Este contrato está fijado a ExcellentEconomy 2.8.0 y debe
   reauditarse si cambia la versión; los acumulados históricos no guardan origen.
+- WorldGuard registra en `onLoad()` las flags `valerin-hostile-mob-spawning` y
+  `valerin-passive-mob-spawning`, ambas con `ALLOW` predeterminado. Un `DENY`
+  explícito cancela `CreatureSpawnEvent` para `Enemy` o para cualquier otro `Mob`,
+  respectivamente; nunca des-cancela eventos y WorldGuard sigue siendo opcional.
+- `dimension-access` protege mundos por permiso heredable de vRankup/LuckPerms.
+  Teleport, cambio de mundo, join inmediato/diferido y respawn rechazan el acceso
+  cuando falta el permiso. La conexión al backend `fallback-server` mediante el
+  canal nativo `BungeeCord` se difiere `fallback-delay-ticks` (1 por defecto) para no
+  competir con el callback que originó el rechazo. El cooldown evita transferencias
+  duplicadas y se limpia al desconectar.
+- vEvents y vVipSlots están integrados en ValerinUtils. Los eventos conservan
+  `/vevent`, `%vevents_*%`, archivos bajo `events/` y migración copy-missing desde
+  `plugins/vEvents`; VIP slots solo permite `KICK_FULL` con `vvipslots.bypass`.
+- `cross-server.enabled` es opt-in. MySQL es autoridad durable; Redis solo replica
+  envelopes efímeros bajo `valerin:<network-id>:valerinutils:*`. Con datos SQLite
+  pendientes se exige `storage-migrate` antes de habilitarlo y nunca se borra SQLite.
+- En modo cross-server, broadcast, HelpOp, presencia para `/seen`, acciones administrativas
+  sobre jugadores remotos y vouchers pendientes se comparten. Las acciones de mundo siguen locales.
 
 ## Auditoría de inicio (2026-07-29)
 

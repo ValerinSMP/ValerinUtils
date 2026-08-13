@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import me.mtynnn.valerinutils.network.StorageMigrator;
 
 public class ValerinUtilsCommand implements CommandExecutor, TabCompleter {
 
@@ -66,6 +67,24 @@ public class ValerinUtilsCommand implements CommandExecutor, TabCompleter {
 
         if (args[0].equalsIgnoreCase("reload")) {
             return handleReload(sender, args);
+        }
+
+        if (args[0].equalsIgnoreCase("storage-migrate")) {
+            if (args.length < 2) {
+                sender.sendMessage(plugin.parseComponent("%prefix%<yellow>Uso: /valerinutilsadmin storage-migrate <dry-run|start|status>"));
+                return true;
+            }
+            switch (args[1].toLowerCase()) {
+                case "status" -> sender.sendMessage(plugin.parseComponent("%prefix%<gray>Storage migration: <white>" + StorageMigrator.status()));
+                case "dry-run" -> StorageMigrator.run(plugin, sender, true);
+                case "start" -> {
+                    if (!org.bukkit.Bukkit.getOnlinePlayers().isEmpty()) {
+                        sender.sendMessage(plugin.parseComponent("%prefix%<red>La migración requiere cero jugadores conectados."));
+                    } else StorageMigrator.run(plugin, sender, false);
+                }
+                default -> sender.sendMessage(plugin.parseComponent("%prefix%<yellow>Uso: /valerinutilsadmin storage-migrate <dry-run|start|status>"));
+            }
+            return true;
         }
 
         if (args[0].equalsIgnoreCase("debug")) {
@@ -257,6 +276,7 @@ public class ValerinUtilsCommand implements CommandExecutor, TabCompleter {
             if ("reload".startsWith(partial)) {
                 completions.add("reload");
             }
+            if ("storage-migrate".startsWith(partial)) completions.add("storage-migrate");
             if ("debug".startsWith(partial)) {
                 completions.add("debug");
             }
@@ -290,6 +310,11 @@ public class ValerinUtilsCommand implements CommandExecutor, TabCompleter {
             List<String> modes = List.of("toggle", "on", "off");
             String partial = args[2].toLowerCase();
             return modes.stream().filter(m -> m.startsWith(partial)).toList();
+        }
+
+        if (args.length == 2 && args[0].equalsIgnoreCase("storage-migrate")) {
+            return List.of("dry-run", "start", "status").stream()
+                    .filter(value -> value.startsWith(args[1].toLowerCase())).toList();
         }
 
         if (args[0].equalsIgnoreCase("deathspawn")) {

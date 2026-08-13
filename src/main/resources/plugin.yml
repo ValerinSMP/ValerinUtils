@@ -140,6 +140,10 @@ commands:
     description: Gestion de vouchers
     usage: "/voucher give <jugador> <tipo> [cantidad] | /voucher reload"
     permission: valerinutils.admin
+  vevent:
+    description: Gestiona los eventos temporales
+    usage: "/vevent <start|stop|list|reload> [id]"
+    permission: vevents.admin
 
 permissions:
   valerinutils.crimsonprotection.bypass:
@@ -159,4 +163,10 @@ permissions:
     default: op
   valerinutils.vouchers.reload:
     description: Recargar modulo vouchers
+    default: op
+  vevents.admin:
+    description: Gestiona los eventos temporales
+    default: op
+  vvipslots.bypass:
+    description: Permite entrar cuando el servidor esta lleno
     default: op

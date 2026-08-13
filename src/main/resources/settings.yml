@@ -9,6 +9,50 @@ crimson-protection:
   deny-place: true
   bypass-permission: valerinutils.crimsonprotection.bypass
 
+dimension-access:
+  enabled: true
+  fallback-server: survival
+  fallback-delay-ticks: 1
+  check-delay-ticks: 10
+  denial-cooldown-ticks: 20
+  dimensions:
+    crimson:
+      worlds:
+        - world_crimson
+      # vRankup/LuckPerms debe conceder este permiso desde el rango requerido.
+      permission: huskhomes.warp.crimson
+      allow-operators: true
+      deny-message: "<red>No tienes acceso a la Dimensión Crimson."
+      deny-sound:
+        enabled: true
+        sound: BLOCK_NOTE_BLOCK_BASS
+        volume: 10
+        pitch: 0.5
+
+vevents:
+  enabled: true
+
+vvipslots:
+  enabled: true
+
+cross-server:
+  enabled: false
+  network-id: valerin
+  server-id: survival-1
+  mysql:
+    host: 127.0.0.1
+    port: 3306
+    database: valerinutils
+    username: valerinutils
+    password: change-me
+    parameters: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password: ""
+    database: 0
+    timeout-ms: 2000
+
 messages:
   # Paleta ValerinUtils: primario #FFD166, éxito #00FB9A,
   # error #FF3300 y advertencia #FFC43B.
@@ -165,5 +209,5 @@ messages:
         permission: "valerinutils.admin"
 
 database:
-  # sqlite is the only optimized option for now
+  # Autoridad local mientras cross-server.enabled sea false.
   type: sqlite

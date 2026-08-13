@@ -144,6 +144,12 @@ public class GraceModule extends BaseModule implements Listener, CommandExecutor
             }
             Player target = Bukkit.getPlayerExact(args[1]);
             if (target == null) {
+                if (plugin.routeRemoteCommand(args[1], "grace " + String.join(" ", args))) {
+                    sender.sendMessage(comp(msg("messages.network-forwarded",
+                            "%prefix%<green>Accion enviada a <white>%player% <green>en su servidor.")
+                            .replace("%player%", args[1])));
+                    return true;
+                }
                 sender.sendMessage(comp(msg("messages.player-not-found", "%prefix%<red>Jugador no encontrado.")));
                 return true;
             }
@@ -169,6 +175,12 @@ public class GraceModule extends BaseModule implements Listener, CommandExecutor
             }
             Player target = Bukkit.getPlayerExact(args[1]);
             if (target == null) {
+                if (plugin.routeRemoteCommand(args[1], "grace " + String.join(" ", args))) {
+                    sender.sendMessage(comp(msg("messages.network-forwarded",
+                            "%prefix%<green>Accion enviada a <white>%player% <green>en su servidor.")
+                            .replace("%player%", args[1])));
+                    return true;
+                }
                 sender.sendMessage(comp(msg("messages.player-not-found", "%prefix%<red>Jugador no encontrado.")));
                 return true;
             }

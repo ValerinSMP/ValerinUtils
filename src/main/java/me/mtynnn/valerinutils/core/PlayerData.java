@@ -15,6 +15,7 @@ public class PlayerData {
     private double totalShardsEarned;
     private long graceExpiresAt; // 0=never granted, -1=expired/removed, >0=active threshold (playtime ticks)
     private boolean gracePvpWarned;
+    private long revision;
 
     private boolean dirty = false; // If true, needs saving
 
@@ -147,4 +148,7 @@ public class PlayerData {
         this.gracePvpWarned = v;
         this.dirty = true;
     }
+
+    public long getRevision() { return revision; }
+    public void setRevision(long revision) { this.revision = revision; }
 }

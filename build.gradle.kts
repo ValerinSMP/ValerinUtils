@@ -1,9 +1,10 @@
 plugins {
     java
+    id("com.gradleup.shadow") version "9.0.2"
 }
 
 group = "me.mtynnn"
-version = "1.1.2"
+version = "1.6.0"
 
 providers.environmentVariable("VALERIN_BUILD_DIR").orNull?.let {
     layout.buildDirectory.set(file(it))
@@ -20,6 +21,7 @@ repositories {
 }
 
 dependencies {
+    implementation("com.mysql:mysql-connector-j:9.4.0")
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     compileOnly("me.clip:placeholderapi:2.11.6")
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.17")
@@ -59,4 +61,16 @@ tasks.processResources {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.build {
+    dependsOn(tasks.shadowJar)
+}
+
+tasks.shadowJar {
+    archiveClassifier.set("")
+}
+
+tasks.jar {
+    archiveClassifier.set("thin")
 }

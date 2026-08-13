@@ -4,7 +4,7 @@
 
 ### Utilidades y sistemas survival configurables para ValerinSMP
 
-[![Version](https://img.shields.io/badge/version-1.1.2-7B5CFA?style=for-the-badge)](https://github.com/ValerinSMP/ValerinUtils)
+[![Version](https://img.shields.io/badge/version-1.6.0-7B5CFA?style=for-the-badge)](https://github.com/ValerinSMP/ValerinUtils)
 [![Paper](https://img.shields.io/badge/Paper-1.21.11%2B-222222?style=for-the-badge)](https://papermc.io/)
 [![Java](https://img.shields.io/badge/Java-21-E76F00?style=for-the-badge&logo=openjdk&logoColor=white)](https://adoptium.net/)
 
@@ -28,6 +28,23 @@ bloques Nexo, con bypass administrativo y cierre seguro si Nexo no está disponi
 
 ⭐ **Respawns por región** — Death Spawn admite reglas por mundo y regiones de
 WorldGuard configurables desde el juego.
+
+⭐ **Control de spawns** — flags de WorldGuard independientes para mobs hostiles y
+pasivos; `DENY` bloquea la categoría y `ALLOW` la deja continuar.
+
+⭐ **Acceso por dimensión** — protege mundos por permiso de rango y devuelve al
+backend seguro a quien no cumpla el requisito.
+
+⭐ **Eventos temporales** — programación diaria, comandos de inicio/fin, bossbar,
+estado persistente, `/vevent` y placeholders `%vevents_*%` compatibles.
+
+⭐ **Slots VIP** — permite omitir únicamente el rechazo por servidor lleno con
+`vvipslots.bypass`.
+
+⭐ **Modo cross-server opcional** — MySQL autoritativo para datos de jugador, códigos,
+votos y vouchers pendientes; Redis replica eventos, broadcast, HelpOp, presencia de
+`/seen`, administración remota y vEvents globales. SQLite sigue siendo
+el modo predeterminado cuando `cross-server.enabled: false`.
 
 ⭐ **Estadísticas de economía** — placeholders acumulados para ingresos `money` y
 `shards` recibidos mediante ExcellentEconomy.
@@ -59,13 +76,24 @@ Integraciones opcionales:
 | WorldGuard | Death Spawn y regiones de Crimson Protection |
 | Nexo 1.26.0 | Identificación de bloques de Crimson Protection |
 
+Flags adicionales de WorldGuard:
+
+- `valerin-hostile-mob-spawning`
+- `valerin-passive-mob-spawning`
+
 ## Setup
 
 1. Instala Paper 1.21.11 o posterior con la versión de Java indicada arriba.
-2. Copia `ValerinUtils-1.1.2.jar` en la carpeta `plugins/` del servidor.
-3. Instala únicamente las integraciones opcionales que vayas a utilizar.
-4. Inicia el servidor una vez para generar la configuración.
-5. Ajusta `settings.yml`, `sellprice.yml` y los archivos de `modules/`.
+2. Retira los JAR de `vEvents` y `vVipSlots` para evitar comandos o listeners duplicados.
+3. Copia `ValerinUtils-1.6.0.jar` en la carpeta `plugins/` del servidor.
+4. Instala únicamente las integraciones opcionales que vayas a utilizar.
+5. Inicia el servidor una vez para generar la configuración.
+6. Ajusta `settings.yml`, `events/`, `sellprice.yml` y los archivos de `modules/`.
+
+Antes de habilitar `cross-server`, configura identificadores únicos y MySQL/Redis,
+deja el servidor sin jugadores y ejecuta `/valerinutilsadmin storage-migrate dry-run`
+y luego `storage-migrate start`. La migración es idempotente, no sobrescribe
+conflictos y nunca elimina el SQLite original.
 6. Reinicia el servidor o ejecuta `/valerinutilsadmin reload` para cambios
    compatibles con recarga.
 
@@ -91,6 +119,16 @@ configurados y donde la flag `valerin-crimson-protection` de WorldGuard resuelva
 Si Nexo no está disponible, la rotura se deniega solo dentro de ese alcance. Fuera
 de esos mundos y regiones, ValerinUtils no modifica el evento. La API verificada es
 Nexo 1.26.0.
+
+### Acceso a dimensiones
+
+`dimension-access` en `settings.yml` relaciona cada dimensión con sus mundos y un
+permiso. vRankup/LuckPerms debe conceder ese permiso desde el rango mínimo. Si el
+jugador entra sin acceso por teleport, cambio de mundo, conexión o respawn,
+ValerinUtils rechaza el destino y lo conecta a `fallback-server` después del
+retraso configurable `fallback-delay-ticks` (un tick por defecto), permitiendo
+que el plugin que originó el teletransporte termine primero. Los operadores solo
+omiten el requisito cuando `allow-operators` está activo.
 
 ### Placeholders de economía
 

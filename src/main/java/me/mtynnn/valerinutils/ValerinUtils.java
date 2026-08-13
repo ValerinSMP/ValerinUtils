@@ -10,7 +10,9 @@ import me.mtynnn.valerinutils.core.PlayerData;
 import me.mtynnn.valerinutils.core.PlayerDataManager;
 import me.mtynnn.valerinutils.crimson.CrimsonProtectionHook;
 import me.mtynnn.valerinutils.crimson.WorldGuardCrimsonProtection;
+import me.mtynnn.valerinutils.dimension.DimensionAccessGuard;
 import me.mtynnn.valerinutils.integrations.excellenteconomy.ExcellentEconomyEarningsTracker;
+import me.mtynnn.valerinutils.worldguard.WorldGuardMobSpawnFlags;
 import me.mtynnn.valerinutils.modules.killrewards.KillRewardsModule;
 import me.mtynnn.valerinutils.modules.menuitem.MenuItemModule;
 import me.mtynnn.valerinutils.modules.codes.CodesModule;
@@ -20,6 +22,11 @@ import me.mtynnn.valerinutils.modules.deathspawn.DeathSpawnModule;
 
 import me.mtynnn.valerinutils.modules.grace.GraceModule;
 import me.mtynnn.valerinutils.modules.itemsign.ItemSignModule;
+import me.mtynnn.valerinutils.modules.events.EventsModule;
+import me.mtynnn.valerinutils.modules.vipslots.VipSlotsModule;
+import me.mtynnn.valerinutils.network.CrossServerConfig;
+import me.mtynnn.valerinutils.network.CrossServerService;
+import me.mtynnn.valerinutils.network.StorageMigrator;
 import me.mtynnn.valerinutils.placeholders.ValerinUtilsExpansion;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -31,6 +38,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -63,6 +71,11 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private Object crimsonProtectionFlag;
     private CrimsonProtectionHook crimsonProtection;
     private ExcellentEconomyEarningsTracker earningsTracker;
+    private Object mobSpawnFlags;
+    private DimensionAccessGuard dimensionAccessGuard;
+    private EventsModule eventsModule;
+    private VipSlotsModule vipSlotsModule;
+    private CrossServerService crossServerService;
 
     private MenuItemModule menuItemModule;
     private KillRewardsModule killRewardsModule;
@@ -90,6 +103,10 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
                 menuItemModule.clearMenuItem(event.getPlayer());
             }
         }
+        if (crossServerService != null && crossServerService.enabled()) {
+            crossServerService.playerOnline(event.getPlayer());
+            crossServerService.deliverPending(event.getPlayer());
+        }
     }
 
     // Performance: cached values
@@ -106,6 +123,16 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             getLogger().severe("[CrimsonProtection] Could not register the WorldGuard flag; only this feature is disabled: "
                     + error.getMessage());
         }
+        try {
+            mobSpawnFlags = WorldGuardMobSpawnFlags.register(this);
+        } catch (LinkageError | RuntimeException error) {
+            getLogger().severe("[MobSpawnFlags] Could not register WorldGuard flags: " + error.getMessage());
+        }
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        if (crossServerService != null && crossServerService.enabled()) crossServerService.playerOffline(event.getPlayer());
     }
 
     @Override
@@ -121,13 +148,51 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         messageService = new MessageService(this);
         commandRegistry = new CommandRegistry(this);
 
-        databaseManager = new DatabaseManager(this);
-        databaseManager.initialize();
+        CrossServerConfig crossConfig;
+        try {
+            crossConfig = CrossServerConfig.parse(configManager.getConfig("settings")
+                    .getConfigurationSection("cross-server"));
+            if (crossConfig.enabled() && java.util.concurrent.CompletableFuture.supplyAsync(
+                    () -> StorageMigrator.hasPendingSqlite(getDataFolder(), crossConfig)).join()) {
+                throw new IllegalStateException("SQLite still contains data. Disable cross-server and run "
+                        + "/valerinutilsadmin storage-migrate start first.");
+            }
+            crossServerService = new CrossServerService(this, crossConfig);
+            crossServerService.start();
+            databaseManager = new DatabaseManager(this, crossConfig);
+            if (crossConfig.enabled()) crossServerService.runBlocking(databaseManager::initialize);
+            else databaseManager.initialize();
+        } catch (RuntimeException error) {
+            getLogger().severe("[CrossServer] " + error.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
 
         playerDataManager = new PlayerDataManager(this);
+        if (crossServerService.enabled()) {
+            crossServerService.listen(envelope -> {
+                if (envelope.type().equals("BROADCAST")) {
+                    for (String line : envelope.payload().split("\u001e", -1)) {
+                        Bukkit.broadcast(parseComponent(line));
+                    }
+                } else if (envelope.type().equals("HELPOP") && utilityModule != null) {
+                    utilityModule.deliverNetworkHelpOp(envelope.payload());
+                } else if (envelope.type().equals("PRESENCE")) {
+                    crossServerService.applyPresence(envelope.payload());
+                } else if (envelope.type().equals("REMOTE_ACTION")) {
+                    applyRemoteAction(envelope.payload());
+                } else if (envelope.type().equals("INVALIDATE_PLAYER")) {
+                    try {
+                        playerDataManager.invalidate(UUID.fromString(envelope.payload()));
+                    } catch (IllegalArgumentException ignored) { }
+                } else if (envelope.type().equals("INVALIDATE_SERVER")) {
+                    databaseManager.invalidateServerCache(envelope.payload());
+                }
+            });
+        }
 
         // 2. Data Migration (v1 -> v2)
-        performDataMigration();
+        if (!databaseManager.crossServer()) performDataMigration();
 
         // 3. Reload Support: Load data for online players (Pre-load before modules)
         playerDataManager.reloadOnlinePlayers();
@@ -135,9 +200,19 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         // 4. Register Events
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getPluginManager().registerEvents(playerDataManager, this);
+        getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
+        dimensionAccessGuard = new DimensionAccessGuard(this);
+        dimensionAccessGuard.reload(configManager.getConfig("settings"));
+        getServer().getPluginManager().registerEvents(dimensionAccessGuard, this);
         initializeCrimsonProtection();
+        initializeMobSpawnFlags();
         earningsTracker = new ExcellentEconomyEarningsTracker(this);
         earningsTracker.start();
+        eventsModule = new EventsModule(this);
+        eventsModule.start(configManager.getConfig("settings"));
+        vipSlotsModule = new VipSlotsModule(this);
+        vipSlotsModule.reload(configManager.getConfig("settings"));
+        getServer().getPluginManager().registerEvents(vipSlotsModule, this);
 
         // 4. Initialize Modules
         moduleManager = new ModuleManager(this);
@@ -177,6 +252,7 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             placeholderExpansion = new ValerinUtilsExpansion(this);
             placeholderExpansion.register();
+            eventsModule.registerPlaceholders();
         }
 
         if (getCommand("valerinutils") != null) {
@@ -207,6 +283,15 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
             earningsTracker.stop();
             earningsTracker = null;
         }
+        if (dimensionAccessGuard != null) {
+            dimensionAccessGuard.stop();
+            dimensionAccessGuard = null;
+        }
+        if (eventsModule != null) {
+            eventsModule.stop();
+            eventsModule = null;
+        }
+        getServer().getMessenger().unregisterOutgoingPluginChannel(this, "BungeeCord");
         playerDataManager.saveAllAndClear();
 
         if (moduleManager != null) {
@@ -223,6 +308,10 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
         if (databaseManager != null) {
             databaseManager.closeConnection();
+        }
+        if (crossServerService != null) {
+            crossServerService.stop();
+            crossServerService = null;
         }
         long elapsedMs = (System.nanoTime() - startedAt) / 1_000_000L;
         getLogger().info("Disabled successfully in " + elapsedMs + " ms.");
@@ -250,6 +339,59 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
 
     public PlayerDataManager getPlayerDataManager() {
         return playerDataManager;
+    }
+
+    public CrossServerService getCrossServerService() {
+        return crossServerService;
+    }
+
+    public void publishBroadcast(List<String> formattedLines) {
+        if (crossServerService != null && crossServerService.enabled()) {
+            crossServerService.broadcast(String.join("\u001e", formattedLines));
+        }
+    }
+
+    public void publishHelpOp(String formatted) {
+        if (crossServerService != null && crossServerService.enabled()) crossServerService.helpOp(formatted);
+    }
+
+    public boolean routeRemoteAction(String targetName, String action, String argument) {
+        return crossServerService != null && crossServerService.routeAction(targetName, action, argument);
+    }
+
+    public boolean routeRemoteCommand(String targetName, String commandLine) {
+        return routeRemoteAction(targetName, "COMMAND", commandLine);
+    }
+
+    public void queueNetworkVoucher(String targetName, String typeId, int amount,
+                                    java.util.function.Consumer<UUID> callback) {
+        if (crossServerService == null || !crossServerService.enabled()) callback.accept(null);
+        else crossServerService.enqueueVoucher(targetName, typeId, amount, callback);
+    }
+
+    public void deliverPendingVoucher(CrossServerService.PendingVoucher grant) {
+        Player target = Bukkit.getPlayerExact(grant.targetName());
+        if (vouchersModule == null) {
+            crossServerService.resolveVoucher(grant, CrossServerService.VoucherResult.PENDING, 0, ignored -> { });
+        } else vouchersModule.deliverPendingVoucher(target, grant);
+    }
+
+    private void applyRemoteAction(String payload) {
+        String[] values = payload.split("\u001f", 4);
+        if (values.length != 4 || crossServerService == null
+                || !values[0].equals(crossServerService.config().serverId())) return;
+        try {
+            Player target = Bukkit.getPlayer(UUID.fromString(values[1]));
+            if (target == null || !target.isOnline()) return;
+            if (values[2].equals("COMMAND")) {
+                if (values[3].matches("(?i)(nick|grace) .{1,1000}"))
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), values[3]);
+            } else if (values[2].equals("PENDING_VOUCHERS")) {
+                crossServerService.deliverPending(target);
+            } else if (utilityModule != null) {
+                utilityModule.applyRemoteAction(target, values[2], values[3]);
+            }
+        } catch (IllegalArgumentException ignored) { }
     }
 
     // --- Migration Logic (Data) ---
@@ -615,6 +757,15 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
         if (configManager != null) {
             configManager.loadAll();
             reloadCrimsonProtection();
+            if (dimensionAccessGuard != null) {
+                dimensionAccessGuard.reload(configManager.getConfig("settings"));
+            }
+            if (eventsModule != null) {
+                eventsModule.reload(configManager.getConfig("settings"));
+            }
+            if (vipSlotsModule != null) {
+                vipSlotsModule.reload(configManager.getConfig("settings"));
+            }
             getLogger().info("Configurations reloaded via ConfigManager.");
         } else {
             // Fallback if called before init (should not happen)
@@ -640,6 +791,17 @@ public final class ValerinUtils extends JavaPlugin implements Listener {
     private void reloadCrimsonProtection() {
         if (crimsonProtection != null && configManager != null) {
             crimsonProtection.reload(configManager.getConfig("settings"));
+        }
+    }
+
+    private void initializeMobSpawnFlags() {
+        if (mobSpawnFlags == null || !Bukkit.getPluginManager().isPluginEnabled("WorldGuard")) {
+            return;
+        }
+        try {
+            getServer().getPluginManager().registerEvents(WorldGuardMobSpawnFlags.listener(mobSpawnFlags), this);
+        } catch (LinkageError | RuntimeException error) {
+            getLogger().severe("[MobSpawnFlags] Could not initialize: " + error.getMessage());
         }
     }
 

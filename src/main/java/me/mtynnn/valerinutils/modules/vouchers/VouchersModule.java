@@ -3,6 +3,7 @@ package me.mtynnn.valerinutils.modules.vouchers;
 import me.mtynnn.valerinutils.ValerinUtils;
 import me.mtynnn.valerinutils.core.BaseModule;
 import me.mtynnn.valerinutils.core.CommandHelpRenderer;
+import me.mtynnn.valerinutils.network.CrossServerService;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.luckperms.api.LuckPerms;
@@ -56,6 +57,7 @@ import java.util.stream.Collectors;
 public final class VouchersModule extends BaseModule implements Listener, CommandExecutor, TabCompleter {
 
     private final NamespacedKey voucherKey;
+    private final NamespacedKey voucherGrantKey;
     private final NamespacedKey guiActionKey;
     private final NamespacedKey guiTypeKey;
 
@@ -71,6 +73,7 @@ public final class VouchersModule extends BaseModule implements Listener, Comman
     public VouchersModule(ValerinUtils plugin) {
         super(plugin);
         this.voucherKey = new NamespacedKey(plugin, "voucher_type");
+        this.voucherGrantKey = new NamespacedKey(plugin, "voucher_grant_id");
         this.guiActionKey = new NamespacedKey(plugin, "voucher_gui_action");
         this.guiTypeKey = new NamespacedKey(plugin, "voucher_gui_type");
     }
@@ -209,13 +212,6 @@ public final class VouchersModule extends BaseModule implements Listener, Comman
                 return true;
             }
 
-            Player target = Bukkit.getPlayerExact(args[1]);
-            if (target == null || !target.isOnline()) {
-                sender.sendMessage(comp(msg("messages.player-not-found",
-                        "%prefix%<red>Jugador no encontrado.")));
-                return true;
-            }
-
             String typeId = args[2].toLowerCase(Locale.ROOT);
             VoucherType type = voucherTypes.get(typeId);
             if (type == null) {
@@ -231,6 +227,23 @@ public final class VouchersModule extends BaseModule implements Listener, Comman
                 } catch (NumberFormatException ignored) {
                     amount = 1;
                 }
+            }
+
+            Player target = Bukkit.getPlayerExact(args[1]);
+            if (target == null || !target.isOnline()) {
+                if (plugin.getCrossServerService() != null && plugin.getCrossServerService().enabled()) {
+                    plugin.queueNetworkVoucher(args[1], typeId, amount, grantId -> {
+                        if (grantId != null) plugin.routeRemoteAction(args[1], "PENDING_VOUCHERS", "");
+                        sender.sendMessage(comp(grantId != null
+                            ? msg("messages.give-queued", "%prefix%<green>Voucher pendiente para <white>%player%<green>.")
+                                    .replace("%player%", args[1])
+                            : msg("messages.give-queue-failed", "%prefix%<red>No se pudo guardar el voucher pendiente.")));
+                    });
+                    return true;
+                }
+                sender.sendMessage(comp(msg("messages.player-not-found",
+                        "%prefix%<red>Jugador no encontrado.")));
+                return true;
             }
 
             ItemStack stack = buildVoucherItem(type, amount);
@@ -263,6 +276,90 @@ public final class VouchersModule extends BaseModule implements Listener, Comman
                         "/voucher give "),
                 CommandHelpRenderer.Entry.of(
                         "/voucher reload", "Recargar la configuración", "/voucher reload")));
+    }
+
+    public void deliverPendingVoucher(Player player, CrossServerService.PendingVoucher grant) {
+        CrossServerService cross = plugin.getCrossServerService();
+        if (player == null || !player.isOnline()) {
+            if ("DONE".equals(grant.status())) cross.releaseVoucher(grant.grantId());
+            else {
+                VoucherGrantDecision.Result unavailable = VoucherGrantDecision.unavailable(grant.amount());
+                cross.resolveVoucher(grant, CrossServerService.VoucherResult.PENDING,
+                        unavailable.leftover(), ignored -> { });
+            }
+            return;
+        }
+        if ("DONE".equals(grant.status())) {
+            clearGrantTag(player, grant.grantId());
+            player.saveData();
+            cross.cleanupVoucher(grant.grantId());
+            return;
+        }
+
+        int tagged = countGrant(player, grant.grantId());
+        if (!grant.freshClaim()) {
+            VoucherGrantDecision.Result recovery = VoucherGrantDecision.recover(grant.amount(), tagged);
+            resolveGrant(player, grant, recovery, tagged);
+            return;
+        }
+
+        VoucherType type = voucherTypes.get(grant.typeId());
+        if (type == null) {
+            cross.resolveVoucher(grant, CrossServerService.VoucherResult.PENDING, 0, ignored -> { });
+            return;
+        }
+        ItemStack item = buildVoucherItem(type, grant.amount()).clone();
+        ItemMeta meta = item.getItemMeta();
+        meta.getPersistentDataContainer().set(voucherGrantKey, PersistentDataType.STRING, grant.grantId().toString());
+        item.setItemMeta(meta);
+        Map<Integer, ItemStack> leftovers = player.getInventory().addItem(item);
+        int leftover = leftovers.values().stream().mapToInt(ItemStack::getAmount).sum();
+        int inserted = Math.max(0, grant.amount() - leftover);
+        if (inserted > 0) player.saveData();
+        resolveGrant(player, grant, VoucherGrantDecision.afterAttempt(grant.amount(), leftover), inserted);
+    }
+
+    private void resolveGrant(Player player, CrossServerService.PendingVoucher grant,
+                              VoucherGrantDecision.Result result, int delivered) {
+        CrossServerService.VoucherResult state = switch (result.state()) {
+            case PENDING -> CrossServerService.VoucherResult.PENDING;
+            case DONE -> CrossServerService.VoucherResult.DONE;
+            case PARTIAL -> CrossServerService.VoucherResult.PARTIAL;
+        };
+        plugin.getCrossServerService().resolveVoucher(grant, state, result.leftover(), committed -> {
+            if (!committed || state == CrossServerService.VoucherResult.PENDING) return;
+            clearGrantTag(player, grant.grantId());
+            player.saveData();
+            plugin.getCrossServerService().cleanupVoucher(grant.grantId());
+            if (delivered > 0) player.sendMessage(comp(msg("messages.give-ok-target",
+                    "%prefix%<green>Has recibido <white>%amount%x %voucher%")
+                    .replace("%amount%", String.valueOf(delivered)).replace("%voucher%", grant.typeId())));
+        });
+    }
+
+    private int countGrant(Player player, UUID grantId) {
+        int total = 0;
+        for (ItemStack item : player.getInventory().getStorageContents()) {
+            if (hasGrant(item, grantId)) total += item.getAmount();
+        }
+        return total;
+    }
+
+    private void clearGrantTag(Player player, UUID grantId) {
+        ItemStack[] contents = player.getInventory().getStorageContents();
+        for (ItemStack item : contents) {
+            if (!hasGrant(item, grantId)) continue;
+            ItemMeta meta = item.getItemMeta();
+            meta.getPersistentDataContainer().remove(voucherGrantKey);
+            item.setItemMeta(meta);
+        }
+        player.getInventory().setStorageContents(contents);
+    }
+
+    private boolean hasGrant(ItemStack item, UUID grantId) {
+        if (item == null || !item.hasItemMeta()) return false;
+        return grantId.toString().equals(item.getItemMeta().getPersistentDataContainer()
+                .get(voucherGrantKey, PersistentDataType.STRING));
     }
 
     @Override
